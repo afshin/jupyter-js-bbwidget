@@ -1,0 +1,6 @@
+*.suo
+*.user
+.DS_Store
+example/**/*.js
+lib
+node_modules

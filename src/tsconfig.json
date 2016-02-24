@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "noImplicitAny": true,
+    "noEmitOnError": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES5",
+    "outDir": "../lib"
+  },
+  "files": [
+    "../typings/jquery/jquery.d.ts",
+    "../typings/underscore/underscore.d.ts",
+    "../typings/backbone/backbone.d.ts",
+    "index.ts"
+  ]
+}

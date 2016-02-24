@@ -1,0 +1,13 @@
+{
+  "target": "ES5",
+  "module": "commonjs",
+  "moduleResolution": "node",
+  "excludeNotExported": true,
+  "mode": "file",
+  "out": "docs",
+  "src": [
+    "src/index.ts",
+    "typings/es6-promise.d.ts",
+    "typings/term.js.d.ts"
+  ]
+}
