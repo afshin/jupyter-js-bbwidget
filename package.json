@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "dependencies": {
+    "phosphor-messaging": "^1.0.6",
     "phosphor-widget": "^1.0.0-rc.0",
     "backbone": "1.0.x",
     "jquery": "2.2.x",

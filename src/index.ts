@@ -5,31 +5,33 @@
 import * as Backbone from 'backbone';
 
 import {
+  Message
+} from 'phosphor-messaging';
+
+import {
   ResizeMessage, Widget
 } from 'phosphor-widget';
 
 export
-interface JupyterBackboneView extends Backbone.View<any> {
-  /**
-   * Triggered on model change.
-   *
-   * Update view to be consistent with this.model
-   */
-  update(): void;
-}
-
-export
 class BBWidget extends Widget {
 
-  constructor(view: JupyterBackboneView) {
+  constructor(View: typeof Backbone.View, model: any) {
     super();
-    this._view = view;
+    model.el = this.node;
+    this._view = new View(model);
   }
 
   dispose(): void {
     this._view.undelegateEvents();
     this._view.remove();
     super.dispose();
+  }
+
+  /**
+   * On attach, render the Backbone view.
+   */
+  protected onAfterAttach(msg: Message): void {
+    this._view.render();
   }
 
   /**
@@ -42,5 +44,5 @@ class BBWidget extends Widget {
     this._view.render();
   }
 
-  private _view: JupyterBackboneView;
+  private _view: Backbone.View<any>;
 }
