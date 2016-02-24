@@ -15,10 +15,30 @@ import {
 export
 class BBWidget extends Widget {
 
-  constructor(View: typeof Backbone.View, model: any) {
+  constructor(View: typeof Backbone.View, options: any = {}) {
     super();
-    model.el = this.node;
-    this._view = new View(model);
+    options.el = this.node;
+    this._view = new View(options);
+  }
+
+  get collection(): any {
+    return this._view.collection;
+  }
+
+  set collection(collection: any) {
+    this._view.collection = collection;
+  }
+
+  get el(): HTMLElement {
+    return this.node;
+  }
+
+  get model(): any {
+    return this._view.model;
+  }
+
+  set model(model: any) {
+    this._view.model = model;
   }
 
   dispose(): void {
