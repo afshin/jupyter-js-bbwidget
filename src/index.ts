@@ -54,15 +54,5 @@ class BBWidget extends Widget {
     this._view.render();
   }
 
-  /**
-   * On resize, notify the Backbone view.
-   */
-  protected onResize(msg: ResizeMessage): void {
-    if (!this.isAttached || !this.isVisible) {
-      return;
-    }
-    this._view.render();
-  }
-
   private _view: Backbone.View<any>;
 }

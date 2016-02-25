@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "name": "jupyter-js-bbwidget-example",
+  "dependencies": {
+    "jupyter-js-bbwidget": "file:.."
+  },
+  "scripts": {
+    "build": "cd .. && npm run build:example",
+    "postinstall": "npm dedupe"
+  }
+}
