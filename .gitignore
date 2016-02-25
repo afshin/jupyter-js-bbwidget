@@ -1,6 +1,6 @@
 *.suo
 *.user
 .DS_Store
-example/**/*.js
+example/build
 lib
 node_modules
