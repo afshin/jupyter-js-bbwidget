@@ -14,9 +14,16 @@
 }
 
 .one, .three, .five, .seven, .nine {
-  background: #eeeeee;
+  background: #ffffff;
 }
 
 .two, .four, .six, .eight {
-  background: #dcdcdc;
+  background: #fffeee;
+}
+
+.five img {
+ position: absolute;
+ left: 50%;
+ top: 50%;
+ transform: translate(-50%, -50%);
 }

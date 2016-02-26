@@ -7,7 +7,7 @@
   "dependencies": {
     "backbone": "1.0.x",
     "jquery": "2.2.x",
-    "jupyter-js-widgets": "0.0.14",
+    "jupyter-js-widgets": "file:../../ipython/ipywidgets/jupyter-js-widgets",
     "phosphor-boxpanel": "^1.0.0-rc.0",
     "phosphor-messaging": "^1.0.6",
     "phosphor-widget": "^1.0.0-rc.0",

@@ -51,6 +51,7 @@ class BBWidget extends Widget {
    * On attach, render the Backbone view.
    */
   protected onAfterAttach(msg: Message): void {
+    console.log(this.node);
     this._view.render();
   }
 
