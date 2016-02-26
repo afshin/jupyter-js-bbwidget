@@ -9,7 +9,9 @@ var BBWidget = require('jupyter-js-bbwidget').BBWidget;
 
 var BoxPanel = require('phosphor-boxpanel').BoxPanel;
 
-var imageData = require('./image');
+var imageData = require('./data/image');
+
+var latexData = require('./data/latex');
 
 
 function layoutPage() {
@@ -44,8 +46,10 @@ function main() {
   var rowThree = layout[2];
 
   // Create row one widgets
-  var one = new BBWidget(widgets.ColorPickerView);
-  one.model = new widgets.ColorPickerModel({ callbacks: noop });
+  var one = new BBWidget(widgets.LatexView);
+  var latexModel = new widgets.LatexModel({ callbacks: noop });
+  latexModel.set('value', latexData);
+  one.model = latexModel;
   one.addClass('one');
 
   var two = new BBWidget(widgets.ColorPickerView);
