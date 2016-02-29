@@ -46,19 +46,19 @@ function main() {
   var rowThree = layout[2];
 
   // Create row one widgets
-  var one = new BBWidget(widgets.LatexView);
+  var one = new BBWidget(new widgets.LatexView({}));
   var latexModel = new widgets.LatexModel({ callbacks: noop });
   latexModel.set('value', latexData);
   one.model = latexModel;
   one.addClass('one');
 
-  var two = new BBWidget(widgets.ColorPickerView);
+  var two = new BBWidget(new widgets.ColorPickerView({}));
   var twoModel = new widgets.ColorPickerModel({ callbacks: noop });
   twoModel.set('description', 'Color picker widget');
   two.model = twoModel;
   two.addClass('two');
 
-  var three = new BBWidget(widgets.CheckboxView);
+  var three = new BBWidget(new widgets.CheckboxView({}));
   var threeModel = new widgets.CheckboxModel({ callbacks: noop });
   threeModel.set('description', 'Checkbox widget');
   three.model = threeModel;
@@ -73,11 +73,11 @@ function main() {
   BoxPanel.setStretch(three, 1);
 
   // Create row two widgets
-  var four = new BBWidget(widgets.ColorPickerView);
+  var four = new BBWidget(new widgets.ColorPickerView({}));
   four.model = new widgets.ColorPickerModel({ callbacks: noop });
   four.addClass('four');
 
-  var five = new BBWidget(widgets.ImageView);
+  var five = new BBWidget(new widgets.ImageView({}));
   var imageModel = new widgets.ImageModel({ callbacks: noop });
   imageModel.set('_b64value', imageData);
   imageModel.set('format', 'png');
@@ -86,7 +86,7 @@ function main() {
   five.model = imageModel;
   five.addClass('five');
 
-  var six = new BBWidget(widgets.ColorPickerView);
+  var six = new BBWidget(new widgets.ColorPickerView({}));
   six.model = new widgets.ColorPickerModel({ callbacks: noop });
   six.addClass('six');
 
@@ -99,15 +99,15 @@ function main() {
   BoxPanel.setStretch(six, 1);
 
   // Create row three widgets
-  var seven = new BBWidget(widgets.ColorPickerView);
+  var seven = new BBWidget(new widgets.ColorPickerView({}));
   seven.model = new widgets.ColorPickerModel({ callbacks: noop });
   seven.addClass('seven');
 
-  var eight = new BBWidget(widgets.ColorPickerView);
+  var eight = new BBWidget(new widgets.ColorPickerView({}));
   eight.model = new widgets.ColorPickerModel({ callbacks: noop });
   eight.addClass('eight');
 
-  var nine = new BBWidget(widgets.ColorPickerView);
+  var nine = new BBWidget(new widgets.ColorPickerView({}));
   nine.model = new widgets.ColorPickerModel({ callbacks: noop });
   nine.addClass('nine');
 

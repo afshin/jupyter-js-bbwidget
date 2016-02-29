@@ -15,10 +15,9 @@ import {
 export
 class BBWidget extends Widget {
 
-  constructor(View: typeof Backbone.View, options: any = {}) {
+  constructor(view: Backbone.View<any>) {
     super();
-    options.el = this.node;
-    this._view = new View(options);
+    this._view = view;
   }
 
   get collection(): any {
@@ -51,8 +50,10 @@ class BBWidget extends Widget {
    * On attach, render the Backbone view.
    */
   protected onAfterAttach(msg: Message): void {
-    console.log(this.node);
+    this.node.textContent = '';
     this._view.render();
+    this.node.appendChild(this._view.el);
+    console.log(this.node);
   }
 
   private _view: Backbone.View<any>;
