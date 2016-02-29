@@ -92,19 +92,19 @@
 	  var rowThree = layout[2];
 
 	  // Create row one widgets
-	  var one = new BBWidget(widgets.LatexView);
+	  var one = new BBWidget(new widgets.LatexView({}));
 	  var latexModel = new widgets.LatexModel({ callbacks: noop });
 	  latexModel.set('value', latexData);
 	  one.model = latexModel;
 	  one.addClass('one');
 
-	  var two = new BBWidget(widgets.ColorPickerView);
+	  var two = new BBWidget(new widgets.ColorPickerView({}));
 	  var twoModel = new widgets.ColorPickerModel({ callbacks: noop });
 	  twoModel.set('description', 'Color picker widget');
 	  two.model = twoModel;
 	  two.addClass('two');
 
-	  var three = new BBWidget(widgets.CheckboxView);
+	  var three = new BBWidget(new widgets.CheckboxView({}));
 	  var threeModel = new widgets.CheckboxModel({ callbacks: noop });
 	  threeModel.set('description', 'Checkbox widget');
 	  three.model = threeModel;
@@ -119,11 +119,11 @@
 	  BoxPanel.setStretch(three, 1);
 
 	  // Create row two widgets
-	  var four = new BBWidget(widgets.ColorPickerView);
+	  var four = new BBWidget(new widgets.ColorPickerView({}));
 	  four.model = new widgets.ColorPickerModel({ callbacks: noop });
 	  four.addClass('four');
 
-	  var five = new BBWidget(widgets.ImageView);
+	  var five = new BBWidget(new widgets.ImageView({}));
 	  var imageModel = new widgets.ImageModel({ callbacks: noop });
 	  imageModel.set('_b64value', imageData);
 	  imageModel.set('format', 'png');
@@ -132,7 +132,7 @@
 	  five.model = imageModel;
 	  five.addClass('five');
 
-	  var six = new BBWidget(widgets.ColorPickerView);
+	  var six = new BBWidget(new widgets.ColorPickerView({}));
 	  six.model = new widgets.ColorPickerModel({ callbacks: noop });
 	  six.addClass('six');
 
@@ -145,15 +145,15 @@
 	  BoxPanel.setStretch(six, 1);
 
 	  // Create row three widgets
-	  var seven = new BBWidget(widgets.ColorPickerView);
+	  var seven = new BBWidget(new widgets.ColorPickerView({}));
 	  seven.model = new widgets.ColorPickerModel({ callbacks: noop });
 	  seven.addClass('seven');
 
-	  var eight = new BBWidget(widgets.ColorPickerView);
+	  var eight = new BBWidget(new widgets.ColorPickerView({}));
 	  eight.model = new widgets.ColorPickerModel({ callbacks: noop });
 	  eight.addClass('eight');
 
-	  var nine = new BBWidget(widgets.ColorPickerView);
+	  var nine = new BBWidget(new widgets.ColorPickerView({}));
 	  nine.model = new widgets.ColorPickerModel({ callbacks: noop });
 	  nine.addClass('nine');
 
@@ -29375,7 +29375,7 @@
 	                        for (var i=0; i<buffer_keys.length; i++) {
 	                            state[buffer_keys[i]] = buffers[i];
 	                        }
-	                        return that.constructor._deserialize_state(state, that.manager);
+	                        return that.constructor._deserialize_state(state, that.widget_manager);
 	                    }).then(function(state) {
 	                        that.set_state(state);
 	                    }).catch(utils.reject("Couldn't process update msg for model id '" + String(that.id) + "'", true))
@@ -29890,10 +29890,18 @@
 	            el = this.el;
 	        }
 	        _.difference(old_classes, new_classes).map(function(c) {
-	            el.classList.remove(c);
+	            if (el.classList) { // classList is not supported by IE for svg elements
+	                el.classList.remove(c);
+	            } else {
+	                el.setAttribute("class", el.getAttribute("class").replace(c, ""));
+	            }
 	        });
 	        _.difference(new_classes, old_classes).map(function(c) {
-	            el.classList.add(c);
+	            if (el.classList) { // classList is not supported by IE for svg elements
+	                el.classList.add(c);
+	            } else {
+	                el.setAttribute("class", el.getAttribute("class").concat(" ", c));
+	            }
 	        });
 	    },
 
@@ -30063,44 +30071,12 @@
 	};
 
 	/**
-	 * Handles when a comm, without a target module, connects.
-	 * @param  {object} content - msg content
-	 * @return {Comm}
-	 */
-	CommManager.prototype._handle_comm_connect = function(kernel, msg) {
-	    var targetName = msg.content.target_name;
-
-	    // Get the target from the registry.
-	    var target = this.targets[targetName];
-	    if (target === undefined) {
-	        console.error('Comm target "'  + targetName + '" not registered');
-	        return;
-	    }
-
-	    // Create the comm.
-	    var comm = new Comm(this.jsServicesKernel.connectToComm(targetName, msg.content.comm_id));
-
-	    // Call the callback for the comm.
-	    try {
-	        var response = target(comm, msg);
-	    } catch (e) {
-	        comm.close();
-	        var wrapped_error = new utils.WrappedError("Exception opening new comm", e);
-	        console.error(wrapped_error);
-	        return;
-	    }
-
-	    return comm;
-	};
-
-	/**
 	 * Hookup kernel events.
 	 * @param  {IKernel} jsServicesKernel - jupyter-js-services IKernel instance
 	 */
 	CommManager.prototype.init_kernel = function(jsServicesKernel) {
 	    this.kernel = jsServicesKernel; // These aren't really the same.
 	    this.jsServicesKernel = jsServicesKernel;
-	    this.jsServicesKernel.commOpened.connect(_.bind(this._handle_comm_connect, this));
 	};
 
 	/**
@@ -30125,7 +30101,21 @@
 	 *                         comm is made.  Signature of f(comm, msg).
 	 */
 	CommManager.prototype.register_target = function (target_name, f) {
-	    this.targets[target_name] = f;
+	    var handle = this.jsServicesKernel.registerCommTarget(target_name, function(jsServicesComm, msg) {
+	        // Create the comm.
+	        var comm = new Comm(jsServicesComm);
+
+	        // Call the callback for the comm.
+	        try {
+	            var response = f(comm, msg);
+	        } catch (e) {
+	            comm.close();
+	            var wrapped_error = new utils.WrappedError("Exception opening new comm", e);
+	            console.error(wrapped_error);
+	            return;
+	        }
+	    });
+	    this.targets[target_name] = handle;
 	};
 
 	/**
@@ -30133,6 +30123,8 @@
 	 * @param  {string} target_name
 	 */
 	CommManager.prototype.unregister_target = function (target_name, f) {
+	    var handle = this.targets[target_name];
+	    handle.dispose();
 	    delete this.targets[target_name];
 	};
 
@@ -30632,13 +30624,13 @@
 
 	        var btn = document.createElement('button');
 	        btn.className = 'jupyter-widgets widget-toggle-button btn btn-default';
-	        btn.setAttribute('type', 'button');
+	        btn.type = 'button';
 	        btn.onclick = function (e) {
 	            e.preventDefault();
 	            that.handle_click();
 	        }
 	        this.setElement(btn);
-	        this.el.setAttribute('data-toggle', 'tooltip');
+	        this.el['data-toggle'] = 'tooltip';
 	        this.listenTo(this.model, 'change:button_style', this.update_button_style, this);
 	        this.update_button_style();
 
@@ -30895,7 +30887,7 @@
 	    }, widget.DOMWidgetModel.serializers),
 	});
 
-	var ProxyView = widget.WidgetView.extend({
+	var ProxyView = widget.DOMWidgetView.extend({
 	    initialize: function() {
 	        // Public constructor
 	        ProxyView.__super__.initialize.apply(this, arguments);
@@ -31948,8 +31940,7 @@
 	         */
 	        var img = document.createElement('img');
 	        img.className = 'jupyter-widgets widget-image';
-	        this.el.textContent = '';
-	        this.el.appendChild(img);
+	        this.setElement(img);
 
 	        this.update(); // Set defaults.
 	    },
@@ -31962,21 +31953,20 @@
 	         * changed by another view or by a state update from the back-end.
 	         */
 	        var image_src = 'data:image/' + this.model.get('format') + ';base64,' + this.model.get('_b64value');
-	        var img = this.el.querySelector('img');
-	        img.setAttribute('src', image_src);
+	        this.el.setAttribute('src', image_src);
 
 	        var width = this.model.get('width');
 	        if (width !== undefined && width.length > 0) {
-	            img.setAttribute('width', width);
+	            this.el.setAttribute('width', width);
 	        } else {
-	            img.removeAttribute('width');
+	            this.el.removeAttribute('width');
 	        }
 
 	        var height = this.model.get('height');
 	        if (height !== undefined && height.length > 0) {
-	            img.setAttribute('height', height);
+	            this.el.setAttribute('height', height);
 	        } else {
-	            img.removeAttribute('height');
+	            this.el.removeAttribute('height');
 	        }
 	        return ImageView.__super__.update.apply(this);
 	    },
@@ -32025,6 +32015,7 @@
 
 	        this.textbox = document.createElement('input');
 	        this.textbox.setAttribute('type', 'text');
+
 	        this.color_container.appendChild(this.textbox);
 	        this.textbox.value = this.model.get('value');
 
@@ -32194,14 +32185,16 @@
 	        e.stopImmediatePropagation();
 	        e.preventDefault();
 
-	        // Get the bottom of the dropdown label, and the bottom of the nb site.
+	        // Get the bottom of the dropdown label, and the bottom of the nb body.
 	        // The difference is the maximum height of the dropmenu when displayed
 	        // below the button.
-
 	        var droplabelRect = this.droplabel.getBoundingClientRect();
-
-	        var siteRect = document.querySelector('#site').getBoundingClientRect();
-	        var maxHeight = siteRect.bottom - droplabelRect.bottom;
+	        var parent = this.droplabel.parentNode;
+	        while (parent.parentNode) {
+	          parent = parent.parentNode;
+	        }
+	        var bodyRect = parent.body.getBoundingClientRect();
+	        var maxHeight = bodyRect.bottom - droplabelRect.bottom;
 
 	        // If the maximum height of the dropdown's space is less than the
 	        // height of the dropdown itself, make it drop up!
@@ -32855,17 +32848,10 @@
 	        /**
 	         * Called when view is rendered.
 	         */
-	        // this.$el
-	        //     .addClass('jupyter-widgets widget-hbox widget-hslider');
-
 	        this.el.classList.add('jupyter-widgets');
 	        this.el.classList.add('widget-hbox');
 	        this.el.classList.add('widget-hslider');
 
-	        // this.$label = $('<div />')
-	        //     .appendTo(this.$el)
-	        //     .addClass('widget-label')
-	        //     .hide();
 	        this.label = document.createElement('div');
 	        this.label.classList.add('widget-label');
 	        this.label.style.display = 'none';
@@ -32877,7 +32863,6 @@
 	        this.slider = document.createElement('input');
 	        this.slider.setAttribute('type', 'range');
 	        this.slider.classList.add('slider'); // TODO - is this necessary.
-
 
 	        // Put the slider in a container
 	        // this.$slider_container = $('<div />')
@@ -33228,9 +33213,6 @@
 	         * Called when view is rendered.
 	         */
 	        var guid = 'panel-group' + utils.uuid();
-	        // this.$el
-	        //     .attr('id', guid)
-	        //     .addClass('jupyter-widgets panel-group');
 	        this.el.id = guid;
 	        this.el.classList.add('jupyter-widgets');
 	        this.el.classList.add('panel-group');
@@ -33324,34 +33306,15 @@
 	         */
 	        var index = this.containers.length;
 	        var uuid = utils.uuid();
-	        // var accordion_group = $('<div />')
-	        //     .addClass('panel panel-default')
-	        //     .appendTo(this.$el);
 	        var accordion_group = document.createElement('div');
 	        accordion_group.className = 'panel panel-default';
 	        this.el.appendChild(accordion_group);
 
-	        // var accordion_heading = $('<div />')
-	        //     .addClass('panel-heading')
-	        //     .appendTo(accordion_group);
 	        var accordion_heading = document.createElement('div');
 	        accordion_heading.classList.add('panel-heading');
 	        accordion_group.appendChild(accordion_heading);
 
 	        var that = this;
-	        // var accordion_toggle = $('<a />')
-	        //     .addClass('accordion-toggle')
-	        //     .attr('data-toggle', 'collapse')
-	        //     .attr('data-parent', '#' + this.$el.attr('id'))
-	        //     .attr('href', '#' + uuid)
-	        //     .click(function(evt) {
-	        //         // Calling model.set will trigger all of the other views of
-	        //         // the model to update.
-	        //         that.model.set("selected_index", index, {updated_view: that});
-	        //         that.touch();
-	        //      })
-	        //     .text('Page ' + index)
-	        //     .appendTo(accordion_heading);
 	        var accordion_toggle = document.createElement('a');
 	        accordion_toggle.classList.add('accordion-toggle');
 	        accordion_toggle.setAttribute('data-toggle', 'collapse');
@@ -33364,17 +33327,11 @@
 	        accordion_toggle.innerText('Page ' + index);
 	        accordion_heading.appendChild(accordion_toggle);
 
-	        // var accordion_body = $('<div />', {id: uuid})
-	        //     .addClass('panel-collapse collapse')
-	        //     .appendTo(accordion_group);
 	        var accordion_body = document.createElement('div');
 	        accordion_body.id = uuid;
 	        accordion_body.className = 'panel-collapse collapse';
 	        accordion_group.appendChild(accordion_body);
 
-	        // var accordion_inner = $('<div />')
-	        //     .addClass('panel-body')
-	        //     .appendTo(accordion_body);
 	        var accordion_inner = document.createElement('div');
 	        accordion_inner.classList.add('panel-body');
 	        accordion_body.appendChild(accordion_inner);
@@ -33383,12 +33340,10 @@
 	        accordion_group.container_index = container_index;
 	        this.model_containers[model.id] = accordion_group;
 
-	        // var dummy = $('<div/>');
 	        var dummy = document.createElement('div');
 	        accordion_inner.appendChild(dummy);
 	        return this.create_child_view(model).then(function(view) {
 
-	            // dummy.replaceWith(view.$el);
 	            dummy.parentNode.replaceChild(dummy, view.el);
 
 	            that.update_selected_index();
@@ -34311,11 +34266,9 @@
 	var phosphor_widget_1 = __webpack_require__(25);
 	var BBWidget = (function (_super) {
 	    __extends(BBWidget, _super);
-	    function BBWidget(View, options) {
-	        if (options === void 0) { options = {}; }
+	    function BBWidget(view) {
 	        _super.call(this);
-	        options.el = this.node;
-	        this._view = new View(options);
+	        this._view = view;
 	    }
 	    Object.defineProperty(BBWidget.prototype, "collection", {
 	        get: function () {
@@ -34353,8 +34306,10 @@
 	     * On attach, render the Backbone view.
 	     */
 	    BBWidget.prototype.onAfterAttach = function (msg) {
-	        console.log(this.node);
+	        this.node.textContent = '';
 	        this._view.render();
+	        this.node.appendChild(this._view.el);
+	        console.log(this.node);
 	    };
 	    return BBWidget;
 	})(phosphor_widget_1.Widget);
