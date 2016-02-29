@@ -99,7 +99,9 @@
 	  one.addClass('one');
 
 	  var two = new BBWidget(widgets.ColorPickerView);
-	  two.model = new widgets.ColorPickerModel({ callbacks: noop });
+	  var twoModel = new widgets.ColorPickerModel({ callbacks: noop });
+	  twoModel.set('description', 'Color picker widget');
+	  two.model = twoModel;
 	  two.addClass('two');
 
 	  var three = new BBWidget(widgets.ColorPickerView);
@@ -29143,12 +29145,33 @@
 	 * text: option string
 	 */
 	function typeset(element, text) {
+	    // var $el = element.jquery ? element : $(element);
+	    // if(arguments.length > 1){
+	    //     $el.text(text);
+	    // }
+	    // if(!window.MathJax){
+	    //     return;
+	    // }
+	    // return $el.map(function(){
+	    //     // MathJax takes a DOM node: $.map makes `this` the context
+	    //     return MathJax.Hub.Queue(["Typeset", MathJax.Hub, this]);
+	    // });
 	    if (arguments.length > 1) {
 	      element.innerHTML = text;
 	    }
 	    if (!window.MathJax) {
 	      return;
 	    }
+	    var output = [];
+	    if (element.length) {
+	        for (var i = 0; i < element.length; ++i) {
+	            var el = element[i];
+	            output.push(MathJax.Hub.Queue(['TypeSet', MathJax.Hub, el]));
+	        }
+	    } else {
+	        output.push(MathJax.Hub.Queue(['TypeSet', MathJax.Hub, element]));
+	    }
+	    return output;
 	}
 
 	/**
@@ -31994,18 +32017,16 @@
 	        this.el.appendChild(this.label);
 
 	        this.color_container = document.createElement('div');
-	        this.color_container.className = 'widget-hbox input-group';
+	        this.color_container.className = 'widget-hbox';
 	        this.el.appendChild(this.color_container);
 
 	        this.textbox = document.createElement('input');
 	        this.textbox.setAttribute('type', 'text');
-	        this.textbox.classList.add('form-control');
 	        this.color_container.appendChild(this.textbox);
 	        this.textbox.value = this.model.get('value');
 
 	        this.colorpicker = document.createElement('input');
 	        this.colorpicker.setAttribute('type', 'color');
-	        this.colorpicker.classList.add('input-group-addon');
 	        this.color_container.appendChild(this.colorpicker);
 
 	        this.listenTo(this.model, 'change:value', this._update_value, this);
@@ -32039,11 +32060,9 @@
 	        var concise = this.model.get('concise');
 	        if (concise) {
 	            this.el.classList.add('concise');
-	            this.colorpicker.classList.remove('input-group-addon');
 	            this.textbox.style.display = 'none';
 	        } else {
 	            this.el.classList.remove('concise');
-	            this.colorpicker.classList.add('input-group-addon');
 	            this.textbox.style.display = '';
 	        }
 	    },
