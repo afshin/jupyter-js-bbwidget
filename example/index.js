@@ -53,7 +53,9 @@ function main() {
   one.addClass('one');
 
   var two = new BBWidget(widgets.ColorPickerView);
-  two.model = new widgets.ColorPickerModel({ callbacks: noop });
+  var twoModel = new widgets.ColorPickerModel({ callbacks: noop });
+  twoModel.set('description', 'Color picker widget');
+  two.model = twoModel;
   two.addClass('two');
 
   var three = new BBWidget(widgets.ColorPickerView);

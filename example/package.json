@@ -7,5 +7,9 @@
   "scripts": {
     "build": "cd .. && npm run build:example",
     "postinstall": "npm dedupe"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/afshin/jupyter-js-bbwidget.git"
   }
 }

@@ -13,6 +13,10 @@
     "phosphor-widget": "^1.0.0-rc.0",
     "underscore": "1.7.x"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/afshin/jupyter-js-bbwidget"
+  },
   "devDependencies": {
     "css-loader": "^0.23.1",
     "rimraf": "^2.5.2",
