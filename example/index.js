@@ -58,8 +58,10 @@ function main() {
   two.model = twoModel;
   two.addClass('two');
 
-  var three = new BBWidget(widgets.ColorPickerView);
-  three.model = new widgets.ColorPickerModel({ callbacks: noop });
+  var three = new BBWidget(widgets.CheckboxView);
+  var threeModel = new widgets.CheckboxModel({ callbacks: noop });
+  threeModel.set('description', 'Checkbox widget');
+  three.model = threeModel;
   three.addClass('three');
 
   // Populate row one
