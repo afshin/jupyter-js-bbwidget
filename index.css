@@ -40,6 +40,16 @@ body {
  transform: translate(-50%, -50%);
 }
 
+.widget-checkbox {
+  padding: 40px;
+  text-align: center;
+}
+
+.widget-checkbox .widget-label {
+  display: inline;
+  margin-left: 5px;
+}
+
 .widget-colorpicker .widget-label {
   position: relative;
   margin: 20px auto 0 auto;
