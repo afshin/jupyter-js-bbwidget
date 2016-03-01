@@ -1,0 +1,52 @@
+/*-----------------------------------------------------------------------------
+| Copyright (c) Jupyter Development Team.
+| Distributed under the terms of the Modified BSD License.
+|----------------------------------------------------------------------------*/
+
+.widget-button {
+  background-image: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-block;
+  margin-bottom: 0;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  border-color: #dbdbdb;
+  border-color: #cccccc;
+}
+
+
+.widget-button-primary {
+  background-color: #337ab7;
+  border-color: #245580;
+  color: white;
+}
+
+
+.widget-button-success {
+  background-color: #5cb85c;
+  border-color: #3e8f3e;
+  color: white;
+}
+
+
+.widget-button-info {
+  background-color: #5bc0de;
+  border-color: #28a4c9;
+  color: white;
+}
+
+
+.widget-button-warning {
+  background-color: #f0ad4e;
+  border-color: #e38d13;
+  color: white;
+}
+
+
+.widget-button-danger {
+  background-color: #d9534f;
+  border-color: #b92c28;
+  color: white;
+}

@@ -1,0 +1,59 @@
+/*-----------------------------------------------------------------------------
+| Copyright (c) Jupyter Development Team.
+| Distributed under the terms of the Modified BSD License.
+|----------------------------------------------------------------------------*/
+
+@import "widget-button.css";
+@import "widget-checkbox.css";
+@import "widget-colorpicker.css";
+@import "widget-image.css";
+
+body {
+  font-family: monaco, monospace, courier;
+  font-size: 12px;
+}
+
+
+#main {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+}
+
+
+.one, .three, .five, .seven, .nine {
+  background: #ffffff;
+}
+
+
+.two, .four, .six, .eight {
+  background: #eeeeee;
+}
+
+
+.one {
+  text-align: center;
+}
+
+.two > div {
+  margin: 25px auto;
+  width: 175px;
+}
+
+.three {
+  padding: 40px;
+  text-align: center;
+}
+
+.four .p-Widget {
+  width: 100px;
+  margin: 10px auto;
+}
+
+.four button {
+  width: 100px;
+}
