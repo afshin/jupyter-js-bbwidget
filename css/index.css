@@ -45,15 +45,20 @@ body {
 }
 
 .three {
-  padding: 40px;
+  padding-top: 25px;
   text-align: center;
+}
+
+.four {
+  padding-top: 25px;
 }
 
 .four .p-Widget {
   width: 100px;
-  margin: 10px auto;
+  margin: 0 auto 10px auto;
 }
 
 .four button {
   width: 100px;
+  height: 20px;
 }
