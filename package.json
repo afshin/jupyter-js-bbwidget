@@ -10,6 +10,7 @@
     "jupyter-js-widgets": "file:../../ipython/ipywidgets/jupyter-js-widgets",
     "phosphor-boxpanel": "^1.0.0-rc.0",
     "phosphor-messaging": "^1.0.6",
+    "phosphor-panel": "^1.0.0-rc.1",
     "phosphor-widget": "^1.0.0-rc.0",
     "underscore": "1.7.x"
   },
