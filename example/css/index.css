@@ -4,6 +4,7 @@
 |----------------------------------------------------------------------------*/
 
 @import "widget-button.css";
+@import "widget-toggle-button.css";
 @import "widget-checkbox.css";
 @import "widget-colorpicker.css";
 @import "widget-image.css";
@@ -40,25 +41,30 @@ body {
 }
 
 .two > div {
-  margin: 25px auto;
+  margin: 10px auto;
   width: 175px;
 }
 
 .three {
-  padding-top: 25px;
+  padding-top: 10px;
   text-align: center;
 }
 
-.four {
-  padding-top: 25px;
+.four, .six {
+  padding-top: 10px;
 }
 
-.four .p-Widget {
-  width: 100px;
+.four .p-Widget, .six .p-Widget {
+  width: 140px;
   margin: 0 auto 10px auto;
 }
 
-.four button {
-  width: 100px;
+.four button, .six button {
+  width: 140px;
   height: 20px;
+}
+
+.six .widget-toggle-button.mod-active {
+  color: yellow;
+  font-weight: bold;
 }

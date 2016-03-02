@@ -22,16 +22,19 @@ function layoutPage() {
   var parent = new BoxPanel();
   parent.id = 'main';
   parent.spacing = 0;
+
   // Row 1
   var rowOne = new BoxPanel();
   rowOne.spacing = 0;
   rowOne.direction = BoxPanel.LeftToRight;
   parent.addChild(rowOne);
+
   // Row 2
   var rowTwo = new BoxPanel();
   rowTwo.spacing = 0;
   rowTwo.direction = BoxPanel.LeftToRight;
   parent.addChild(rowTwo);
+
   // Row 3
   var rowThree = new BoxPanel();
   rowThree.spacing = 0;
@@ -45,31 +48,32 @@ function layoutPage() {
 
 function main() {
   var noop = function () { return {}; };
+
   var layout = layoutPage();
   var rowOne = layout[0];
   var rowTwo = layout[1];
   var rowThree = layout[2];
 
   // Create row one widgets
-  var latexView = new widgets.LatexView({});
   var latexModel = new widgets.LatexModel({ callbacks: noop });
   latexModel.set('value', latexData);
-  latexView.model = latexModel;
-  var one = new BBWidget(latexView);
+  var one = new BBWidget(new widgets.LatexView({
+    model: latexModel
+  }));
   one.addClass('one');
 
-  var colorPickerView = new widgets.ColorPickerView({});
   var colorPickerModel = new widgets.ColorPickerModel({ callbacks: noop });
   colorPickerModel.set('description', 'Color picker widget');
-  colorPickerView.model = colorPickerModel;
-  var two = new BBWidget(colorPickerView);
+  var two = new BBWidget(new widgets.ColorPickerView({
+    model: colorPickerModel
+  }));
   two.addClass('two');
 
-  var checkboxView = new widgets.CheckboxView({});
   var checkboxModel = new widgets.CheckboxModel({ callbacks: noop });
   checkboxModel.set('description', 'Checkbox widget');
-  checkboxView.model = checkboxModel;
-  var three = new BBWidget(checkboxView);
+  var three = new BBWidget(new widgets.CheckboxView({
+    model: checkboxModel
+  }));
   three.addClass('three');
 
   // Populate row one
@@ -84,27 +88,36 @@ function main() {
   var four = new Panel();
   four.addClass('four');
   ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
-    var buttonView = new widgets.ButtonView({});
-    buttonView.model = new widgets.ButtonModel({ callbacks: noop });
-    buttonView.model.set('tooltip', style + ' button');
-    buttonView.model.set('description', style + ' button');
-    buttonView.model.set('button_style', style);
-    four.addChild(new BBWidget(buttonView));
+    var buttonModel = new widgets.ButtonModel({ callbacks: noop });
+    buttonModel.set('tooltip', style + ' button');
+    buttonModel.set('description', style + ' button');
+    buttonModel.set('button_style', style);
+    four.addChild(new BBWidget(new widgets.ButtonView({
+      model: buttonModel
+    })));
   });
 
-  var imageView = new widgets.ImageView({});
   var imageModel = new widgets.ImageModel({ callbacks: noop });
   imageModel.set('_b64value', imageData);
   imageModel.set('format', 'png');
   imageModel.set('width', '150');
   imageModel.set('height', '150');
-  imageView.model = imageModel;
-  var five = new BBWidget(imageView);
+  var five = new BBWidget(new widgets.ImageView({
+    model: imageModel
+  }));
   five.addClass('five');
 
-  var six = new Widget();
-  six.node.textContent = '6';
+  var six = new Panel();
   six.addClass('six');
+  ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
+    var toggleButtonModel = new widgets.ToggleButtonModel({ callbacks: noop });
+    toggleButtonModel.set('tooltip', style + ' toggle button');
+    toggleButtonModel.set('description', style + ' toggle button');
+    toggleButtonModel.set('button_style', style);
+    six.addChild(new BBWidget(new widgets.ToggleButtonView({
+      model: toggleButtonModel
+    })));
+  });
 
   // Populate row two
   rowTwo.addChild(four);
@@ -127,7 +140,7 @@ function main() {
   nine.node.textContent = '9';
   nine.addClass('nine');
 
-  // Populate row two
+  // Populate row three
   rowThree.addChild(seven);
   rowThree.addChild(eight);
   rowThree.addChild(nine);
