@@ -68,16 +68,19 @@
 	  var parent = new BoxPanel();
 	  parent.id = 'main';
 	  parent.spacing = 0;
+
 	  // Row 1
 	  var rowOne = new BoxPanel();
 	  rowOne.spacing = 0;
 	  rowOne.direction = BoxPanel.LeftToRight;
 	  parent.addChild(rowOne);
+
 	  // Row 2
 	  var rowTwo = new BoxPanel();
 	  rowTwo.spacing = 0;
 	  rowTwo.direction = BoxPanel.LeftToRight;
 	  parent.addChild(rowTwo);
+
 	  // Row 3
 	  var rowThree = new BoxPanel();
 	  rowThree.spacing = 0;
@@ -91,31 +94,32 @@
 
 	function main() {
 	  var noop = function () { return {}; };
+
 	  var layout = layoutPage();
 	  var rowOne = layout[0];
 	  var rowTwo = layout[1];
 	  var rowThree = layout[2];
 
 	  // Create row one widgets
-	  var latexView = new widgets.LatexView({});
 	  var latexModel = new widgets.LatexModel({ callbacks: noop });
 	  latexModel.set('value', latexData);
-	  latexView.model = latexModel;
-	  var one = new BBWidget(latexView);
+	  var one = new BBWidget(new widgets.LatexView({
+	    model: latexModel
+	  }));
 	  one.addClass('one');
 
-	  var colorPickerView = new widgets.ColorPickerView({});
 	  var colorPickerModel = new widgets.ColorPickerModel({ callbacks: noop });
 	  colorPickerModel.set('description', 'Color picker widget');
-	  colorPickerView.model = colorPickerModel;
-	  var two = new BBWidget(colorPickerView);
+	  var two = new BBWidget(new widgets.ColorPickerView({
+	    model: colorPickerModel
+	  }));
 	  two.addClass('two');
 
-	  var checkboxView = new widgets.CheckboxView({});
 	  var checkboxModel = new widgets.CheckboxModel({ callbacks: noop });
 	  checkboxModel.set('description', 'Checkbox widget');
-	  checkboxView.model = checkboxModel;
-	  var three = new BBWidget(checkboxView);
+	  var three = new BBWidget(new widgets.CheckboxView({
+	    model: checkboxModel
+	  }));
 	  three.addClass('three');
 
 	  // Populate row one
@@ -130,27 +134,36 @@
 	  var four = new Panel();
 	  four.addClass('four');
 	  ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
-	    var buttonView = new widgets.ButtonView({});
-	    buttonView.model = new widgets.ButtonModel({ callbacks: noop });
-	    buttonView.model.set('tooltip', style + ' button');
-	    buttonView.model.set('description', style + ' button');
-	    buttonView.model.set('button_style', style);
-	    four.addChild(new BBWidget(buttonView));
+	    var buttonModel = new widgets.ButtonModel({ callbacks: noop });
+	    buttonModel.set('tooltip', style + ' button');
+	    buttonModel.set('description', style + ' button');
+	    buttonModel.set('button_style', style);
+	    four.addChild(new BBWidget(new widgets.ButtonView({
+	      model: buttonModel
+	    })));
 	  });
 
-	  var imageView = new widgets.ImageView({});
 	  var imageModel = new widgets.ImageModel({ callbacks: noop });
 	  imageModel.set('_b64value', imageData);
 	  imageModel.set('format', 'png');
 	  imageModel.set('width', '150');
 	  imageModel.set('height', '150');
-	  imageView.model = imageModel;
-	  var five = new BBWidget(imageView);
+	  var five = new BBWidget(new widgets.ImageView({
+	    model: imageModel
+	  }));
 	  five.addClass('five');
 
-	  var six = new Widget();
-	  six.node.textContent = '6';
+	  var six = new Panel();
 	  six.addClass('six');
+	  ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
+	    var toggleButtonModel = new widgets.ToggleButtonModel({ callbacks: noop });
+	    toggleButtonModel.set('tooltip', style + ' toggle button');
+	    toggleButtonModel.set('description', style + ' toggle button');
+	    toggleButtonModel.set('button_style', style);
+	    six.addChild(new BBWidget(new widgets.ToggleButtonView({
+	      model: toggleButtonModel
+	    })));
+	  });
 
 	  // Populate row two
 	  rowTwo.addChild(four);
@@ -173,7 +186,7 @@
 	  nine.node.textContent = '9';
 	  nine.addClass('nine');
 
-	  // Populate row two
+	  // Populate row three
 	  rowThree.addChild(seven);
 	  rowThree.addChild(eight);
 	  rowThree.addChild(nine);
@@ -262,6 +275,9 @@
 	// Distributed under the terms of the Modified BSD License.
 
 	// TODO: REMOVE ALL JQUERY FROM THE CODEBASE
+	// Update March 2016: JQuery removed from most widgets, only
+	// still used in slider (jquery-ui) in widget_int.js.
+
 	var $;
 	if (typeof window !== 'undefined' && window['$']) {
 	    $ = window['$'];
@@ -26750,6 +26766,14 @@
 	    return utils.loadClass(class_name, module_name, registry);
 	};
 
+	ManagerBase.prototype.setViewOptions = function(options) {
+	    /**
+	     * Modifies view options. Generally overloaded in custom widget manager
+	     * implementations.
+	     */
+	    return options || {};
+	}
+
 	ManagerBase.prototype.create_view = function(model, options) {
 	    /**
 	     * Creates a promise for a view of a given model
@@ -26762,18 +26786,14 @@
 
 	        return that.loadClass(model.get('_view_name'), model.get('_view_module'),
 	        ManagerBase._view_types).then(function(ViewType) {
-
-	            // If a view is passed into the method, use that view's cell as
-	            // the cell for the view that is created.
-	            options = options || {};
-	            if (options.parent !== undefined) {
-	                options.cell = options.parent.options.cell;
-	            }
-	            // Create and render the view...
-	            var parameters = {model: model, options: options};
-	            var view = new ViewType(parameters);
+	            var view = new ViewType({
+	                model: model,
+	                options: that.setViewOptions(options)
+	            });
 	            view.listenTo(model, 'destroy', view.remove);
-	            return Promise.resolve(view.render()).then(function() {return view;});
+	            return Promise.resolve(view.render()).then(function() {
+	                return view;
+	            });
 	        }).catch(utils.reject("Couldn't create a view for model id '" + String(model.id) + "'", true));
 	    });
 	    var id = utils.uuid();
@@ -26790,35 +26810,7 @@
 	    /**
 	     * callback handlers specific a view
 	     */
-	    var callbacks = {};
-	    if (view && view.options.cell) {
-
-	        // Try to get output handlers
-	        var cell = view.options.cell;
-	        var handle_output = null;
-	        var handle_clear_output = null;
-	        if (cell.output_area) {
-	            handle_output = _.bind(cell.output_area.handle_output, cell.output_area);
-	            handle_clear_output = _.bind(cell.output_area.handle_clear_output, cell.output_area);
-	        }
-
-	        // Create callback dictionary using what is known
-	        var that = this;
-	        callbacks = {
-	            iopub : {
-	                output : handle_output,
-	                clear_output : handle_clear_output,
-
-	                // Special function only registered by widget messages.
-	                // Allows us to get the cell for a message so we know
-	                // where to add widgets if the code requires it.
-	                get_cell : function () {
-	                    return cell;
-	                },
-	            },
-	        };
-	    }
-	    return callbacks;
+	    return {};
 	};
 
 	ManagerBase.prototype.get_model = function (model_id) {
@@ -26874,8 +26866,8 @@
 	            options_clone.model_id = utils.uuid();
 	        }
 	        return that.new_model(options_clone, serialized_state);
-	    }).catch((error) => {
-	      console.log("WIDGET CREATION ERROR!! : ", error);
+	    }).catch(function(error) {
+	      console.log("Widget creation error: ", error);
 	    });
 	};
 
@@ -26983,7 +26975,7 @@
 	    } else if (options.comm) {
 	        model_id = options.comm.comm_id;
 	    } else {
-	        throw new Error('Neither comm nor model_id provided in options object.  Atleast one must exist.');
+	        throw new Error('Neither comm nor model_id provided in options object. At least one must exist.');
 	    }
 	    var model_promise = this.loadClass(options.model_name,
 	                                       options.model_module,
@@ -27104,10 +27096,8 @@
 
 	    // Display all the views
 	    return all_models.then(function(models) {
-	      let mods = models.filter((m) => m.id !== undefined);
-	        return Promise.all(_.map(mods, function(model) {
+	        return Promise.all(_.map(models, function(model) {
 	            // Display the views of the model.
-
 	            return Promise.all(_.map(state[model.id].views, function(options) {
 	                return that.display_model(undefined, model, options);
 	            }));
@@ -29192,9 +29182,8 @@
 	 * escape text to HTML
 	 */
 	var escape_html = function (text) {
-	    // return $("<div/>").text(text).html();
 	    let esc  = document.createElement('div');
-	    esc.innerText = text;
+	    esc.innerHTML = text;
 	    return esc.innerHTML;
 	};
 
@@ -29215,7 +29204,7 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	var utils = __webpack_require__(8);
 	var managerBase = __webpack_require__(6);
@@ -29240,7 +29229,7 @@
 	            unpacked[key] = unpack_models(sub_value, manager);
 	        });
 	        return utils.resolvePromisesDict(unpacked);
-	    } else if (typeof value === 'string' && value.slice(0,10) === "IPY_MODEL_") {
+	    } else if (typeof value === 'string' && value.slice(0,10) === 'IPY_MODEL_') {
 	        // get_model returns a promise already
 	        return manager.get_model(value.slice(10, value.length));
 	    } else {
@@ -29252,8 +29241,8 @@
 
 	    defaults: {
 	        _model_module: null,
-	        _model_name: "WidgetModel",
-	        _view_module: "",
+	        _model_name: 'WidgetModel',
+	        _view_module: '',
 	        _view_name: null,
 	        msg_throttle: 3
 	    },
@@ -29296,25 +29285,11 @@
 	            comm.on_close(_.bind(this._handle_comm_closed, this));
 	            comm.on_msg(_.bind(this._handle_comm_msg, this));
 
-	            this.set_comm_live(true);
+	            this.comm_live = true;
 	        } else {
 	            this.comm_live = false;
 	        }
 
-	        // Listen for the events that lead to the websocket being terminated.
-	        var that = this;
-	        var died = function() {
-	            that.set_comm_live(false);
-	        };
-
-	        // TODO: Move this logic into manager-base, so users can override it.
-	        // Also, notebook related logic should not live in widget!!!
-	        if (widget_manager.notebook) {
-	            widget_manager.notebook.events.on('kernel_disconnected.Kernel', died);
-	            widget_manager.notebook.events.on('kernel_killed.Kernel', died);
-	            widget_manager.notebook.events.on('kernel_restarting.Kernel', died);
-	            widget_manager.notebook.events.on('kernel_dead.Kernel', died);
-	        }
 	        WidgetModel.__super__.constructor.apply(this, [attributes]);
 	    },
 
@@ -29326,16 +29301,6 @@
 	            var data = {method: 'custom', content: content};
 	            this.comm.send(data, callbacks, {}, buffers);
 	            this.pending_msgs++;
-	        }
-	    },
-
-	    set_comm_live: function(live) {
-	        /**
-	         * Change the comm_live state of the model.
-	         */
-	        if (this.comm_live === undefined || this.comm_live != live) {
-	            this.comm_live = live;
-	            this.trigger(live ? 'comm:live' : 'comm:dead', {model: this});
 	        }
 	    },
 
@@ -29374,7 +29339,6 @@
 	         * Handle incoming comm msg.
 	         */
 	        var method = msg.content.data.method;
-
 	        var that = this;
 	        switch (method) {
 	            case 'update':
@@ -29389,7 +29353,7 @@
 	                        return that.constructor._deserialize_state(state, that.widget_manager);
 	                    }).then(function(state) {
 	                        that.set_state(state);
-	                    }).catch(utils.reject("Couldn't process update msg for model id '" + String(that.id) + "'", true))
+	                    }).catch(utils.reject('Could not process update msg for model id: ' + String(that.id), true))
 	                return this.state_change;
 	            case 'custom':
 	                this.trigger('msg:custom', msg.content.data.content, msg.buffers);
@@ -29489,13 +29453,14 @@
 	         * ----------
 	         * method : create, update, patch, delete, read
 	         *   create/update always send the full attribute set
-	         *   patch - only send attributes listed in options.attrs, and if we are queuing
-	         *     up messages, combine with previous messages that have not been sent yet
+	         *   patch - only send attributes listed in options.attrs, and if we
+	         *   are queuing up messages, combine with previous messages that have
+	         *   not been sent yet
 	         * model : the model we are syncing
 	         *   will normally be the same as `this`
 	         * options : dict
-	         *   the `attrs` key, if it exists, gives an {attr: value} dict that should be synced,
-	         *   otherwise, sync all attributes
+	         *   the `attrs` key, if it exists, gives an {attr: value} dict that
+	         *   should be synced, otherwise, sync all attributes.
 	         *
 	         */
 	        var error = options.error || function() {
@@ -29508,9 +29473,11 @@
 
 	        var attrs = (method === 'patch') ? options.attrs : model.get_state(options);
 
-	        // the state_lock lists attributes that are currently be changed right now from a kernel message
-	        // we don't want to send these non-changes back to the kernel, so we delete them out of attrs
-	        // (but we only delete them if the value hasn't changed from the value stored in the state_lock
+	        // The state_lock lists attributes that are currently being changed
+	        // right now from a kernel message.
+	        // We don't want to send these non-changes back to the kernel, so we
+	        // delete them out of attrs, (but we only delete them if the value
+	        // hasn't changed from the value stored in the state_lock).
 	        if (this.state_lock !== null) {
 	            var keys = Object.keys(this.state_lock);
 	            for (var i=0; i<keys.length; i++) {
@@ -29599,7 +29566,7 @@
 	            }, callbacks, {}, buffers);
 	        }).catch(function(error) {
 	            that.pending_msgs--;
-	            return (utils.reject("Couldn't send widget sync message", true))(error);
+	            return (utils.reject('Could not send widget sync message', true))(error);
 	        });
 	    },
 
@@ -29622,7 +29589,7 @@
 	         * the second form will result in foo being called twice
 	         * while the first will call foo only once.
 	         */
-	        this.on("change", function() {
+	        this.on('change', function() {
 	            if (keys.some(this.hasChanged, this)) {
 	                callback.apply(context, arguments);
 	            }
@@ -29634,7 +29601,7 @@
 	         * Serialize the model.  See the deserialization function at the top of this file
 	         * and the kernel-side serializer/deserializer.
 	         */
-	        return "IPY_MODEL_" + this.id;
+	        return 'IPY_MODEL_' + this.id;
 	    }
 	}, {
 	    _deserialize_state: function(state, manager) {
@@ -29668,14 +29635,6 @@
 	         * Public constructor.
 	         */
 	        this.listenTo(this.model, 'change', this.update, this);
-
-	        // Bubble the comm live events.
-	        this.listenTo(this.model, 'comm:live', function() {
-	            this.trigger('comm:live', this);
-	        }, this);
-	        this.listenTo(this.model, 'comm:dead', function() {
-	            this.trigger('comm:dead', this);
-	        }, this);
 
 	        this.options = parameters.options;
 	        /**
@@ -29756,7 +29715,9 @@
 	         * Public constructor
 	         */
 	        WidgetViewMixin.initialize.apply(this, [parameters]);
-	        this.id = utils.uuid();
+	        let the_id = utils.uuid();
+	        console.log('Initializing Widget View Mixin' + the_id);
+	        this.id = the_id;
 
 	        this.listenTo(this.model, 'change:visible', this.update_visible, this); // TODO: Deprecated in 5.0
 
@@ -29808,12 +29769,12 @@
 	            this.update_attr('border-radius', this._default_px(value)); }, this);
 
 	        this.layoutPromise = Promise.resolve();
-	        this.listenTo(this.model, "change:layout", function(model, value) {
+	        this.listenTo(this.model, 'change:layout', function(model, value) {
 	            this.setLayout(value, model.previous('layout'));
 	        });
 
 	        this.displayed.then(_.bind(function() {
-	            this.update_visible(this.model, this.model.get("visible")); // TODO: Deprecated in 5.0
+	            this.update_visible(this.model, this.model.get('visible')); // TODO: Deprecated in 5.0
 	            this.update_classes([], this.model.get('_dom_classes'));
 
 	            this.update_attr('color', this.model.get('color')); // TODO: Deprecated in 5.0
@@ -29904,14 +29865,14 @@
 	            if (el.classList) { // classList is not supported by IE for svg elements
 	                el.classList.remove(c);
 	            } else {
-	                el.setAttribute("class", el.getAttribute("class").replace(c, ""));
+	                el.setAttribute('class', el.getAttribute('class').replace(c, ''));
 	            }
 	        });
 	        _.difference(new_classes, old_classes).map(function(c) {
 	            if (el.classList) { // classList is not supported by IE for svg elements
 	                el.classList.add(c);
 	            } else {
-	                el.setAttribute("class", el.getAttribute("class").concat(" ", c));
+	                el.setAttribute('class', el.getAttribute('class').concat(' ', c));
 	            }
 	        });
 	    },
@@ -30138,7 +30099,6 @@
 	    handle.dispose();
 	    delete this.targets[target_name];
 	};
-
 
 
 	/**
@@ -30627,34 +30587,31 @@
 	});
 
 	var ToggleButtonView = widget.DOMWidgetView.extend({
+	    initialize: function() {
+	        /**
+	         * Called when view is instantiated.
+	         */
+	        this.setElement(document.createElement('button'));
+	        ToggleButtonView.__super__.initialize.apply(this, arguments);
+	    },
+
 	    render: function() {
 	        /**
 	         * Called when view is rendered.
 	         */
-	        var that = this;
-
-	        var btn = document.createElement('button');
-	        btn.className = 'jupyter-widgets widget-toggle-button btn btn-default';
-	        btn.type = 'button';
-	        btn.onclick = function (e) {
-	            e.preventDefault();
-	            that.handle_click();
-	        }
-	        this.setElement(btn);
-	        this.el['data-toggle'] = 'tooltip';
+	        this.el.className = 'jupyter-widgets widget-toggle-button';
 	        this.listenTo(this.model, 'change:button_style', this.update_button_style, this);
 	        this.update_button_style();
-
 	        this.update(); // Set defaults.
 	    },
 
 	    update_button_style: function() {
 	        var class_map = {
-	            primary: ['btn-primary'],
-	            success: ['btn-success'],
-	            info: ['btn-info'],
-	            warning: ['btn-warning'],
-	            danger: ['btn-danger']
+	            primary: ['mod-primary'],
+	            success: ['mod-success'],
+	            info: ['mod-info'],
+	            warning: ['mod-warning'],
+	            danger: ['mod-danger']
 	        };
 	        this.update_mapped_classes(class_map, 'button_style');
 	    },
@@ -30667,31 +30624,37 @@
 	         * changed by another view or by a state update from the back-end.
 	         */
 	        if (this.model.get('value')) {
-	            this.el.classList.add('active');
+	            this.el.classList.add('mod-active');
 	        } else {
-	            this.el.classList.remove('active');
+	            this.el.classList.remove('mod-active');
 	        }
 
-	        if (options === undefined || options.updated_view != this) {
+	        if (options === undefined || options.updated_view !== this) {
 	            this.el.disabled = this.model.get('disabled');
-	            this.el.title = this.model.get('tooltip');
+	            this.el.setAttribute('title', this.model.get('tooltip'));
 
 	            var description = this.model.get('description');
 	            var icon = this.model.get('icon');
 	            if (description.trim().length === 0 && icon.trim().length ===0) {
 	                this.el.innerHTML = '&nbsp;'; // Preserve button height
 	            } else {
-	                this.el.innerText = description;
-
-	                var i = document.createElement('i');
-	                this.el.insertBefore(i, this.el.firstChild);
-	                i.classList.add(icon);
+	                this.el.textContent = description;
+	                if (icon.trim().length) {
+	                    var i = document.createElement('i');
+	                    this.el.insertBefore(i, this.el.firstChild);
+	                    this.el.classList.add(icon);
+	                }
 	            }
 	        }
 	        return ToggleButtonView.__super__.update.apply(this);
 	    },
 
-	    handle_click: function(e) {
+	    events: {
+	        // Dictionary of events and their handlers.
+	        'click': '_handle_click',
+	    },
+
+	    _handle_click: function() {
 	        /**
 	         * Handles and validates user input.
 	         *
@@ -30699,7 +30662,7 @@
 	         * model to update.
 	         */
 	        var value = this.model.get('value');
-	        this.model.set('value', ! value, {updated_view: this});
+	        this.model.set('value', !value, {updated_view: this});
 	        this.touch();
 	    },
 	});
@@ -30740,7 +30703,7 @@
 	            color = 'red';
 	            readout = this.model.get('readout');
 	        }
-	        this.el.innerText = readout;
+	        this.el.textContent = readout;
 
 	        var i = document.createElement('i');
 	        i.classList.add('fa');
@@ -30789,18 +30752,21 @@
 	});
 
 	var ButtonView = widget.DOMWidgetView.extend({
+	    initialize: function() {
+	        /**
+	         * Called when view is instantiated.
+	         */
+	        this.setElement(document.createElement('button'));
+	        ButtonView.__super__.initialize.apply(this, arguments);
+	    },
+
 	    render: function() {
 	        /**
 	         * Called when view is rendered.
 	         */
-	        var btn = document.createElement('button');
-	        btn.className = 'jupyter-widgets widget-button';
-	        this.setElement(btn);
-
-	        this.el['data-toggle'] = 'tooltip';
+	        this.el.className = 'jupyter-widgets widget-button';
 	        this.listenTo(this.model, 'change:button_style', this.update_button_style, this);
 	        this.update_button_style();
-
 	        this.update(); // Set defaults.
 	    },
 
@@ -30811,8 +30777,8 @@
 	         * Called when the model is changed. The model may have been
 	         * changed by another view or by a state update from the back-end.
 	         */
-	        this.el['disabled'] = this.model.get('disabled');
-	        this.el['title'] = this.model.get('tooltip');
+	        this.el.disabled = this.model.get('disabled');
+	        this.el.setAttribute('title', this.model.get('tooltip'));
 
 	        var description = this.model.get('description');
 	        var icon = this.model.get('icon');
@@ -30826,17 +30792,16 @@
 	                this.el.classList.add(icon);
 	            }
 	        }
-
 	        return ButtonView.__super__.update.apply(this);
 	    },
 
 	    update_button_style: function() {
 	        var class_map = {
-	            primary: ['widget-button-primary'],
-	            success: ['widget-button-success'],
-	            info: ['widget-button-info'],
-	            warning: ['widget-button-warning'],
-	            danger: ['widget-button-danger']
+	            primary: ['mod-primary'],
+	            success: ['mod-success'],
+	            info: ['mod-info'],
+	            warning: ['mod-warning'],
+	            danger: ['mod-danger']
 	        };
 	        this.update_mapped_classes(class_map, 'button_style');
 	    },
@@ -30936,8 +30901,7 @@
 	            var that = this;
 	            this.child_promise = this.child_promise.then(function() {
 	                return that.create_child_view(value).then(function(view) {
-	                    // if (that.$box.length === 0) {
-	                    if (that.box.length === 0 ) {
+	                    if (that.box === undefined) {
 	                        console.error("Widget place holder does not exist");
 	                        return;
 	                    }
@@ -30984,7 +30948,7 @@
 	    },
 
 	    update_selector: function(model, selector) {
-	        this.box = document.querySelectorAll(selector) || this.el; // TODO
+	        this.box = document.querySelectorAll(selector) || this.el;
 	        this.set_child(this.model.get("child"));
 	    },
 	});
@@ -31196,20 +31160,21 @@
 	"use strict";
 
 	var widget = __webpack_require__(9);
+	var $ = __webpack_require__(2);
 	var _ = __webpack_require__(5);
 
 	var IntModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        _model_name: "IntModel",
+	        _model_name: 'IntModel',
 	        value: 0,
 	        disabled: false,
-	        description: ""
+	        description: ''
 	    }),
 	});
 
 	var BoundedIntModel = IntModel.extend({
 	    defaults: _.extend({}, IntModel.prototype.defaults, {
-	        _model_name: "BoundedIntModel",
+	        _model_name: 'BoundedIntModel',
 	        step: 1,
 	        max: 100,
 	        min: 0
@@ -31218,9 +31183,9 @@
 
 	var IntSliderModel = BoundedIntModel.extend({
 	    defaults: _.extend({}, BoundedIntModel.prototype.defaults, {
-	        _model_name: "IntSliderModel",
-	        _view_name: "IntSliderView",
-	        orientation: "horizontal",
+	        _model_name: 'IntSliderModel',
+	        _view_name: 'IntSliderView',
+	        orientation: 'horizontal',
 	        _range: false,
 	        readout: true,
 	        slider_color: null,
@@ -31245,50 +31210,31 @@
 	        this.$slider = $('<div />')
 	            .slider({
 	                slide: this.handleSliderChange.bind(this),
-	                stop: this.handleSliderChange.bind(this)
+	                stop: this.handleSliderChanged.bind(this)
 	            })
 	            .addClass('slider');
-	        // this.slider = document.createElement('div');
-	        // this.slider.classList.add('slider');
 
 	        // Put the slider in a container
 	        this.$slider_container = $('<div />')
 	            .addClass('slider-container')
 	            .append(this.$slider);
-	        // this.slider_container = document.createElement('div');
-	        // this.slider_container.classList.add('slider-container');
-	        // this.slider_container.appendChild(this.slider);
 
 	        this.$el.append(this.$slider_container);
-	        // this.el.appendChild(this.slider_container);
 
-	        this.$readout = $('<div/>')
-	            .appendTo(this.$el)
-	            .addClass('widget-readout')
-	            .attr('contentEditable', true)
-	            .hide();
-	        // this.readout = document.createElement('div');
-	        // this.el.appendChild(this.readout);
-	        // this.readout.classList.add('widget-readout');
-	        // this.readout.contentEditable = true;
-	        // this.readout.style.visibility = 'hidden';
+	        this.readout = document.createElement('div');
+	        this.el.appendChild(this.readout);
+	        this.readout.classList.add('widget-readout');
+	        this.readout.contentEditable = true;
+	        this.readout.style.visibility = 'hidden';
 
-	        this.listenTo(this.model, 'change:slider_handleTextChangecolor', function(sender, value) {
+	        this.listenTo(this.model, 'change:slider_color', function(sender, value) {
 	            this.$slider.find('a').css('background', value);
-	            // var elems = this.slider.getElementsByClassName('a');
-	            // if (elems.length > 0) {
-	            //   elems.style.visibility.background = value;
-	            // }
 	        }, this);
 	        this.listenTo(this.model, 'change:description', function(sender, value) {
 	            this.updateDescription();
 	        }, this);
 
 	        this.$slider.find('a').css('background', this.model.get('slider_color'));
-	        // var a_elems = this.slider.getElementsByClassName('a');
-	        // if (a_elems > 0) {
-	        //   a_elems.style.background = this.model.get('slider_color');
-	        // }
 
 	        // Set defaults.
 	        this.update();
@@ -31300,25 +31246,15 @@
 	         * Set a css attr of the widget view.
 	         */
 	        if (name == 'color') {
-	            // this.$readout.css(name, value);
 	            this.readout.style[name] = value;
 	        } else if (name.substring(0, 4) == 'font') {
-	            // this.$readout.css(name, value);
 	            this.readout.style[name] = value;
 	        } else if (name.substring(0, 6) == 'border') {
 	            this.$slider.find('a').css(name, value);
-	            // var elems = this.slider.getElementsByClassName('a');
-	            // if (elems.length > 0) {
-	            //   elems.style[name] = value;
-	            // }
-
 	            this.$slider_container.css(name, value);
-	            // this.slider_container.style[name] = value;
 	        } else if (name == 'background') {
 	            this.$slider_container.css(name, value);
-	            // this.slider_container.style[name] = value;
 	        } else {
-	            // this.$el.css(name, value);
 	            this.el.style[name] = value;
 	        }
 	    },
@@ -31326,13 +31262,9 @@
 	    updateDescription: function(options) {
 	        var description = this.model.get('description');
 	        if (description.length === 0) {
-	            // this.$label.hide();
 	            this.label.style.display = 'none';
 	        } else {
-	            // this.typeset(this.$label, description);
 	            this.typeset(this.label, description);
-
-	            // this.$label.show();
 	            this.label.style.display = '';
 	        }
 	    },
@@ -31349,12 +31281,12 @@
 	            // one-to-one mapping with the corresponding keys of the model.
 	            var jquery_slider_keys = ['step', 'disabled'];
 	            var that = this;
-	            that.$slider.slider({}); // TODO jquery slider().
+	            that.$slider.slider({});
 
 	            _.each(jquery_slider_keys, function(key, i) {
 	                var model_value = that.model.get(key);
 	                if (model_value !== undefined) {
-	                    that.$slider.slider("option", key, model_value); // TODO
+	                    that.$slider.slider('option', key, model_value);
 	                }
 	            });
 
@@ -31365,9 +31297,9 @@
 	                if (min !== undefined) this.$slider.slider('option', 'min', min);
 	            }
 
-	            var range_value = this.model.get("_range");
+	            var range_value = this.model.get('_range');
 	            if (range_value !== undefined) {
-	                this.$slider.slider("option", "range", range_value);
+	                this.$slider.slider('option', 'range', range_value);
 	            }
 
 	            // WORKAROUND FOR JQUERY SLIDER BUG.
@@ -31392,8 +31324,7 @@
 	                // values for the range case are validated python-side in
 	                // _Bounded{Int,Float}RangeWidget._validate
 	                this.$slider.slider('option', 'values', value);
-	                // this.$readout.text(this.valueToString(value));
-	                this.readout.innerText = this.valueToString(value);
+	                this.readout.textContent = this.valueToString(value);
 	            } else {
 	                if(value > max) {
 	                    value = max;
@@ -31402,8 +31333,7 @@
 	                    value = min;
 	                }
 	                this.$slider.slider('option', 'value', value);
-	                // this.$readout.text(this.valueToString(value));
-	                this.readout.innerText = this.valueToString(value);
+	                this.readout.textContent = this.valueToString(value);
 	            }
 
 	            if(this.model.get('value')!=value) {
@@ -31413,35 +31343,21 @@
 
 	            // Use the right CSS classes for vertical & horizontal sliders
 	            if (orientation=='vertical') {
-	                // this.$el
-	                //     .removeClass('widget-hslider')
-	                //     .addClass('widget-vslider');
 	                this.el.classList.remove('widget-hslider');
 	                this.el.classList.add('widget-vslider');
-	                // this.$el
-	                //     .removeClass('widget-hbox')
-	                //     .addClass('widget-vbox');
 	                this.el.classList.remove('widget-hbox');
 	                this.el.classList.add('widget-vbox');
 	            } else {
-	                // this.$el
-	                //     .removeClass('widget-vslider')
-	                //     .addClass('widget-hslider');
 	                this.el.classList.remove('widget-vslider');
 	                this.el.classList.add('widget-hslider');
-	                // this.$el
-	                //     .removeClass('widget-vbox')
-	                //     .addClass('widget-hbox');
 	                this.el.classList.remove('widget-vbox');
-	                this.el.classList.add('widget-hslider');
+	                this.el.classList.add('widget-hbox');
 	            }
 
 	            var readout = this.model.get('readout');
 	            if (readout) {
-	                // this.$readout.show();
 	                this.readout.style.display = '';
 	            } else {
-	                // this.$readout.hide();
 	                this.readout.style.display = 'none';
 	            }
 	        }
@@ -31455,7 +31371,7 @@
 	     */
 	    valueToString: function(value) {
 	        if (this.model.get('_range')) {
-	            return value.join("-");
+	            return value.join('-');
 	        } else {
 	            return String(value);
 	        }
@@ -31484,10 +31400,10 @@
 
 	    events: {
 	        // Dictionary of events and their handlers.
-	        "slide": "handleSliderChange",
-	        "slidestop": "handleSliderChanged",
-	        "blur [contentEditable=true]": "handleTextChange",
-	        "keydown [contentEditable=true]": "handleKeyDown"
+	        'slide': 'handleSliderChange',
+	        'slidestop': 'handleSliderChanged',
+	        'blur [contentEditable=true]': 'handleTextChange',
+	        'keydown [contentEditable=true]': 'handleKeyDown'
 	    },
 
 	    handleKeyDown: function(e) {
@@ -31512,14 +31428,13 @@
 	        var value = this.stringToValue(this.$readout.text());
 	        var vmin = this.model.get('min');
 	        var vmax = this.model.get('max');
-	        if (this.model.get("_range")) {
+	        if (this.model.get('_range')) {
 	            // reject input where NaN or lower > upper
 	            if (value === null ||
 	                isNaN(value[0]) ||
 	                isNaN(value[1]) ||
 	                (value[0] > value[1])) {
-	                // this.$readout.text(this.valueToString(this.model.get('value')));
-	                this.readout.innerText = this.valueToString(this.model.get('value'));
+	                this.readout.textContent = this.valueToString(this.model.get('value'));
 	            } else {
 	                // clamp to range
 	                value = [Math.max(Math.min(value[0], vmax), vmin),
@@ -31527,32 +31442,27 @@
 
 	                if ((value[0] != this.model.get('value')[0]) ||
 	                    (value[1] != this.model.get('value')[1])) {
-	                    // this.$readout.text(this.valueToString(value));
-	                    this.readout.innerText = this.valueToString(value);
+	                    this.readout.textContent = this.valueToString(value);
 	                    this.model.set('value', value, {updated_view: this});
 	                    this.touch();
 	                } else {
-	                    // this.$readout.text(this.valueToString(this.model.get('value')));
-	                    this.readout.innerText = this.valueToString(this.mode.get('value'));
+	                    this.readout.textContent = this.valueToString(this.mode.get('value'));
 	                }
 	            }
 	        } else {
 
 	            // single value case
 	            if (isNaN(value)) {
-	                // this.$readout.text(this.valueToString(this.model.get('value')));
-	                this.readout.innerText = this.valueToString(this.mode.get('value'));
+	                this.readout.textContent = this.valueToString(this.mode.get('value'));
 	            } else {
 	                value = Math.max(Math.min(value, vmax), vmin);
 
 	                if (value != this.model.get('value')) {
-	                    // this.$readout.text(this.valueToString(value));
-	                    this.readout.innerText = this.valueToString(value);
+	                    this.readout.textContent = this.valueToString(value);
 	                    this.model.set('value', value, {updated_view: this});
 	                    this.touch();
 	                } else {
-	                    // this.$readout.text(this.valueToString(this.model.get('value')));
-	                    this.readout.innerText = this.valueToString(this.model.get('value'));
+	                    this.readout.textContent = this.valueToString(this.model.get('value'));
 	                }
 	            }
 	        }
@@ -31569,12 +31479,10 @@
 	        var actual_value;
 	        if (this.model.get("_range")) {
 	            actual_value = ui.values.map(this._validate_slide_value);
-	            // this.$readout.text(actual_value.join("-"));
-	            this.readout.innerText = actual_value.join('-');
+	            this.readout.textContent = actual_value.join('-');
 	        } else {
 	            actual_value = this._validate_slide_value(ui.value);
-	            // this.$readout.text(actual_value);
-	            this.readout.innerText = actual_value;
+	            this.readout.textContent = actual_value;
 	        }
 
 	        // Only persist the value while sliding if the continuous_update
@@ -31649,11 +31557,9 @@
 	    updateDescription: function() {
 	        var description = this.model.get('description');
 	        if (description.length === 0) {
-	            // this.$label.hide();
 	            this.label.style.display = 'none';
 	        } else {
 	            this.typeset(this.$label, description);
-	            // this.$label.show();
 	            this.label.style.display = '';
 	        }
 	    },
@@ -31667,17 +31573,13 @@
 	         */
 	        if (options === undefined || options.updated_view != this) {
 	            var value = this.model.get('value');
-	            // if (this._parse_value(this.$textbox.val()) != value) {
 	            if (this._parse_value(this.textbox.value != value)) {
-	                // this.$textbox.val(value);
 	                this.textbox.value = value;
 	            }
 
 	            if (this.model.get('disabled')) {
-	                // this.$textbox.attr('disabled','disabled');
 	                this.textbox.setAttribute('disabled', 'disabled');
 	            } else {
-	                // this.$textbox.removeAttr('disabled');
 	                this.textbox.removeAttribute('disabled', 'disabled');
 	            }
 	        }
@@ -31689,22 +31591,20 @@
 	         * Set a css attr of the widget view.
 	         */
 	        if (name == 'padding' || name == 'margin') {
-	            // this.$el.css(name, value);
 	            this.el.style[name] = value;
 	        } else {
-	            // this.$textbox.css(name, value);
 	            this.textbox.style[name] = value;
 	        }
 	    },
 
 	    events: {
 	        // Dictionary of events and their handlers.
-	        "keyup input"  : "handleChanging",
-	        "paste input"  : "handleChanging",
-	        "cut input"    : "handleChanging",
+	        'keyup input'  : 'handleChanging',
+	        'paste input'  : 'handleChanging',
+	        'cut input'    : 'handleChanging',
 
 	        // Fires only when control is validated or looses focus.
-	        "change input" : "handleChanged"
+	        'change input' : 'handleChanged'
 	    },
 
 	    handleChanging: function(e) {
@@ -31771,35 +31671,19 @@
 	        /**
 	         * Called when view is rendered.
 	         */
-	        // this.$el.addClass('jupyter-widgets widget-hprogress');
 	        this.el.classList.add('jupyter-widgets');
 	        this.el.classList.add('widget-hprogress');
 
-	        // this.$label = $('<div />')
-	        //     .appendTo(this.$el)
-	        //     .addClass('widget-label')
-	        //     .hide();
 	        this.label = document.createElement('div');
 	        this.el.appendChild(this.label);
 	        this.label.classList.add('widget-label');
 	        this.label.style.display = 'none';
 
-	        // this.$progress = $('<div />')
-	        //     .addClass('progress')
-	        //     .css('position', 'relative')
-	        //     .appendTo(this.$el);
 	        this.progress = document.createElement('div');
 	        this.progress.classList.add('progress');
 	        this.progress.style.position = 'relative';
 	        this.el.appendChild(this.progress);
 
-	        // this.$bar = $('<div />')
-	        //     .addClass('progress-bar')
-	        //     .css({
-	        //         'position': 'absolute',
-	        //         'bottom': 0, 'left': 0,
-	        //     })
-	        //     .appendTo(this.$progress);
 	        this.bar = document.createElement('div');
 	        this.bar.classList.add('progress-bar');
 	        this.bar.style.position = 'absolute';
@@ -31822,11 +31706,9 @@
 	    updateDescription: function() {
 	        var description = this.model.get('description');
 	        if (description.length === 0) {
-	            // this.$label.hide();
 	            this.label.style.display = 'none';
 	        } else {
 	            this.typeset(this.$label, description);
-	            // this.$label.show();
 	            this.label.style.display = '';
 	        }
 	    },
@@ -31844,40 +31726,21 @@
 	        var orientation = this.model.get('orientation');
 	        var percent = 100.0 * (value - min) / (max - min);
 	        if (orientation === 'horizontal') {
-	            // this.$el
-	            //    .removeClass('widget-vbox')
-	            //    .addClass('widget-hbox');
 	            this.el.classList.remove('widget-vbox');
 	            this.el.classList.add('widget-hbox');
 
-	            // this.$el.removeClass('widget-vprogress');
 	            this.el.classList.remove('widget-vprogress');
-
-	            // this.$el.addClass('widget-hprogress');
 	            this.el.classList.add('widget-hprogress');
 
-	            // this.$bar.css({
-	            //     'width': percent + '%',
-	            //     'height': '100%',
-	            // });
 	            this.bar.style.width = percent + '%';
 	            this.bar.style.height = '100%';
 	        } else {
-	            // this.$el
-	            //    .removeClass('widget-hbox')
-	            //    .addClass('widget-vbox');
 	            this.el.classList.remove('widget-hbox');
 	            this.el.classList.add('widget-vbox');
 
-	            // this.$el.removeClass('widget-hprogress');
-	            // this.$el.addClass('widget-vprogress');
 	            this.el.classList.remove('widget-hprogress');
 	            this.el.classList.add('widget-hprogress');
 
-	            // this.$bar.css({
-	            //     'width': '100%',
-	            //     'height': percent + '%',
-	            // });
 	            this.bar.style.width = '100%';
 	            this.bar.style.height = percent + '%';
 	        }
@@ -31899,13 +31762,10 @@
 	         * Set a css attr of the widget view.
 	         */
 	        if (name == "color") {
-	            // this.$bar.css('background', value);
 	            this.bar.style.background = value;
 	        } else if (name.substring(0, 6) == 'border' || name == 'background') {
-	            // this.$progress.css(name, value);
 	            this.progress.style[name] = value;
 	        } else {
-	            // this.$el.css(name, value);
 	            this.el.style[name] = value
 	        }
 	    },
@@ -31946,14 +31806,19 @@
 	});
 
 	var ImageView = widget.DOMWidgetView.extend({
-	    render : function() {
+	    initialize: function() {
+	        /**
+	         * Called when view is instantiated.
+	         */
+	        this.setElement(document.createElement('img'));
+	        ImageView.__super__.initialize.apply(this, arguments);
+	    },
+
+	    render: function() {
 	        /**
 	         * Called when view is rendered.
 	         */
-	        var img = document.createElement('img');
-	        img.className = 'jupyter-widgets widget-image';
-	        this.setElement(img);
-
+	        this.el.className = 'jupyter-widgets widget-image';
 	        this.update(); // Set defaults.
 	    },
 
@@ -32145,6 +32010,7 @@
 
 	var DropdownView = widget.DOMWidgetView.extend({
 	    render : function() {
+	        var model = this;
 	        this.el.classList.add('jupyter-widgets');
 	        this.el.classList.add('widget-hbox');
 	        this.el.classList.add('widget-dropdown');
@@ -32168,7 +32034,7 @@
 	        this.dropbutton.classList.add('dropdown-toggle');
 	        this.dropbutton.classList.add('widget-combo-carrot-btn');
 	        this.dropbutton.setAttribute('data-toggle', 'dropdown');
-	        this.dropbutton.onclick = () => {this._showDropdown.bind(this); };
+	        this.dropbutton.onclick = function() { model._showDropdown.bind(model); };
 	        var caret = document.createElement('span');
 	        caret.classList.add('caret');
 	        this.dropbutton.appendChild(caret);
@@ -32231,43 +32097,31 @@
 	        if (options === undefined || options.updated_view != this) {
 	            var selected_item_text = this.model.get('selected_label');
 	            if (selected_item_text.trim().length === 0) {
-	                // this.$droplabel.html("&nbsp;");
 	                this.droplabel.innerHTML = "&nbsp;";
 	            } else {
-	                // this.$droplabel.text(selected_item_text);
-	                this.droplabel.innerText = selected_item_text;
+	                this.droplabel.textContent = selected_item_text;
 	            }
 
 	            var items = this.model.get('_options_labels');
-	            // var $replace_droplist = $('<ul />')
-	            //     .addClass('dropdown-menu');
 	            var replace_droplist = document.createElement(ul);
 	            replace_droplist.classList.add('dropdown-menu');
 
 	            // Copy the style
-	            // $replace_droplist.attr('style', this.$droplist.attr('style'));
 	            replace_droplist.setAttribute('style', this.droplist.style);
 	            var that = this;
 	            _.each(items, function(item, i) {
-	                // var item_button = $('<a href="#"/>')
-	                //     .text(item)
-	                //     .on('click', $.proxy(that.handle_click, that));
 	                var item_button = document.createElement('a');
-	                item_button.innerText = item;
-	                item_button.onclick = () => { that.handle_click(); }; // TODO - confirm.
+	                item_button.textContent = item;
+	                item_button.onclick = () => { that.handle_click(); };
 
-	                // $replace_droplist.append($('<li />').append(item_button));
 	                var btn_li = document.createElement('li');
 	                btn_li.appendChild(item_button);
 	                replace_droplist.appendChild(btn_li);
 	            });
 
-
 	            this.$droplist.replaceWith($replace_droplist);
 	            var parent = this.droplist.parentNode;
 	            parent.replaceChild(replace_droplist, this.droplist);
-
-	            // this.$droplist.remove();
 	            parent.removeChild(this.droplist);
 
 	            this.droplist = replace_droplist;
@@ -32286,13 +32140,9 @@
 
 	            var description = this.model.get('description');
 	            if (description.length === 0) {
-	                // this.$label.hide();
 	                this.label.style.display = 'none';
 	            } else {
-	                // this.typeset(this.$label, description);
 	                this.typeset(this.label, description);
-
-	                // this.$label.show();
 	                this.label.style.display = '';
 	            }
 	        }
@@ -32316,16 +32166,10 @@
 	         * Set a css attr of the widget view.
 	         */
 	        if (name.substring(0, 6) == 'border' || name == 'background' || name == 'color') {
-	            // this.$droplabel.css(name, value);
 	            this.droplabel.style[name] = value;
-
-	            // this.$dropbutton.css(name, value);
 	            this.dropbutton.style[name] = value;
-
-	            // this.$droplist.css(name, value);
 	            this.droplist.style[name] = value;
 	        } else {
-	            // this.$el.css(name, value);
 	            this.el.style[name] = value;
 	        }
 	    },
@@ -32337,10 +32181,9 @@
 	         * Calling model.set will trigger all of the other views of the
 	         * model to update.
 	         */
-	        // this.model.set('selected_label', $(e.target).text(), {updated_view: this});
 	        this.model.set(
 	            'selected_label',
-	            document.querySelectorAll(e.target).innerText,
+	            document.querySelectorAll(e.target).textContent,
 	            { updated_view: this }
 	        );
 	        this.touch();
@@ -32348,7 +32191,6 @@
 	        // Manually hide the droplist.
 	        e.stopPropagation();
 	        e.preventDefault();
-	        // this.$buttongroup.removeClass('open');
 	        this.buttongroup.classList.remove('open');
 	    },
 
@@ -32356,11 +32198,11 @@
 
 	var RadioButtonsModel = SelectionModel.extend({
 	    defaults: _.extend({}, SelectionModel.prototype.defaults, {
-	        _model_name: "RadioButtonsModel",
-	        _view_name: "RadioButtonsView",
+	        _model_name: 'RadioButtonsModel',
+	        _view_name: 'RadioButtonsView',
 	        tooltips: [],
 	        icons: [],
-	        button_style: ""
+	        button_style: ''
 	    }),
 	});
 
@@ -32369,26 +32211,17 @@
 	        /**
 	         * Called when view is rendered.
 	         */
-	        // this.$el
-	        //     .addClass('jupyter-widgets widget-hbox widget-radio');
 	        this.el.classList.add('jupyter-widgets');
 	        this.el.classList.add('widget-hbox');
 	        this.el.classList.add('widget-radio');
 
-	        // this.$label = $('<div />')
-	        //     .appendTo(this.$el)
-	        //     .addClass('widget-label')
-	        //     .hide();
 	        this.label = document.createElement('div');
 	        this.label.className = 'widget-label';
 	        this.label.style.display = 'none';
 	        this.el.appendChild(this.label);
 
-	        // this.$container = $('<div />')
-	        //     .appendTo(this.$el)
-	        //     .addClass('widget-radio-box');
 	        this.container = document.createElement('div');
-	        this.el.appendChild(this.el);
+	        this.el.appendChild(this.container);
 	        this.container.classList.add('widget-radio-box');
 
 	        this.update();
@@ -32408,34 +32241,21 @@
 	            var that = this;
 	            _.each(items, function(item, index) {
 	                var item_query = ' :input[data-value="' + encodeURIComponent(item) + '"]';
-	                // if (that.$el.find(item_query).length === 0) {
 	                if (that.el.getElementsByClassName(item_query).length === 0) {
-	                    // var $label = $('<label />')
-	                    //     .addClass('radio')
-	                    //     .text(item)
-	                    //     .appendTo(that.$container);
 	                    var label = document.createElement('label');
 	                    label.classList.add('radio');
-	                    label.innerText = item;
+	                    label.textContent = item;
 	                    that.container.appendChild(label);
 
-	                    // $('<input />')
-	                    //     .attr('type', 'radio')
-	                    //     .addClass(that.model)
-	                    //     .val(item)
-	                    //     .attr('data-value', encodeURIComponent(item))
-	                    //     .prependTo($label)
-	                    //     .on('click', $.proxy(that.handle_click, that));
 	                    var radio = document.createElement('input');
 	                    radio.setAttribute('type', 'radio');
 	                    radio.classList.add(that.model);
 	                    radio.value = item;
 	                    radio.setAttribute('data-value', encodeURIComponent(item));
 	                    that.label.appendChild(radio);
-	                    radio.onclick = () => { that.handle_click(); };
+	                    radio.onclick = function() { that.handle_click(); };
 	                }
 
-	                // var $item_element = that.$container.find(item_query);
 	                var item_elements = that.container.getElementsByClassName(item_query);
 	                if (item_elements.length > 0) {
 	                  let item_el = item_elements[0];
@@ -32451,9 +32271,7 @@
 	            });
 
 	            // Remove items that no longer exist.
-	            // this.$container.find('input').each(function(i, obj) {
 	            this.container.getElementsByClassName('input').forEach(function(i, obj) {
-	                // var value = $(obj).val();
 	                var value = obj.value;
 	                var found = false;
 	                _.each(items, function(item, index) {
@@ -32471,11 +32289,11 @@
 
 	            var description = this.model.get('description');
 	            if (description.length === 0) {
-	                this.$label.hide();
+	                this.label.style.display = 'none';
 	            } else {
-	                this.$label.text(description);
-	                this.typeset(this.$label, description);
-	                this.$label.show();
+	                this.label.textContent = description;
+	                this.typeset(this.label, description);
+	                this.label.style.display = '';
 	            }
 	        }
 	        return RadioButtonsView.__super__.update.apply(this);
@@ -32486,9 +32304,9 @@
 	         * Set a css attr of the widget view.
 	         */
 	        if (name == 'padding' || name == 'margin') {
-	            this.$el.css(name, value);
+	            this.el.style[name] = value;
 	        } else {
-	            this.$container.css(name, value);
+	            this.container.style[name] = value;
 	        }
 	    },
 
@@ -32506,8 +32324,8 @@
 
 	var ToggleButtonsModel = SelectionModel.extend({
 	    defaults: _.extend({}, SelectionModel.prototype.defaults, {
-	        _model_name: "ToggleButtonsModel",
-	        _view_name: "ToggleButtonsView",
+	        _model_name: 'ToggleButtonsModel',
+	        _view_name: 'ToggleButtonsView',
 	    }),
 	});
 
@@ -32562,27 +32380,10 @@
 	                    item_html = utils.escape_html(item);
 	                }
 	                var item_query = '[data-value="' + encodeURIComponent(item) + '"]';
-
-	                // var $item_element = that.$buttongroup.find(item_query);
 	                var item_elements = that.buttongroup.getElementsByClassName(item_query);
 
-	                // var $icon_element = $item_element.find('.fa');
 	                if (item_elements.length > 0) {
 	                  var icon_element = item_elements[0].getElementsByClassName('.fa');
-
-	                  // if (!$item_element.length) {
-	                  // $item_element = $('<button/>')
-	                  //     .attr('type', 'button')
-	                  //     .addClass('btn btn-default')
-	                  //     .html(item_html)
-	                  //     .appendTo(that.$buttongroup)
-	                  //     .attr('data-value', encodeURIComponent(item))
-	                  //     .attr('data-toggle', 'tooltip')
-	                  //     .attr('value', item)
-	                  //     .on('click', $.proxy(that.handle_click, that));
-	                  // that.update_style_traits($item_element);
-	                  // $icon_element = $('<i class="fa"></i>').prependTo($item_element);
-	                  // }
 
 	                  var item_el = document.createElement('button');
 	                  item_el.setAttribute('type', 'button');
@@ -32599,22 +32400,14 @@
 	                }
 
 	                if (that.model.get('selected_label') == item) {
-	                    // $item_element.addClass('active');
 	                    item_el.classList.add('active');
 	                } else {
-	                    // $item_element.removeClass('active');
 	                    item_el.classList.add('active');
 	                }
 
-	                // $item_element.prop('disabled', disabled);
 	                item_el.setAttribute('disabled', disabled);
-
-	                // $item_element.attr('title', that.model.get('tooltips')[index]);
 	                item_el.setAttribute('title', that.model.get('tooltips')[index]);
 
-	                // $icon_element
-	                //     .removeClass(previous_icons[index])
-	                //     .addClass(icons[index]);
 	                icon_element.classList.remove(previous_icons[index]);
 	                icon_element.classList.add(icons[index]);
 	            });
@@ -32637,16 +32430,10 @@
 
 	            var description = this.model.get('description');
 	            if (description.length === 0) {
-	                // this.$label.hide();
 	                this.label.style.display = 'none';
 	            } else {
-	                // this.$label.text();
-	                this.label.innerText = '';
-
-	                // this.typeset(this.$label, description);
+	                this.label.textContent = '';
 	                this.typeset(this.label, description);
-
-	                // this.$label.show();
 	                this.label.style.display = '';
 	            }
 	        }
@@ -32658,7 +32445,6 @@
 	         * Set a css attr of the widget view.
 	         */
 	        if (name == 'padding' || name == 'margin') {
-	            // this.$el.css(name, value);
 	            this.el.style[name] = value;
 	        } else {
 	            this._css_state[name] = value;
@@ -32670,14 +32456,11 @@
 	        for (var name in this._css_state) {
 	            if (this._css_state.hasOwnProperty(name)) {
 	                if (name == 'margin') {
-	                    // this.$buttongroup.css(name, this._css_state[name]);
 	                    this.buttongroup.style[name] = this._css_state[name];
 	                } else if (name != 'width') {
 	                    if (button) {
-	                        // button.css(name, this._css_state[name]);
 	                        button.style[name] = this._css_state[name];
 	                    } else {
-	                        // this.$buttongroup.find('button').css(name, this._css_state[name]);
 	                        var btns = this.buttongroup.getElementsByClassName('button');
 	                        if (btns.length) {
 	                          btns[0].style[name] = this._css_state[name];
@@ -32759,29 +32542,20 @@
 	            _.each(items, function(item, index) {
 	               var item_query = 'option[data-value="' + encodeURIComponent(item) + '"]';
 	                if (that.listbox.getElementsByClassName(item_query).length === 0) {
-	                    // $('<option />')
-	                    //     .text(item.replace ? item.replace(/ /g, '\xa0') : item) // replace string spaces with &nbsp; for correct rendering
-	                    //     .attr('data-value', encodeURIComponent(item))
-	                    //     .val(item)
-	                    //     .on("click", $.proxy(that.handle_click, that))
-	                    //     .appendTo(that.$listbox);
 	                    var option = document.createElement('option');
-	                    option.innerText = item.replace ? item.replace(/ /g, '\xa0') : item;
+	                    option.textContent = item.replace ? item.replace(/ /g, '\xa0') : item;
 	                    option.setAttribute('data-value', encodeURIComponent(item));
 	                    option.value = item;
-	                    option.onclick = () => {that.handle_click.bind(that); };
+	                    option.onclick = function() { that.handle_click.bind(that); };
 	                    that.listbox.appendChild(option);
 	                }
 	            });
 
 	            // Select the correct element
-	            // this.$listbox.val(this.model.get('selected_label'));
 	            this.listbox.value = this.model.get('selected_label');
 
 	            // Disable listbox if needed
 	            var disabled = this.model.get('disabled');
-
-	            // this.$listbox.prop('disabled', disabled);
 	            this.listbox.setAttribute('disabled', disabled);
 
 	            // Remove items that no longer exist.
@@ -32802,11 +32576,9 @@
 
 	            var description = this.model.get('description');
 	            if (description.length === 0) {
-	                // this.$label.hide();
 	                this.label.style.display = 'none';
 	            } else {
 	                this.typeset(this.$label, description);
-	                // this.$label.show();
 	                this.label.style.display = '';
 	            }
 	        }
@@ -32818,10 +32590,8 @@
 	         * Set a css attr of the widget view.
 	         */
 	        if (name == 'padding' || name == 'margin') {
-	            // this.$el.css(name, value);
 	            this.el.style[name] = value;
 	        } else {
-	            // this.$listbox.css(name, value);
 	            this.listbox.style[name] = value;
 	        }
 	    },
@@ -32840,7 +32610,6 @@
 	         * Calling model.set will trigger all of the other views of the
 	         * model to update.
 	         */
-	        // this.model.set('selected_label', this.$listbox.val(), {updated_view: this});
 	        this.model.set('selected_label', this.listbox.value, {updated_view: this});
 	        this.touch();
 	    },
@@ -32869,34 +32638,22 @@
 	        this.label.style.display = 'none';
 	        this.el.appendChild(this.label);
 
-	        // this.$slider = $('<div />')
-	        //     .slider({})
-	        //     .addClass('slider');
 	        this.slider = document.createElement('input');
 	        this.slider.setAttribute('type', 'range');
 	        this.slider.classList.add('slider'); // TODO - is this necessary.
 
 	        // Put the slider in a container
-	        // this.$slider_container = $('<div />')
-	        //     .addClass('slider-container')
-	        //     .append(this.$slider);
-	        // this.$el.append(this.$slider_container);
 	        this.slider_container = document.createElement('div');
 	        this.slider_container.classList.add('slider-container');
 	        this.slider_container.appendChild(this.slider);
 	        this.el.appendChild(this.slider_container);
 
-	        // this.$readout = $('<div/>')
-	        //     .appendTo(this.$el)
-	        //     .addClass('widget-readout')
-	        //     .hide();
 	        this.readout = document.createElement('div');
 	        this.el.appendChild(this.readout);
 	        this.readout.classList.add('widget-readout');
 	        this.readout.style.display = 'none';
 
-	        this.listenTo(this.model, 'change:slider_handleTextChangecolor', function(sender, value) {
-	            // this.$slider.find('a').css('background', value);
+	        this.listenTo(this.model, 'change:slider_color', function(sender, value) {
 	            var a_items = this.slider.getElementsByClassName('a');
 	            if (a_items.length) {
 	              a_items[0].style.background = value;
@@ -32906,7 +32663,6 @@
 	            this.updateDescription();
 	        }, this);
 
-	        // this.$slider.find('a').css('background', this.model.get('slider_color'));
 	        var a_items = this.slider.getElementsByClassName('a');
 	        if (a_items.length) {
 	          a_items[0].style.background = value;
@@ -32922,25 +32678,19 @@
 	         * Set a css attr of the widget view.
 	         */
 	        if (name == 'color') {
-	            // this.$readout.css(name, value);
 	            this.readout.style[name] = value;
 	        } else if (name.substring(0, 4) == 'font') {
-	            // this.$readout.css(name, value);
 	            this.readout.style[name] = value;
 	        } else if (name.substring(0, 6) == 'border') {
-	            // this.$slider.find('a').css(name, value);
 	            var slider_items = this.slider.getElementsByClassName('a');
 	            if (slider_items.length) {
 	              slider_items[0].style[name] = value;
 	            }
 
-	            // this.$slider_container.css(name, value);
 	            this.slider_container.style[name] = value;
 	        } else if (name == 'background') {
-	            // this.$slider_container.css(name, value);
 	            this.slider_container.style[name] = value;
 	        } else {
-	            // this.$el.css(name, value);
 	            this.el.style[name] = value;
 	        }
 	    },
@@ -32948,12 +32698,9 @@
 	    updateDescription: function(options) {
 	        var description = this.model.get('description');
 	        if (description.length === 0) {
-	            // this.$label.hide();
 	            this.label.style.display = 'none';
 	        } else {
-	            // this.typeset(this.$label, description);
 	            this.typeset(this.label, description);
-	            // this.$label.show();
 	            this.label.style.display = '';
 	        }
 	    },
@@ -32990,7 +32737,7 @@
 	            // this.$slider.slider('option', 'value', index);
 
 	            // this.$readout.text(selected_label);
-	            this.readout.innerText = selected_label;
+	            this.readout.textContent = selected_label;
 
 	            // Use the right CSS classes for vertical & horizontal sliders
 	            if (orientation=='vertical') {
@@ -33034,8 +32781,8 @@
 
 	    events: {
 	        // Dictionary of events and their handlers.
-	        "slide": "handleSliderChange",
-	        "slidestop": "handleSliderChanged",
+	        'slide': 'handleSliderChange',
+	        'slidestop': 'handleSliderChanged',
 	    },
 
 	    /**
@@ -33043,9 +32790,9 @@
 	     */
 	    handleSliderChange: function(e, ui) {
 	        var actual_value = this._validate_slide_value(ui.value);
-	        var selected_label = this.model.get("_options_labels")[actual_value];
+	        var selected_label = this.model.get('_options_labels')[actual_value];
 	        // this.$readout.text(selected_label);
-	        this.readout.innerText = selected_label;
+	        this.readout.textContent = selected_label;
 
 	        // Only persist the value while sliding if the continuous_update
 	        // trait is set to true.
@@ -33062,9 +32809,9 @@
 	     */
 	    handleSliderChanged: function(e, ui) {
 	        var actual_value = this._validate_slide_value(ui.value);
-	        var selected_label = this.model.get("_options_labels")[actual_value];
+	        var selected_label = this.model.get('_options_labels')[actual_value];
 	        // this.$readout.text(selected_label);
-	        this.readout.innerText = selected_label;
+	        this.readout.textContent = selected_label;
 	        this.model.set('selected_label', selected_label, {updated_view: this});
 	        this.touch();
 	    },
@@ -33082,37 +32829,31 @@
 
 	var MultipleSelectionModel = SelectionModel.extend({
 	    defaults: _.extend({}, SelectionModel.prototype.defaults, {
-	        _model_name: "MultipleSelectionModel",
+	        _model_name: 'MultipleSelectionModel',
 	        selected_labels: [],
 	    }),
 	});
 
 	var SelectMultipleModel = MultipleSelectionModel.extend({
 	    defaults: _.extend({}, MultipleSelectionModel.prototype.defaults, {
-	        _model_name: "SelectMultipleModel",
-	        _view_name: "SelectMultipleView",
+	        _model_name: 'SelectMultipleModel',
+	        _view_name: 'SelectMultipleView',
 	    }),
 	});
 
 	var SelectMultipleView = SelectView.extend({
 	    render: function() {
-	        /**n
+	        /**
 	         * Called when view is rendered.
 	         */
 	        SelectMultipleView.__super__.render.apply(this);
-	        // this.$el
-	        //   .removeClass('widget-select')
-	        //   .addClass('widget-select-multiple');
 	        this.el.classList.remove('widget-select');
 	        this.el.classList.add('widget-select-multiple');
 
-	        this.$listbox.attr('multiple', true)
-	          .on('change', $.proxy(this.handle_change, this));
 	        this.listbox.setAttribute('multiple', true);
 	        this.listbox.onchange = () => { this.handle_change.bind(this); };
 
 	        // set selected labels *after* setting the listbox to be multiple selection
-	        // this.$listbox.val(this.model.get('selected_labels'));
 	        this.listbox.value = this.model.get('selected_labels');
 	        return this;
 	    },
@@ -33125,7 +32866,6 @@
 	         * changed by another view or by a state update from the back-end.
 	         */
 	        SelectMultipleView.__super__.update.apply(this, arguments);
-	        // this.$listbox.val(this.model.get('selected_labels'));
 	        this.listbox.value = this.model.get('selected_labels');
 	    },
 
@@ -33185,17 +32925,16 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	var widget = __webpack_require__(9);
 	var utils = __webpack_require__(8);
 	var box = __webpack_require__(15);
-	// var $ = require("./jquery");
 	var _ = __webpack_require__(5);
 
 	var SelectionContainerModel = box.BoxModel.extend({
 	    defaults: _.extend({}, box.BoxModel.prototype.defaults, {
-	        _model_name: "SelectionContainerModel",
+	        _model_name: 'SelectionContainerModel',
 	        selected_index: 0,
 	        _titles: {},
 	    }),
@@ -33203,8 +32942,8 @@
 
 	var AccordionModel = SelectionContainerModel.extend({
 	    defaults: _.extend({}, SelectionContainerModel.prototype.defaults, {
-	        _model_name: "AccordionModel",
-	        _view_name: "AccordionView"
+	        _model_name: 'AccordionModel',
+	        _view_name: 'AccordionView'
 	    }),
 	});
 
@@ -33278,7 +33017,6 @@
 	     * @param  {number} index
 	     */
 	    collapseTab: function(index) {
-	        // .children('.panel-collapse')
 	        var page = this.containers[index].children('.collapse');
 
 	        if (page.hasClass('in')) {
@@ -33332,11 +33070,11 @@
 	        accordion_toggle.setAttribute('data-toggle', 'collapse');
 	        accordion_toggle.setAttribute('data-parent', '#' + this.el.id);
 	        accordion_toggle.setAttribute('href', '#' + uuid);
-	        accordion_toggle.onclick = () => {
+	        accordion_toggle.onclick = function() {
 	          that.model.set("selected_index", index, {updated_view: that});
 	          that.touch();
 	        };
-	        accordion_toggle.innerText('Page ' + index);
+	        accordion_toggle.textContent('Page ' + index);
 	        accordion_heading.appendChild(accordion_toggle);
 
 	        var accordion_body = document.createElement('div');
@@ -33382,8 +33120,8 @@
 
 	var TabModel = SelectionContainerModel.extend({
 	    defaults: _.extend({}, SelectionContainerModel.prototype.defaults, {
-	        _model_name: "TabModel",
-	        _view_name: "TabView"
+	        _model_name: 'TabModel',
+	        _view_name: 'TabView'
 	    }),
 	});
 
@@ -33405,19 +33143,13 @@
 	         * Called when view is rendered.
 	         */
 	        var uuid = 'tabs'+utils.uuid();
-	        // this.$tabs = $('<div />', {id: uuid})
-	        //     .addClass('nav')
-	        //     .addClass('nav-tabs')
-	        //     .appendTo(this.$el);
+
 	        this.tabs = document.createElement('div');
 	        this.tabs.id = uuid;
 	        this.tabs.classList.add('nav');
 	        this.tabs.classList.add('nav-tabs');
 	        this.el.appendChild(this.tabs);
 
-	        // this.$tab_contents = $('<div />', {id: uuid + 'Content'})
-	        //     .addClass('tab-content')
-	        //     .appendTo(this.$el);
 	        this.tab_contents = document.createElement('div');
 	        this.tab_contents.setAttribute('id', uuid + 'Content');
 	        this.el.appendChild(this.tab_contents);
@@ -33430,10 +33162,8 @@
 	         * Set a css attr of the widget view.
 	         */
 	        if (['padding', 'margin', 'height', 'width'].indexOf(name) !== -1) {
-	            // this.$el.css(name, value);
 	            this.el.style[name] = value;
 	        } else {
-	            // this.$tabs.css(name, value);
 	            this.tabs.style[name] = value;
 	        }
 	    },
@@ -33456,29 +33186,14 @@
 	        var uuid = utils.uuid();
 
 	        var that = this;
-	        // var tab = $('<li />')
-	        //     .css('list-style-type', 'none')
-	        //     .appendTo(this.$tabs);
 	        var tab = document.createElement('li');
 	        tab.style['list-style-type'] = 'none';
 	        this.tabs.appendChild(tab);
 
-	        // var tab_text = $('<a />')
-	        //     .attr('href', '#' + uuid)
-	        //     .attr('data-toggle', 'tab')
-	        //     .text('Page ' + index)
-	        //     .appendTo(tab)
-	        //     .click(function (e) {
-	        //         // Calling model.set will trigger all of the other views of
-	        //         // the model to update.
-	        //         that.model.set("selected_index", index, {updated_view: that});
-	        //         that.touch();
-	        //         that.select_page(index);
-	        //     });
 	        var tab_text = document.createElement('a');
 	        tab_text.setAttribute('href', '#' + uuid);
 	        tab_text.setAttribute('data-toggle', 'tab');
-	        tab_text.innerText = 'Page ' + index;
+	        tab_text.textContent = 'Page ' + index;
 	        tab.appendChild(tab_text);
 	        tab_text.onclick = () => {
 	          that.model.set("selected_index", index, {updated_view: that});
@@ -33488,14 +33203,8 @@
 
 	        tab.tab_text_index = that.containers.push(tab_text) - 1;
 
-	        // var dummy = $('<div />');
 	        var dummy = document.createElement('div');
 
-	        // var contents_div = $('<div />', {id: uuid})
-	        //     .addClass('tab-pane')
-	        //     .addClass('fade')
-	        //     .append(dummy)
-	        //     .appendTo(that.$tab_contents);
 	        var contents_div = document.createElement('div');
 	        contents_div.id = uuid;
 	        contents_div.classList.add('tab-pane');
@@ -33515,7 +33224,7 @@
 	                that.update();
 	            });
 	            return view;
-	        }).catch(utils.reject("Couldn't add child view to box", true));
+	        }).catch(utils.reject('Could not add child view to box', true));
 	    },
 
 	    update: function(options) {
@@ -33560,8 +33269,6 @@
 	        /**
 	         * Select a page.
 	         */
-	        // this.$tabs.find('li')
-	        //     .removeClass('active');
 	        var tab_li = this.tabs.getElementsByClassName('li');
 	        if (tab_li.length) {
 	          tab_li[0].classList.remove('active');
@@ -33695,8 +33402,13 @@
 	        this.el.appendChild(this.textbox);
 
 	        this.update(); // Set defaults.
-	        this.listenTo(this.model, 'msg:custom', () => { this._handle_textarea_msg() }); //TODO: ??
-	        this.listenTo(this.model, 'change:placeholder', function(model, value, options) {
+	        var model = this;
+	        this.listenTo(this.model, 'msg:custom', function() {
+	          model._handle_textarea_msg()
+	        });
+	        this.listenTo(this.model,
+	                      'change:placeholder',
+	                      function(model, value, options) {
 	            this.update_placeholder(value);
 	        }, this);
 
@@ -33914,7 +33626,7 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	var widget = __webpack_require__(9);
 	var utils= __webpack_require__(8);
@@ -33922,8 +33634,8 @@
 
 	var ControllerButtonModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        _model_name: "ControllerButtonModel",
-	        _view_name: "ControllerButtonView",
+	        _model_name: 'ControllerButtonModel',
+	        _view_name: 'ControllerButtonView',
 	        value: 0.0,
 	        pressed: false,
 	    }),
@@ -33937,24 +33649,24 @@
 	        this.el.classList.add('widget-controller-button');
 
 	        this.support = document.createElement('div');
-	        this.support.style.position = "relative";
-	        this.support.style.margin = "1px";
-	        this.support.style.width = "16px";
-	        this.support.style.height = "16px";
-	        this.support.style.border = "1px solid black";
-	        this.support.style.background = "lightgray";
+	        this.support.style.position = 'relative';
+	        this.support.style.margin = '1px';
+	        this.support.style.width = '16px';
+	        this.support.style.height = '16px';
+	        this.support.style.border = '1px solid black';
+	        this.support.style.background = 'lightgray';
 	        this.el.appendChild(this.support);
 
 	        this.bar = document.createElement('div');
 	        this.bar.style.position = 'absolute';
-	        this.bar.style.width = "100%";
+	        this.bar.style.width = '100%';
 	        this.bar.style.bottom = 0;
-	        this.bar.style.background = "gray";
+	        this.bar.style.background = 'gray';
 	        this.support.appendChild(this.bar);
 
 	        this.update();
 	        this.label = document.createElement('div');
-	        this.label.innerText = this.model.get('description');
+	        this.label.textContent = this.model.get('description');
 	        this.label.style.textAlign = 'center';
 	        this.el.appendChild(this.label);
 	    },
@@ -33966,8 +33678,8 @@
 
 	var ControllerAxisModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        _model_name: "ControllerAxisModel",
-	        _view_name: "ControllerAxisView",
+	        _model_name: 'ControllerAxisModel',
+	        _view_name: 'ControllerAxisView',
 	        value: 0.0,
 	    }),
 	});
@@ -33998,7 +33710,7 @@
 	        this.el.appendChild(this.support);
 
 	        this.label = document.createElement('div');
-	        this.label.innerText = this.model.get('description');
+	        this.label.textContent = this.model.get('description');
 	        this.label.style.textAlign = 'center';
 	        this.el.appendChild(this.label);
 
@@ -34014,11 +33726,11 @@
 	var ControllerModel = widget.DOMWidgetModel.extend({
 	    /* The Controller model. */
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        _model_name: "ControllerModel",
-	        _view_name: "ControllerView",
+	        _model_name: 'ControllerModel',
+	        _view_name: 'ControllerView',
 	        index: 0,
-	        name: "",
-	        mapping: "",
+	        name: '',
+	        mapping: '',
 	        connected: false,
 	        timestamp: 0,
 	        buttons: [],
@@ -34214,7 +33926,7 @@
 	    },
 
 	    update_label: function() {
-	        this.label.innerText = this.model.get('name') || this.model.readout;
+	        this.label.textContent = this.model.get('name') || this.model.readout;
 	    },
 
 	    add_button: function(model) {
