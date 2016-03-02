@@ -57,6 +57,8 @@
 
 	var Panel = __webpack_require__(48).Panel;
 
+	var Widget = __webpack_require__(25).Widget;
+
 	var imageData = __webpack_require__(52);
 
 	var latexData = __webpack_require__(53);
@@ -95,22 +97,25 @@
 	  var rowThree = layout[2];
 
 	  // Create row one widgets
-	  var one = new BBWidget(new widgets.LatexView({}));
+	  var latexView = new widgets.LatexView({});
 	  var latexModel = new widgets.LatexModel({ callbacks: noop });
 	  latexModel.set('value', latexData);
-	  one.model = latexModel;
+	  latexView.model = latexModel;
+	  var one = new BBWidget(latexView);
 	  one.addClass('one');
 
-	  var two = new BBWidget(new widgets.ColorPickerView({}));
-	  var twoModel = new widgets.ColorPickerModel({ callbacks: noop });
-	  twoModel.set('description', 'Color picker widget');
-	  two.model = twoModel;
+	  var colorPickerView = new widgets.ColorPickerView({});
+	  var colorPickerModel = new widgets.ColorPickerModel({ callbacks: noop });
+	  colorPickerModel.set('description', 'Color picker widget');
+	  colorPickerView.model = colorPickerModel;
+	  var two = new BBWidget(colorPickerView);
 	  two.addClass('two');
 
-	  var three = new BBWidget(new widgets.CheckboxView({}));
-	  var threeModel = new widgets.CheckboxModel({ callbacks: noop });
-	  threeModel.set('description', 'Checkbox widget');
-	  three.model = threeModel;
+	  var checkboxView = new widgets.CheckboxView({});
+	  var checkboxModel = new widgets.CheckboxModel({ callbacks: noop });
+	  checkboxModel.set('description', 'Checkbox widget');
+	  checkboxView.model = checkboxModel;
+	  var three = new BBWidget(checkboxView);
 	  three.addClass('three');
 
 	  // Populate row one
@@ -125,25 +130,26 @@
 	  var four = new Panel();
 	  four.addClass('four');
 	  ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
-	    var button = new BBWidget(new widgets.ButtonView({}));
-	    button.model = new widgets.ButtonModel({ callbacks: noop });
-	    button.model.set('tooltip', style + ' button');
-	    button.model.set('description', style + ' button');
-	    button.model.set('button_style', style);
-	    four.addChild(button);
+	    var buttonView = new widgets.ButtonView({});
+	    buttonView.model = new widgets.ButtonModel({ callbacks: noop });
+	    buttonView.model.set('tooltip', style + ' button');
+	    buttonView.model.set('description', style + ' button');
+	    buttonView.model.set('button_style', style);
+	    four.addChild(new BBWidget(buttonView));
 	  });
 
-	  var five = new BBWidget(new widgets.ImageView({}));
+	  var imageView = new widgets.ImageView({});
 	  var imageModel = new widgets.ImageModel({ callbacks: noop });
 	  imageModel.set('_b64value', imageData);
 	  imageModel.set('format', 'png');
 	  imageModel.set('width', '150');
 	  imageModel.set('height', '150');
-	  five.model = imageModel;
+	  imageView.model = imageModel;
+	  var five = new BBWidget(imageView);
 	  five.addClass('five');
 
-	  var six = new BBWidget(new widgets.ColorPickerView({}));
-	  six.model = new widgets.ColorPickerModel({ callbacks: noop });
+	  var six = new Widget();
+	  six.node.textContent = '6';
 	  six.addClass('six');
 
 	  // Populate row two
@@ -155,16 +161,16 @@
 	  BoxPanel.setStretch(six, 1);
 
 	  // Create row three widgets
-	  var seven = new BBWidget(new widgets.ColorPickerView({}));
-	  seven.model = new widgets.ColorPickerModel({ callbacks: noop });
+	  var seven = new Widget();
+	  seven.node.textContent = '7';
 	  seven.addClass('seven');
 
-	  var eight = new BBWidget(new widgets.ColorPickerView({}));
-	  eight.model = new widgets.ColorPickerModel({ callbacks: noop });
+	  var eight = new Widget();
+	  eight.node.textContent = '8';
 	  eight.addClass('eight');
 
-	  var nine = new BBWidget(new widgets.ColorPickerView({}));
-	  nine.model = new widgets.ColorPickerModel({ callbacks: noop });
+	  var nine = new Widget();
+	  nine.node.textContent = '9';
 	  nine.addClass('nine');
 
 	  // Populate row two
@@ -29157,21 +29163,16 @@
 	 * text: option string
 	 */
 	function typeset(element, text) {
-	    // var $el = element.jquery ? element : $(element);
-	    // if(arguments.length > 1){
-	    //     $el.text(text);
-	    // }
-	    // if(!window.MathJax){
-	    //     return;
-	    // }
-	    // return $el.map(function(){
-	    //     // MathJax takes a DOM node: $.map makes `this` the context
-	    //     return MathJax.Hub.Queue(["Typeset", MathJax.Hub, this]);
-	    // });
 	    if (arguments.length > 1) {
-	      element.innerHTML = text;
+	        if (element.length) {
+	            for (var i = 0; i < element.length; ++i) {
+	                var el = element[i];
+	                el.textContent = text;
+	            }
+	        } else {
+	            element.textContent = text;
+	        }
 	    }
-	    return;
 	    if (!window.MathJax) {
 	      return;
 	    }
@@ -29179,10 +29180,10 @@
 	    if (element.length) {
 	        for (var i = 0; i < element.length; ++i) {
 	            var el = element[i];
-	            output.push(MathJax.Hub.Queue(['TypeSet', MathJax.Hub, el]));
+	            output.push(MathJax.Hub.Queue(['Typeset', MathJax.Hub, el]));
 	        }
 	    } else {
-	        output.push(MathJax.Hub.Queue(['TypeSet', MathJax.Hub, element]));
+	        output.push(MathJax.Hub.Queue(['Typeset', MathJax.Hub, element]));
 	    }
 	    return output;
 	}
@@ -34275,52 +34276,34 @@
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
 	var phosphor_widget_1 = __webpack_require__(25);
+	/**
+	 * The class name added to an BBWidget widget.
+	 */
+	var BBWIDGET_CLASS = 'jp-BBWidget';
+	/**
+	 * A phosphor widget which wraps a `Backbone` view instance.
+	 */
 	var BBWidget = (function (_super) {
 	    __extends(BBWidget, _super);
+	    /**
+	     * Construct a new `Backbone` wrapper widget.
+	     *
+	     * @param view - The `Backbone.View` instance being wrapped.
+	     */
 	    function BBWidget(view) {
 	        _super.call(this);
+	        this.addClass(BBWIDGET_CLASS);
 	        this._view = view;
+	        this._view.render();
+	        this.node.appendChild(this._view.el);
 	    }
-	    Object.defineProperty(BBWidget.prototype, "collection", {
-	        get: function () {
-	            return this._view.collection;
-	        },
-	        set: function (collection) {
-	            this._view.collection = collection;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    Object.defineProperty(BBWidget.prototype, "el", {
-	        get: function () {
-	            return this.node;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    Object.defineProperty(BBWidget.prototype, "model", {
-	        get: function () {
-	            return this._view.model;
-	        },
-	        set: function (model) {
-	            this._view.model = model;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
+	    /**
+	     * Dispose of the resources held by the widget.
+	     */
 	    BBWidget.prototype.dispose = function () {
 	        this._view.undelegateEvents();
 	        this._view.remove();
 	        _super.prototype.dispose.call(this);
-	    };
-	    /**
-	     * On attach, render the Backbone view.
-	     */
-	    BBWidget.prototype.onAfterAttach = function (msg) {
-	        this.node.textContent = '';
-	        this._view.render();
-	        this.node.appendChild(this._view.el);
-	        console.log(this.node);
 	    };
 	    return BBWidget;
 	})(phosphor_widget_1.Widget);
