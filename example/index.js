@@ -85,15 +85,34 @@ function main() {
   BoxPanel.setStretch(three, 1);
 
   // Create row two widgets
-  var four = new Panel();
+  var four = new BoxPanel();
+  var fourA = new Panel();
+  var fourB = new Panel();
+  BoxPanel.setStretch(fourA, 1);
+  BoxPanel.setStretch(fourB, 1);
+  fourA.addClass('four-a');
+  fourB.addClass('four-b');
+  four.direction = BoxPanel.LeftToRight;
+  four.addChild(fourA);
+  four.addChild(fourB);
   four.addClass('four');
   ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
+    // Regular button
     var buttonModel = new widgets.ButtonModel({ callbacks: noop });
     buttonModel.set('tooltip', style + ' button');
     buttonModel.set('description', style + ' button');
     buttonModel.set('button_style', style);
-    four.addChild(new BBWidget(new widgets.ButtonView({
+    fourA.addChild(new BBWidget(new widgets.ButtonView({
       model: buttonModel
+    })));
+
+    // Toggle button
+    var toggleButtonModel = new widgets.ToggleButtonModel({ callbacks: noop });
+    toggleButtonModel.set('tooltip', style + ' toggle');
+    toggleButtonModel.set('description', style + ' toggle');
+    toggleButtonModel.set('button_style', style);
+    fourB.addChild(new BBWidget(new widgets.ToggleButtonView({
+      model: toggleButtonModel
     })));
   });
 
@@ -107,17 +126,9 @@ function main() {
   }));
   five.addClass('five');
 
-  var six = new Panel();
+  var six = new Widget();
+  six.node.textContent = '6 ';
   six.addClass('six');
-  ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
-    var toggleButtonModel = new widgets.ToggleButtonModel({ callbacks: noop });
-    toggleButtonModel.set('tooltip', style + ' toggle button');
-    toggleButtonModel.set('description', style + ' toggle button');
-    toggleButtonModel.set('button_style', style);
-    six.addChild(new BBWidget(new widgets.ToggleButtonView({
-      model: toggleButtonModel
-    })));
-  });
 
   // Populate row two
   rowTwo.addChild(four);
