@@ -50,21 +50,22 @@ body {
   text-align: center;
 }
 
-.four, .six {
+.four-a, .four-b {
   padding-top: 10px;
 }
 
-.four .p-Widget, .six .p-Widget {
-  width: 140px;
-  margin: 0 auto 10px auto;
+.four-a .p-Widget, .four-b .p-Widget {
+  width: 100px;
+  margin: 0 auto 5px auto;
 }
 
-.four button, .six button {
-  width: 140px;
+.four-a button, .four-b button {
+  font-weight: bold;
+  width: 100px;
   height: 20px;
 }
 
-.six .widget-toggle-button.mod-active {
-  color: yellow;
-  font-weight: bold;
+.four-b .widget-toggle-button.mod-active {
+  border-color: #000000;
+  color: #000000;
 }

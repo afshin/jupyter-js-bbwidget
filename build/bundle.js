@@ -131,15 +131,34 @@
 	  BoxPanel.setStretch(three, 1);
 
 	  // Create row two widgets
-	  var four = new Panel();
+	  var four = new BoxPanel();
+	  var fourA = new Panel();
+	  var fourB = new Panel();
+	  BoxPanel.setStretch(fourA, 1);
+	  BoxPanel.setStretch(fourB, 1);
+	  fourA.addClass('four-a');
+	  fourB.addClass('four-b');
+	  four.direction = BoxPanel.LeftToRight;
+	  four.addChild(fourA);
+	  four.addChild(fourB);
 	  four.addClass('four');
 	  ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
+	    // Regular button
 	    var buttonModel = new widgets.ButtonModel({ callbacks: noop });
 	    buttonModel.set('tooltip', style + ' button');
 	    buttonModel.set('description', style + ' button');
 	    buttonModel.set('button_style', style);
-	    four.addChild(new BBWidget(new widgets.ButtonView({
+	    fourA.addChild(new BBWidget(new widgets.ButtonView({
 	      model: buttonModel
+	    })));
+
+	    // Toggle button
+	    var toggleButtonModel = new widgets.ToggleButtonModel({ callbacks: noop });
+	    toggleButtonModel.set('tooltip', style + ' toggle');
+	    toggleButtonModel.set('description', style + ' toggle');
+	    toggleButtonModel.set('button_style', style);
+	    fourB.addChild(new BBWidget(new widgets.ToggleButtonView({
+	      model: toggleButtonModel
 	    })));
 	  });
 
@@ -153,17 +172,9 @@
 	  }));
 	  five.addClass('five');
 
-	  var six = new Panel();
+	  var six = new Widget();
+	  six.node.textContent = '6 ';
 	  six.addClass('six');
-	  ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
-	    var toggleButtonModel = new widgets.ToggleButtonModel({ callbacks: noop });
-	    toggleButtonModel.set('tooltip', style + ' toggle button');
-	    toggleButtonModel.set('description', style + ' toggle button');
-	    toggleButtonModel.set('button_style', style);
-	    six.addChild(new BBWidget(new widgets.ToggleButtonView({
-	      model: toggleButtonModel
-	    })));
-	  });
 
 	  // Populate row two
 	  rowTwo.addChild(four);
@@ -30508,7 +30519,7 @@
 	});
 
 	var CheckboxView = widget.DOMWidgetView.extend({
-	    render: function(){
+	    render: function() {
 	        /**
 	         * Called when view is rendered.
 	         */
@@ -30518,7 +30529,6 @@
 
 	        this.checkbox = document.createElement('input');
 	        this.checkbox.setAttribute('type', 'checkbox');
-	        this.checkbox.addEventListener('click', this.handle_click.bind(this));
 	        this.el.appendChild(this.checkbox);
 
 	        this.label = document.createElement('div');
@@ -30533,14 +30543,19 @@
 	        /**
 	         * Set a css attr of the widget view.
 	         */
-	        if (name == 'padding' || name == 'margin') {
+	        if (name === 'padding' || name === 'margin') {
 	            this.el.style[name] = value;
 	        } else {
 	            this.checkbox.style[name] = value;
 	        }
 	    },
 
-	    handle_click: function() {
+	    events: {
+	        // Dictionary of events and their handlers.
+	        'click input[type="checkbox"]': '_handle_click'
+	    },
+
+	    _handle_click: function() {
 	        /**
 	         * Handles when the checkbox is clicked.
 	         *
@@ -30548,11 +30563,11 @@
 	         * model to update.
 	         */
 	        var value = this.model.get('value');
-	        this.model.set('value', ! value, {updated_view: this});
+	        this.model.set('value', !value, {updated_view: this});
 	        this.touch();
 	    },
 
-	    update: function(options){
+	    update: function(options) {
 	        /**
 	         * Update the contents of this view
 	         *
@@ -30654,13 +30669,14 @@
 	        'click': '_handle_click',
 	    },
 
-	    _handle_click: function() {
+	    _handle_click: function(event) {
 	        /**
 	         * Handles and validates user input.
 	         *
 	         * Calling model.set will trigger all of the other views of the
 	         * model to update.
 	         */
+	        event.preventDefault();
 	        var value = this.model.get('value');
 	        this.model.set('value', !value, {updated_view: this});
 	        this.touch();
@@ -30682,7 +30698,6 @@
 	         */
 	        this.el.classList.add('jupyter-widgets');
 	        this.el.classList.add('widget-valid');
-	        this.listenTo(this.model, 'change', this.update, this);
 	        this.update();
 	    },
 
@@ -30811,10 +30826,11 @@
 	        'click': '_handle_click',
 	    },
 
-	    _handle_click: function() {
+	    _handle_click: function(event) {
 	        /**
 	         * Handles when the button is clicked.
 	         */
+	        event.preventDefault();
 	        this.send({event: 'click'});
 	    },
 	});
