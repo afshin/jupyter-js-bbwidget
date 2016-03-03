@@ -1,0 +1,29 @@
+/*-----------------------------------------------------------------------------
+| Copyright (c) Jupyter Development Team.
+| Distributed under the terms of the Modified BSD License.
+|----------------------------------------------------------------------------*/
+
+.widget-valid {
+  font-size: 12px;
+}
+
+.widget-valid i {
+  background-color: yellow;
+  margin-right: 18px;
+}
+
+.widget-valid i:before {
+  font-family: FontAwesome;
+  font-style: normal;
+  font-size: 18px;
+  position: absolute;
+  top: -2px;
+}
+
+.widget-valid i.mod-check:before {
+  content: "\f00c";
+}
+
+.widget-valid i.mod-close:before {
+  content: "\f00d";
+}
