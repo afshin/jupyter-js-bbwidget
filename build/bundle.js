@@ -103,9 +103,7 @@
 	  // Create row one widgets
 	  var latexModel = new widgets.LatexModel({ callbacks: noop });
 	  latexModel.set('value', latexData);
-	  var one = new BBWidget(new widgets.LatexView({
-	    model: latexModel
-	  }));
+	  var one = new BBWidget(new widgets.LatexView({ model: latexModel }));
 	  one.addClass('one');
 
 	  var colorPickerModel = new widgets.ColorPickerModel({ callbacks: noop });
@@ -115,11 +113,32 @@
 	  }));
 	  two.addClass('two');
 
+	  var three = new BoxPanel();
+	  three.direction = BoxPanel.TopToBottom;
+
 	  var checkboxModel = new widgets.CheckboxModel({ callbacks: noop });
 	  checkboxModel.set('description', 'Checkbox widget');
-	  var three = new BBWidget(new widgets.CheckboxView({
-	    model: checkboxModel
-	  }));
+	  var threeA = new BBWidget(new widgets.CheckboxView({ model: checkboxModel }));
+
+	  var validModelFalse = new widgets.ValidModel({ callbacks: noop });
+	  validModelFalse.set('value', false);
+	  var threeB = new BBWidget(new widgets.ValidView({ model: validModelFalse }));
+
+	  var validModelTrue = new widgets.ValidModel({ callbacks: noop });
+	  validModelTrue.set('value', true);
+	  var threeC = new BBWidget(new widgets.ValidView({ model: validModelTrue }));
+
+	  BoxPanel.setStretch(threeA, 1);
+	  BoxPanel.setStretch(threeB, 1);
+	  BoxPanel.setStretch(threeC, 1);
+
+	  threeA.addClass('three-a');
+	  threeB.addClass('three-b');
+	  threeC.addClass('three-c');
+
+	  three.addChild(threeA);
+	  three.addChild(threeB);
+	  three.addChild(threeC);
 	  three.addClass('three');
 
 	  // Populate row one
@@ -132,16 +151,21 @@
 
 	  // Create row two widgets
 	  var four = new BoxPanel();
+	  four.direction = BoxPanel.LeftToRight;
+
 	  var fourA = new Panel();
 	  var fourB = new Panel();
+
 	  BoxPanel.setStretch(fourA, 1);
 	  BoxPanel.setStretch(fourB, 1);
+
 	  fourA.addClass('four-a');
 	  fourB.addClass('four-b');
-	  four.direction = BoxPanel.LeftToRight;
+
 	  four.addChild(fourA);
 	  four.addChild(fourB);
 	  four.addClass('four');
+
 	  ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
 	    // Regular button
 	    var buttonModel = new widgets.ButtonModel({ callbacks: noop });
@@ -30653,12 +30677,13 @@
 	            if (description.trim().length === 0 && icon.trim().length ===0) {
 	                this.el.innerHTML = '&nbsp;'; // Preserve button height
 	            } else {
-	                this.el.textContent = description;
+	                this.el.textContent = '';
 	                if (icon.trim().length) {
 	                    var i = document.createElement('i');
-	                    this.el.insertBefore(i, this.el.firstChild);
+	                    this.el.appendChild(i);
 	                    this.el.classList.add(icon);
 	                }
+	                this.el.appendChild(document.createTextNode(description));
 	            }
 	        }
 	        return ToggleButtonView.__super__.update.apply(this);
@@ -30710,25 +30735,21 @@
 	         */
 	        var icon, color, readout;
 	        if (this.model.get('value')) {
-	            icon = 'fa-check';
+	            icon = 'mod-check';
 	            color = 'green';
 	            readout = '';
 	        } else {
-	            icon = 'fa-close';
+	            icon = 'mod-close';
 	            color = 'red';
 	            readout = this.model.get('readout');
 	        }
-	        this.el.textContent = readout;
 
 	        var i = document.createElement('i');
-	        i.classList.add('fa');
-	        this.el.insertBefore(i, this.el.firstChild);
+	        this.el.appendChild(i);
 	        i.classList.add(icon);
 
-	        var that = this;
-	        this.displayed.then(function() {
-	            that.el.style.color = color;
-	        });
+	        this.el.style.color = color;
+	        this.el.appendChild(document.createTextNode(readout));
 	    }
 	});
 
@@ -30800,12 +30821,13 @@
 	        if (description.trim().length === 0 && icon.trim().length === 0) {
 	            this.el.innerHTML = '&nbsp;'; // Preserve button height
 	        } else {
-	            this.el.innerText = description;
+	            this.el.textContent = '';
 	            if (icon.trim().length) {
 	                var i = document.createElement('i');
-	                this.el.insertBefore(i, this.el.firstChild);
+	                this.el.appendChild(i);
 	                this.el.classList.add(icon);
 	            }
+	            this.el.appendChild(document.createTextNode(description));
 	        }
 	        return ButtonView.__super__.update.apply(this);
 	    },
