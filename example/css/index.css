@@ -4,10 +4,12 @@
 |----------------------------------------------------------------------------*/
 
 @import "widget-button.css";
-@import "widget-toggle-button.css";
 @import "widget-checkbox.css";
 @import "widget-colorpicker.css";
 @import "widget-image.css";
+@import "widget-toggle-button.css";
+@import "widget-valid.css";
+@import url("https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css");
 
 body {
   font-family: monaco, monospace, courier;
@@ -47,7 +49,11 @@ body {
 
 .three {
   padding-top: 10px;
-  text-align: center;
+}
+
+.three-a .widget-checkbox, .three-b > .widget-valid, .three-c > .widget-valid {
+  width: 150px;
+  margin: 0 auto;
 }
 
 .four-a, .four-b {
