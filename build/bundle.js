@@ -128,10 +128,7 @@
 	  one.addClass('one');
 
 	  // Row:Cell => 1:2
-	  var controllerModel = new widgets.ControllerModel({ callbacks: noop });
-	  var two = new BBWidget(new widgets.ControllerView({
-	    model: controllerModel
-	  }));
+	  var two = new Widget();
 	  two.addClass('two');
 
 	  // Row:Cell => 1:3
@@ -26897,6 +26894,7 @@
 	 * @return {Promise<WidgetModel>}
 	 */
 	ManagerBase.prototype.new_widget = function(options, serialized_state) {
+	    debugger;
 	    var commPromise;
 	    // If no comm is provided, a new comm is opened for the jupyter.widget
 	    // target.
@@ -26927,8 +26925,6 @@
 	            options_clone.model_id = utils.uuid();
 	        }
 	        return that.new_model(options_clone, serialized_state);
-	    }).catch(function(error) {
-	      console.log('Widget creation error: ', error);
 	    });
 	};
 
@@ -27161,9 +27157,11 @@
 	    return all_models.then(function(models) {
 	        return Promise.all(_.map(models, function(model) {
 	            // Display the views of the model.
-	            return Promise.all(_.map(state[model.id].views, function(options) {
-	                return that.display_model(undefined, model, options);
-	            }));
+	            if (state[model.id] !== undefined) {
+	              return Promise.all(_.map(state[model.id].views, function(options) {
+	                  return that.display_model(undefined, model, options);
+	              }));
+	            }
 	        }));
 	    }).catch(utils.reject('Could not set widget manager state.', true));
 	};
@@ -31604,10 +31602,8 @@
 	        /**
 	         * Validate the value of the slider before sending it to the back-end
 	         * and applying it to the other views on the page.
-	         *
-	         * Double bit-wise not truncates the decimal (int cast).
 	         */
-	        return ~~x;
+	        return Math.floor(x);
 	    },
 	});
 
@@ -32911,10 +32907,8 @@
 	        /**
 	         * Validate the value of the slider before sending it to the back-end
 	         * and applying it to the other views on the page.
-	         *
-	         * Double bit-wise not truncates the decimal (int cast).
 	         */
-	        return ~~x;
+	        return Math.floor(x);
 	    },
 	});
 
