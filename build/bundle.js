@@ -86,8 +86,10 @@
 	  rowThree.spacing = 0;
 	  rowThree.direction = BoxPanel.LeftToRight;
 	  parent.addChild(rowThree);
+
 	  parent.attach(document.body);
 	  window.onresize = function () { parent.update(); };
+
 	  return [rowOne, rowTwo, rowThree];
 	}
 
@@ -100,20 +102,41 @@
 	  var rowTwo = layout[1];
 	  var rowThree = layout[2];
 
-	  // Create row one widgets
+	  // Row:Cell => 1:1
+	  var one = new BoxPanel();
+	  one.spacing = 0;
+	  one.direction = BoxPanel.TopToBottom;
+
 	  var latexModel = new widgets.LatexModel({ callbacks: noop });
 	  latexModel.set('value', latexData);
-	  var one = new BBWidget(new widgets.LatexView({ model: latexModel }));
-	  one.addClass('one');
+	  var oneA = new BBWidget(new widgets.LatexView({ model: latexModel }));
 
 	  var colorPickerModel = new widgets.ColorPickerModel({ callbacks: noop });
 	  colorPickerModel.set('description', 'Color picker widget');
-	  var two = new BBWidget(new widgets.ColorPickerView({
+	  var oneB = new BBWidget(new widgets.ColorPickerView({
 	    model: colorPickerModel
+	  }));
+
+	  BoxPanel.setStretch(oneA, 1.33);
+	  BoxPanel.setStretch(oneB, 1);
+
+	  oneA.addClass('one-a');
+	  oneB.addClass('one-b');
+
+	  one.addChild(oneA);
+	  one.addChild(oneB);
+	  one.addClass('one');
+
+	  // Row:Cell => 1:2
+	  var controllerModel = new widgets.ControllerModel({ callbacks: noop });
+	  var two = new BBWidget(new widgets.ControllerView({
+	    model: controllerModel
 	  }));
 	  two.addClass('two');
 
+	  // Row:Cell => 1:3
 	  var three = new BoxPanel();
+	  three.spacing = 0;
 	  three.direction = BoxPanel.TopToBottom;
 
 	  var checkboxModel = new widgets.CheckboxModel({ callbacks: noop });
@@ -149,8 +172,9 @@
 	  BoxPanel.setStretch(two, 1);
 	  BoxPanel.setStretch(three, 1);
 
-	  // Create row two widgets
+	  // Row:Cell => 2:1
 	  var four = new BoxPanel();
+	  four.spacing = 0;
 	  four.direction = BoxPanel.LeftToRight;
 
 	  var fourA = new Panel();
@@ -186,18 +210,17 @@
 	    })));
 	  });
 
+	  // Row:Cell => 2:2
 	  var imageModel = new widgets.ImageModel({ callbacks: noop });
 	  imageModel.set('_b64value', imageData);
 	  imageModel.set('format', 'png');
 	  imageModel.set('width', '150');
 	  imageModel.set('height', '150');
-	  var five = new BBWidget(new widgets.ImageView({
-	    model: imageModel
-	  }));
+	  var five = new BBWidget(new widgets.ImageView({ model: imageModel }));
 	  five.addClass('five');
 
+	  // Row:Cell => 2:3
 	  var six = new Widget();
-	  six.node.textContent = '6 ';
 	  six.addClass('six');
 
 	  // Populate row two
@@ -208,17 +231,16 @@
 	  BoxPanel.setStretch(five, 1);
 	  BoxPanel.setStretch(six, 1);
 
-	  // Create row three widgets
+	  // Row:Cell => 3:1
 	  var seven = new Widget();
-	  seven.node.textContent = '7';
 	  seven.addClass('seven');
 
+	  // Row:Cell => 3:2
 	  var eight = new Widget();
-	  eight.node.textContent = '8';
 	  eight.addClass('eight');
 
+	  // Row:Cell => 3:3
 	  var nine = new Widget();
-	  nine.node.textContent = '9';
 	  nine.addClass('nine');
 
 	  // Populate row three
@@ -287,7 +309,7 @@
 	    register(__webpack_require__(20)),
 	    register(__webpack_require__(21)),
 	    register(__webpack_require__(22)),
-	    register(__webpack_require__(23)),
+	    register(__webpack_require__(23))
 	];
 	for (var i in loadedModules) {
 	    if (loadedModules.hasOwnProperty(i)) {
@@ -26734,7 +26756,7 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	// jupyter-js-widgets version
 	var version = '4.1.0dev';
@@ -26794,7 +26816,7 @@
 	};
 
 	ManagerBase.prototype.display_view = function(msg, view, options) {
-	    throw new Error("Manager.display_view not implemented");
+	    throw new Error('Manager.display_view not implemented');
 	};
 
 	ManagerBase.prototype.loadClass = function(class_name, module_name, registry) {
@@ -26819,8 +26841,11 @@
 	    var that = this;
 	    model.state_change = model.state_change.then(function() {
 
-	        return that.loadClass(model.get('_view_name'), model.get('_view_module'),
-	        ManagerBase._view_types).then(function(ViewType) {
+	        return that.loadClass(
+	            model.get('_view_name'),
+	            model.get('_view_module'),
+	            ManagerBase._view_types
+	        ).then(function(ViewType) {
 	            var view = new ViewType({
 	                model: model,
 	                options: that.setViewOptions(options)
@@ -26829,14 +26854,12 @@
 	            return Promise.resolve(view.render()).then(function() {
 	                return view;
 	            });
-	        }).catch(utils.reject("Couldn't create a view for model id '" + String(model.id) + "'", true));
+	        }).catch(utils.reject('Couldn\'t create a view for model id ' + model.id, true));
 	    });
 	    var id = utils.uuid();
 	    model.views[id] = model.state_change;
 	    model.state_change.then(function(view) {
-	        view.once('remove', function() {
-	            delete view.model.views[id];
-	        }, this);
+	        view.once('remove', function() { delete view.model.views[id]; }, this);
 	    });
 	    return model.state_change;
 	};
@@ -26862,8 +26885,8 @@
 	    return this.new_model({
 	        model_name: msg.content.data._model_name,
 	        model_module: msg.content.data._model_module,
-	        comm: comm,
-	    }, msg.content.data).catch(utils.reject("Couldn't create a model.", true));
+	        comm: comm
+	    }, msg.content.data).catch(utils.reject('Couldn\'t create a model.', true));
 	};
 
 	/**
@@ -26880,11 +26903,14 @@
 	    if (options.comm) {
 	        commPromise = Promise.resolve(options.comm);
 	    } else {
-	        commPromise = this._create_comm(this.comm_target_name,
-	                                        options.model_id, {
-	            widget_class: options.widget_class,
-	            target_name: 'jupyter.widget',
-	        });
+	        commPromise = this._create_comm(
+	            this.comm_target_name,
+	            options.model_id,
+	            {
+	                widget_class: options.widget_class,
+	                target_name: 'jupyter.widget'
+	            }
+	        );
 	    }
 	    // The options dictionary is copied since data will be added to it.
 	    var options_clone = _.clone(options);
@@ -26902,13 +26928,13 @@
 	        }
 	        return that.new_model(options_clone, serialized_state);
 	    }).catch(function(error) {
-	      console.log("Widget creation error: ", error);
+	      console.log('Widget creation error: ', error);
 	    });
 	};
 
 	/**
 	 * Parse a version string
-	 * @param  {string} version i.e. "1.0.2dev" or "2.4"
+	 * @param  {string} version i.e. '1.0.2dev' or '2.4'
 	 * @return {object} version object {major, minor, patch, dev}
 	 */
 	ManagerBase.prototype._parseVersion = function(version) {
@@ -27012,11 +27038,13 @@
 	    } else {
 	        throw new Error('Neither comm nor model_id provided in options object. At least one must exist.');
 	    }
-	    var model_promise = this.loadClass(options.model_name,
-	                                       options.model_module,
-	                                       ManagerBase._model_types)
-	        .then(function(ModelType) {
-	            return ModelType._deserialize_state(serialized_state, that).then(function(attributes) {
+	    var model_promise = this.loadClass(
+	        options.model_name,
+	        options.model_module,
+	        ManagerBase._model_types
+	    ).then(function(ModelType) {
+	        return ModelType._deserialize_state(serialized_state, that)
+	            .then(function(attributes) {
 	                var widget_model = new ModelType(that, model_id, options.comm, attributes);
 	                widget_model.once('comm:close', function () {
 	                    delete that._models[model_id];
@@ -27025,11 +27053,11 @@
 	                widget_model.module = options.model_module;
 	                return widget_model;
 	            });
-	        }, function(error) {
-	            delete that._models[model_id];
-	            var wrapped_error = new utils.WrappedError("Couldn't create model", error);
-	            return Promise.reject(wrapped_error);
-	        });
+	    }, function(error) {
+	        delete that._models[model_id];
+	        var wrapped_error = new utils.WrappedError('Couldn\'t create model', error);
+	        return Promise.reject(wrapped_error);
+	    });
 	    this._models[model_id] = model_promise;
 	    return model_promise;
 	};
@@ -27056,8 +27084,8 @@
 	    var that = this;
 	    return utils.resolvePromisesDict(this._models).then(function(models) {
 	        var state = {};
-
 	        var model_promises = [];
+
 	        for (var model_id in models) {
 	            if (models.hasOwnProperty(model_id)) {
 	                var model = models[model_id];
@@ -27071,7 +27099,7 @@
 	                        model_name: model.name,
 	                        model_module: model.module,
 	                        state: model.get_state(),
-	                        views: [],
+	                        views: []
 	                    };
 
 	                    // Get the views that are displayed *now*.
@@ -27116,14 +27144,14 @@
 	                    return that.new_model({
 	                        comm: new_comm,
 	                        model_name: state[model_id].model_name,
-	                        model_module: state[model_id].model_module,
+	                        model_module: state[model_id].model_module
 	                    });
 	                });
 	            } else { // dead comm
 	                return that.new_model({
 	                    model_id: model_id,
 	                    model_name: state[model_id].model_name,
-	                    model_module: state[model_id].model_module,
+	                    model_module: state[model_id].model_module
 	                }, state[model_id].state);
 	            }
 	        }));
@@ -27141,11 +27169,11 @@
 	};
 
 	ManagerBase.prototype._create_comm = function(comm_target_name, model_id, metadata) {
-	    return Promise.reject("No backend.");
+	    return Promise.reject('No backend.');
 	};
 
 	ManagerBase.prototype._get_comm_info = function() {
-	    return Promise.reject("No backend.");
+	    return Promise.reject('No backend.');
 	};
 
 	module.exports = {
@@ -27160,7 +27188,7 @@
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(global) {//     Backbone.js 1.2.3
 
-	//     (c) 2010-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	//     (c) 2010-2016 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	//     Backbone may be freely distributed under the MIT license.
 	//     For all details and documentation:
 	//     http://backbonejs.org
@@ -27169,8 +27197,8 @@
 
 	  // Establish the root object, `window` (`self`) in the browser, or `global` on the server.
 	  // We use `self` instead of `window` for `WebWorker` support.
-	  var root = (typeof self == 'object' && self.self == self && self) ||
-	            (typeof global == 'object' && global.global == global && global);
+	  var root = (typeof self == 'object' && self.self === self && self) ||
+	            (typeof global == 'object' && global.global === global && global);
 
 	  // Set up Backbone appropriately for the environment. Start with AMD.
 	  if (true) {
@@ -27183,7 +27211,7 @@
 	  // Next for Node.js or CommonJS. jQuery may not be needed as a module.
 	  } else if (typeof exports !== 'undefined') {
 	    var _ = require('underscore'), $;
-	    try { $ = require('jquery'); } catch(e) {}
+	    try { $ = require('jquery'); } catch (e) {}
 	    factory(root, exports, _, $);
 
 	  // Finally, as a browser global.
@@ -27191,7 +27219,7 @@
 	    root.Backbone = factory(root, {}, root._, (root.jQuery || root.Zepto || root.ender || root.$));
 	  }
 
-	}(function(root, Backbone, _, $) {
+	})(function(root, Backbone, _, $) {
 
 	  // Initial Setup
 	  // -------------
@@ -27306,7 +27334,7 @@
 	        events = eventsApi(iteratee, events, names[i], name[names[i]], opts);
 	      }
 	    } else if (name && eventSplitter.test(name)) {
-	      // Handle space separated event names by delegating them individually.
+	      // Handle space-separated event names by delegating them individually.
 	      for (names = name.split(eventSplitter); i < names.length; i++) {
 	        events = iteratee(events, names[i], callback, opts);
 	      }
@@ -27326,9 +27354,9 @@
 	  // Guard the `listening` argument from the public API.
 	  var internalOn = function(obj, name, callback, context, listening) {
 	    obj._events = eventsApi(onApi, obj._events || {}, name, callback, {
-	        context: context,
-	        ctx: obj,
-	        listening: listening
+	      context: context,
+	      ctx: obj,
+	      listening: listening
 	    });
 
 	    if (listening) {
@@ -27342,7 +27370,7 @@
 	  // Inversion-of-control versions of `on`. Tell *this* object to listen to
 	  // an event in another object... keeping track of what it's listening to
 	  // for easier unbinding later.
-	  Events.listenTo =  function(obj, name, callback) {
+	  Events.listenTo = function(obj, name, callback) {
 	    if (!obj) return this;
 	    var id = obj._listenId || (obj._listenId = _.uniqueId('l'));
 	    var listeningTo = this._listeningTo || (this._listeningTo = {});
@@ -27367,7 +27395,7 @@
 	      var context = options.context, ctx = options.ctx, listening = options.listening;
 	      if (listening) listening.count++;
 
-	      handlers.push({ callback: callback, context: context, ctx: context || ctx, listening: listening });
+	      handlers.push({callback: callback, context: context, ctx: context || ctx, listening: listening});
 	    }
 	    return events;
 	  };
@@ -27376,18 +27404,18 @@
 	  // callbacks with that function. If `callback` is null, removes all
 	  // callbacks for the event. If `name` is null, removes all bound
 	  // callbacks for all events.
-	  Events.off =  function(name, callback, context) {
+	  Events.off = function(name, callback, context) {
 	    if (!this._events) return this;
 	    this._events = eventsApi(offApi, this._events, name, callback, {
-	        context: context,
-	        listeners: this._listeners
+	      context: context,
+	      listeners: this._listeners
 	    });
 	    return this;
 	  };
 
 	  // Tell this object to stop listening to either specific events ... or
 	  // to every object it's currently listening to.
-	  Events.stopListening =  function(obj, name, callback) {
+	  Events.stopListening = function(obj, name, callback) {
 	    var listeningTo = this._listeningTo;
 	    if (!listeningTo) return this;
 
@@ -27402,7 +27430,6 @@
 
 	      listening.obj.off(name, callback, this);
 	    }
-	    if (_.isEmpty(listeningTo)) this._listeningTo = void 0;
 
 	    return this;
 	  };
@@ -27459,21 +27486,21 @@
 	        delete events[name];
 	      }
 	    }
-	    if (_.size(events)) return events;
+	    return events;
 	  };
 
 	  // Bind an event to only be triggered a single time. After the first time
 	  // the callback is invoked, its listener will be removed. If multiple events
 	  // are passed in using the space-separated syntax, the handler will fire
 	  // once for each event, not once for a combination of all events.
-	  Events.once =  function(name, callback, context) {
+	  Events.once = function(name, callback, context) {
 	    // Map the event into a `{event: once}` object.
 	    var events = eventsApi(onceMap, {}, name, callback, _.bind(this.off, this));
-	    return this.on(events, void 0, context);
+	    return this.on(events, callback, context);
 	  };
 
 	  // Inversion-of-control versions of `once`.
-	  Events.listenToOnce =  function(obj, name, callback) {
+	  Events.listenToOnce = function(obj, name, callback) {
 	    // Map the event into a `{event: once}` object.
 	    var events = eventsApi(onceMap, {}, name, callback, _.bind(this.stopListening, this, obj));
 	    return this.listenTo(obj, events);
@@ -27496,7 +27523,7 @@
 	  // passed the same arguments as `trigger` is, apart from the event name
 	  // (unless you're listening on `"all"`, which will cause your callback to
 	  // receive the true name of the event as the first argument).
-	  Events.trigger =  function(name) {
+	  Events.trigger = function(name) {
 	    if (!this._events) return this;
 
 	    var length = Math.max(0, arguments.length - 1);
@@ -27508,7 +27535,7 @@
 	  };
 
 	  // Handles triggering the appropriate event callbacks.
-	  var triggerApi = function(objEvents, name, cb, args) {
+	  var triggerApi = function(objEvents, name, callback, args) {
 	    if (objEvents) {
 	      var events = objEvents[name];
 	      var allEvents = objEvents.all;
@@ -27558,7 +27585,8 @@
 	    this.attributes = {};
 	    if (options.collection) this.collection = options.collection;
 	    if (options.parse) attrs = this.parse(attrs, options) || {};
-	    attrs = _.defaults({}, attrs, _.result(this, 'defaults'));
+	    var defaults = _.result(this, 'defaults');
+	    attrs = _.defaults(_.extend({}, defaults, attrs), defaults);
 	    this.set(attrs, options);
 	    this.changed = {};
 	    this.initialize.apply(this, arguments);
@@ -27666,7 +27694,7 @@
 	      }
 
 	      // Update the `id`.
-	      this.id = this.get(this.idAttribute);
+	      if (this.idAttribute in attrs) this.id = this.get(this.idAttribute);
 
 	      // Trigger all relevant attribute changes.
 	      if (!silent) {
@@ -27779,8 +27807,8 @@
 	      // the model will be valid when the attributes, if any, are set.
 	      if (attrs && !wait) {
 	        if (!this.set(attrs, options)) return false;
-	      } else {
-	        if (!this._validate(attrs, options)) return false;
+	      } else if (!this._validate(attrs, options)) {
+	        return false;
 	      }
 
 	      // After a successful server-side save, the client is (optionally)
@@ -27874,7 +27902,7 @@
 
 	    // Check if the model is currently in a valid state.
 	    isValid: function(options) {
-	      return this._validate({}, _.defaults({validate: true}, options));
+	      return this._validate({}, _.extend({}, options, {validate: true}));
 	    },
 
 	    // Run validation against the next complete set of model attributes,
@@ -27892,8 +27920,8 @@
 
 	  // Underscore methods that we want to implement on the Model, mapped to the
 	  // number of arguments they take.
-	  var modelMethods = { keys: 1, values: 1, pairs: 1, invert: 1, pick: 0,
-	      omit: 0, chain: 1, isEmpty: 1 };
+	  var modelMethods = {keys: 1, values: 1, pairs: 1, invert: 1, pick: 0,
+	      omit: 0, chain: 1, isEmpty: 1};
 
 	  // Mix in each Underscore method as a proxy to `Model#attributes`.
 	  addUnderscoreMethods(Model, modelMethods, 'attributes');
@@ -27929,7 +27957,8 @@
 	    at = Math.min(Math.max(at, 0), array.length);
 	    var tail = Array(array.length - at);
 	    var length = insert.length;
-	    for (var i = 0; i < tail.length; i++) tail[i] = array[i + at];
+	    var i;
+	    for (i = 0; i < tail.length; i++) tail[i] = array[i + at];
 	    for (i = 0; i < length; i++) array[i + at] = insert[i];
 	    for (i = 0; i < tail.length; i++) array[i + length + at] = tail[i];
 	  };
@@ -27967,9 +27996,12 @@
 	    remove: function(models, options) {
 	      options = _.extend({}, options);
 	      var singular = !_.isArray(models);
-	      models = singular ? [models] : _.clone(models);
+	      models = singular ? [models] : models.slice();
 	      var removed = this._removeModels(models, options);
-	      if (!options.silent && removed) this.trigger('update', this, options);
+	      if (!options.silent && removed.length) {
+	        options.changes = {added: [], merged: [], removed: removed};
+	        this.trigger('update', this, options);
+	      }
 	      return singular ? removed[0] : removed;
 	    },
 
@@ -27980,18 +28012,22 @@
 	    set: function(models, options) {
 	      if (models == null) return;
 
-	      options = _.defaults({}, options, setOptions);
-	      if (options.parse && !this._isModel(models)) models = this.parse(models, options);
+	      options = _.extend({}, setOptions, options);
+	      if (options.parse && !this._isModel(models)) {
+	        models = this.parse(models, options) || [];
+	      }
 
 	      var singular = !_.isArray(models);
 	      models = singular ? [models] : models.slice();
 
 	      var at = options.at;
 	      if (at != null) at = +at;
+	      if (at > this.length) at = this.length;
 	      if (at < 0) at += this.length + 1;
 
 	      var set = [];
 	      var toAdd = [];
+	      var toMerge = [];
 	      var toRemove = [];
 	      var modelMap = {};
 
@@ -28000,13 +28036,13 @@
 	      var remove = options.remove;
 
 	      var sort = false;
-	      var sortable = this.comparator && (at == null) && options.sort !== false;
+	      var sortable = this.comparator && at == null && options.sort !== false;
 	      var sortAttr = _.isString(this.comparator) ? this.comparator : null;
 
 	      // Turn bare objects into model references, and prevent invalid models
 	      // from being added.
-	      var model;
-	      for (var i = 0; i < models.length; i++) {
+	      var model, i;
+	      for (i = 0; i < models.length; i++) {
 	        model = models[i];
 
 	        // If a duplicate is found, prevent it from being added and
@@ -28017,6 +28053,7 @@
 	            var attrs = this._isModel(model) ? model.attributes : model;
 	            if (options.parse) attrs = existing.parse(attrs, options);
 	            existing.set(attrs, options);
+	            toMerge.push(existing);
 	            if (sortable && !sort) sort = existing.hasChanged(sortAttr);
 	          }
 	          if (!modelMap[existing.cid]) {
@@ -28050,8 +28087,8 @@
 	      var orderChanged = false;
 	      var replace = !sortable && add && remove;
 	      if (set.length && replace) {
-	        orderChanged = this.length != set.length || _.some(this.models, function(model, index) {
-	          return model !== set[index];
+	        orderChanged = this.length !== set.length || _.some(this.models, function(m, index) {
+	          return m !== set[index];
 	        });
 	        this.models.length = 0;
 	        splice(this.models, set, 0);
@@ -28065,7 +28102,7 @@
 	      // Silently sort the collection if appropriate.
 	      if (sort) this.sort({silent: true});
 
-	      // Unless silenced, it's time to fire all appropriate add/sort events.
+	      // Unless silenced, it's time to fire all appropriate add/sort/update events.
 	      if (!options.silent) {
 	        for (i = 0; i < toAdd.length; i++) {
 	          if (at != null) options.index = at + i;
@@ -28073,7 +28110,14 @@
 	          model.trigger('add', model, this, options);
 	        }
 	        if (sort || orderChanged) this.trigger('sort', this, options);
-	        if (toAdd.length || toRemove.length) this.trigger('update', this, options);
+	        if (toAdd.length || toRemove.length || toMerge.length) {
+	          options.changes = {
+	            added: toAdd,
+	            removed: toRemove,
+	            merged: toMerge
+	          };
+	          this.trigger('update', this, options);
+	        }
 	      }
 
 	      // Return the added (or merged) model (or models).
@@ -28123,11 +28167,18 @@
 	      return slice.apply(this.models, arguments);
 	    },
 
-	    // Get a model from the set by id.
+	    // Get a model from the set by id, cid, model object with id or cid
+	    // properties, or an attributes object that is transformed through modelId.
 	    get: function(obj) {
 	      if (obj == null) return void 0;
-	      var id = this.modelId(this._isModel(obj) ? obj.attributes : obj);
-	      return this._byId[obj] || this._byId[id] || this._byId[obj.cid];
+	      return this._byId[obj] ||
+	        this._byId[this.modelId(obj.attributes || obj)] ||
+	        obj.cid && this._byId[obj.cid];
+	    },
+
+	    // Returns `true` if the model is in the collection.
+	    has: function(obj) {
+	      return this.get(obj) != null;
 	    },
 
 	    // Get the model at the given index.
@@ -28171,7 +28222,7 @@
 
 	    // Pluck an attribute from each model in the collection.
 	    pluck: function(attr) {
-	      return _.invoke(this.models, 'get', attr);
+	      return this.map(attr + '');
 	    },
 
 	    // Fetch the default set of models for this collection, resetting the
@@ -28202,9 +28253,9 @@
 	      if (!wait) this.add(model, options);
 	      var collection = this;
 	      var success = options.success;
-	      options.success = function(model, resp, callbackOpts) {
-	        if (wait) collection.add(model, callbackOpts);
-	        if (success) success.call(callbackOpts.context, model, resp, callbackOpts);
+	      options.success = function(m, resp, callbackOpts) {
+	        if (wait) collection.add(m, callbackOpts);
+	        if (success) success.call(callbackOpts.context, m, resp, callbackOpts);
 	      };
 	      model.save(null, options);
 	      return model;
@@ -28225,7 +28276,7 @@
 	    },
 
 	    // Define how to uniquely identify models in the collection.
-	    modelId: function (attrs) {
+	    modelId: function(attrs) {
 	      return attrs[this.model.prototype.idAttribute || 'id'];
 	    },
 
@@ -28263,6 +28314,12 @@
 	        this.models.splice(index, 1);
 	        this.length--;
 
+	        // Remove references before triggering 'remove' event to prevent an
+	        // infinite loop. #3693
+	        delete this._byId[model.cid];
+	        var id = this.modelId(model.attributes);
+	        if (id != null) delete this._byId[id];
+
 	        if (!options.silent) {
 	          options.index = index;
 	          model.trigger('remove', model, this, options);
@@ -28271,12 +28328,12 @@
 	        removed.push(model);
 	        this._removeReference(model, options);
 	      }
-	      return removed.length ? removed : false;
+	      return removed;
 	    },
 
 	    // Method for checking whether an object should be considered a model for
 	    // the purposes of adding to the collection.
-	    _isModel: function (model) {
+	    _isModel: function(model) {
 	      return model instanceof Model;
 	    },
 
@@ -28302,14 +28359,16 @@
 	    // events simply proxy through. "add" and "remove" events that originate
 	    // in other collections are ignored.
 	    _onModelEvent: function(event, model, collection, options) {
-	      if ((event === 'add' || event === 'remove') && collection !== this) return;
-	      if (event === 'destroy') this.remove(model, options);
-	      if (event === 'change') {
-	        var prevId = this.modelId(model.previousAttributes());
-	        var id = this.modelId(model.attributes);
-	        if (prevId !== id) {
-	          if (prevId != null) delete this._byId[prevId];
-	          if (id != null) this._byId[id] = model;
+	      if (model) {
+	        if ((event === 'add' || event === 'remove') && collection !== this) return;
+	        if (event === 'destroy') this.remove(model, options);
+	        if (event === 'change') {
+	          var prevId = this.modelId(model.previousAttributes());
+	          var id = this.modelId(model.attributes);
+	          if (prevId !== id) {
+	            if (prevId != null) delete this._byId[prevId];
+	            if (id != null) this._byId[id] = model;
+	          }
 	        }
 	      }
 	      this.trigger.apply(this, arguments);
@@ -28320,14 +28379,14 @@
 	  // Underscore methods that we want to implement on the Collection.
 	  // 90% of the core usefulness of Backbone Collections is actually implemented
 	  // right here:
-	  var collectionMethods = { forEach: 3, each: 3, map: 3, collect: 3, reduce: 4,
-	      foldl: 4, inject: 4, reduceRight: 4, foldr: 4, find: 3, detect: 3, filter: 3,
+	  var collectionMethods = {forEach: 3, each: 3, map: 3, collect: 3, reduce: 0,
+	      foldl: 0, inject: 0, reduceRight: 0, foldr: 0, find: 3, detect: 3, filter: 3,
 	      select: 3, reject: 3, every: 3, all: 3, some: 3, any: 3, include: 3, includes: 3,
 	      contains: 3, invoke: 0, max: 3, min: 3, toArray: 1, size: 1, first: 3,
 	      head: 3, take: 3, initial: 3, rest: 3, tail: 3, drop: 3, last: 3,
 	      without: 0, difference: 0, indexOf: 3, shuffle: 1, lastIndexOf: 3,
 	      isEmpty: 1, chain: 1, sample: 3, partition: 3, groupBy: 3, countBy: 3,
-	      sortBy: 3, indexBy: 3};
+	      sortBy: 3, indexBy: 3, findIndex: 3, findLastIndex: 3};
 
 	  // Mix in each Underscore method as a proxy to `Collection#models`.
 	  addUnderscoreMethods(Collection, collectionMethods, 'models');
@@ -28577,9 +28636,9 @@
 	  var methodMap = {
 	    'create': 'POST',
 	    'update': 'PUT',
-	    'patch':  'PATCH',
+	    'patch': 'PATCH',
 	    'delete': 'DELETE',
-	    'read':   'GET'
+	    'read': 'GET'
 	  };
 
 	  // Set the default implementation of `Backbone.ajax` to proxy through to `$`.
@@ -28736,8 +28795,8 @@
 	    // Does the pathname match the root?
 	    matchRoot: function() {
 	      var path = this.decodeFragment(this.location.pathname);
-	      var root = path.slice(0, this.root.length - 1) + '/';
-	      return root === this.root;
+	      var rootPath = path.slice(0, this.root.length - 1) + '/';
+	      return rootPath === this.root;
 	    },
 
 	    // Unicode characters in `location.pathname` are percent encoded so they're
@@ -28809,8 +28868,8 @@
 	        // If we've started off with a route from a `pushState`-enabled
 	        // browser, but we're currently in a browser that doesn't support it...
 	        if (!this._hasPushState && !this.atRoot()) {
-	          var root = this.root.slice(0, -1) || '/';
-	          this.location.replace(root + '#' + this.getPath());
+	          var rootPath = this.root.slice(0, -1) || '/';
+	          this.location.replace(rootPath + '#' + this.getPath());
 	          // Return immediately as browser will do redirect to new url
 	          return true;
 
@@ -28839,7 +28898,7 @@
 	      }
 
 	      // Add a cross-platform `addEventListener` shim for older browsers.
-	      var addEventListener = window.addEventListener || function (eventName, listener) {
+	      var addEventListener = window.addEventListener || function(eventName, listener) {
 	        return attachEvent('on' + eventName, listener);
 	      };
 
@@ -28860,7 +28919,7 @@
 	    // but possibly useful for unit testing Routers.
 	    stop: function() {
 	      // Add a cross-platform `removeEventListener` shim for older browsers.
-	      var removeEventListener = window.removeEventListener || function (eventName, listener) {
+	      var removeEventListener = window.removeEventListener || function(eventName, listener) {
 	        return detachEvent('on' + eventName, listener);
 	      };
 
@@ -28934,11 +28993,11 @@
 	      fragment = this.getFragment(fragment || '');
 
 	      // Don't include a trailing slash on the root.
-	      var root = this.root;
+	      var rootPath = this.root;
 	      if (fragment === '' || fragment.charAt(0) === '?') {
-	        root = root.slice(0, -1) || '/';
+	        rootPath = rootPath.slice(0, -1) || '/';
 	      }
-	      var url = root + fragment;
+	      var url = rootPath + fragment;
 
 	      // Strip the hash and decode for matching.
 	      fragment = this.decodeFragment(fragment.replace(pathStripper, ''));
@@ -28954,7 +29013,7 @@
 	      // fragment to store history.
 	      } else if (this._wantsHashChange) {
 	        this._updateHash(this.location, fragment, options.replace);
-	        if (this.iframe && (fragment !== this.getHash(this.iframe.contentWindow))) {
+	        if (this.iframe && fragment !== this.getHash(this.iframe.contentWindow)) {
 	          var iWindow = this.iframe.contentWindow;
 
 	          // Opening and closing the iframe tricks IE7 and earlier to push a
@@ -29016,14 +29075,9 @@
 	    _.extend(child, parent, staticProps);
 
 	    // Set the prototype chain to inherit from `parent`, without calling
-	    // `parent` constructor function.
-	    var Surrogate = function(){ this.constructor = child; };
-	    Surrogate.prototype = parent.prototype;
-	    child.prototype = new Surrogate;
-
-	    // Add prototype properties (instance properties) to the subclass,
-	    // if supplied.
-	    if (protoProps) _.extend(child.prototype, protoProps);
+	    // `parent`'s constructor function and add the prototype properties.
+	    child.prototype = _.create(parent.prototype, protoProps);
+	    child.prototype.constructor = child;
 
 	    // Set a convenience property in case the parent's prototype is needed
 	    // later.
@@ -29050,8 +29104,7 @@
 	  };
 
 	  return Backbone;
-
-	}));
+	});
 
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
@@ -29064,7 +29117,7 @@
 
 	// TODO: ATTEMPT TO KILL THIS MODULE USING THIRD PARTY LIBRARIES WHEN IPYWIDGETS
 	// IS CONVERTED TO NODE COMMONJS.
-	"use strict";
+	'use strict';
 
 
 	/**
@@ -29072,14 +29125,14 @@
 	 */
 	function uuid() {
 	    var s = [];
-	    var hexDigits = "0123456789ABCDEF";
+	    var hexDigits = '0123456789ABCDEF';
 	    for (var i = 0; i < 32; i++) {
 	        s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
 	    }
-	    s[12] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+	    s[12] = '4';  // bits 12-15 of the time_hi_and_version field to 0010
 	    s[16] = hexDigits.substr((s[16] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
 
-	    return s.join("");
+	    return s.join('');
 	}
 
 	/**
@@ -29618,8 +29671,8 @@
 
 	    on_some_change: function(keys, callback, context) {
 	        /**
-	         * on_some_change(["key1", "key2"], foo, context) differs from
-	         * on("change:key1 change:key2", foo, context).
+	         * on_some_change(['key1', 'key2'], foo, context) differs from
+	         * on('change:key1 change:key2', foo, context).
 	         * If the widget attributes key1 and key2 are both modified,
 	         * the second form will result in foo being called twice
 	         * while the first will call foo only once.
@@ -29696,7 +29749,8 @@
 	         */
 	        var that = this;
 	        options = _.extend({ parent: this }, options || {});
-	        return this.model.widget_manager.create_view(child_model, options).catch(utils.reject("Couldn't create child view", true));
+	        return this.model.widget_manager.create_view(child_model, options)
+	            .catch(utils.reject('Couldn\'t create child view', true));
 	    },
 
 	    callbacks: function(){
@@ -29846,7 +29900,7 @@
 	                        view.trigger('displayed', that);
 	                        return view;
 	                    });
-	                }).catch(utils.reject("Couldn't add LayoutView to DOMWidgetView", true));
+	                }).catch(utils.reject('Couldn\'t add LayoutView to DOMWidgetView', true));
 	            });
 	        }
 	    },
@@ -30045,7 +30099,7 @@
 
 	    // For backwards compatibility.
 	    WidgetView: WidgetView,
-	    DOMWidgetView: DOMWidgetView,
+	    DOMWidgetView: DOMWidgetView
 	};
 
 	module.exports = widget;
@@ -30063,7 +30117,7 @@
 	 * old comm API.  Use this, jupyter-js-services, and the widget base manager to
 	 * embed live widgets in a context outside of the notebook.
 	 */
-	"use strict";
+	'use strict';
 
 	var utils = __webpack_require__(8);
 	var _ = __webpack_require__(5);
@@ -30117,7 +30171,7 @@
 	            var response = f(comm, msg);
 	        } catch (e) {
 	            comm.close();
-	            var wrapped_error = new utils.WrappedError("Exception opening new comm", e);
+	            var wrapped_error = new utils.WrappedError('Exception opening new comm', e);
 	            console.error(wrapped_error);
 	            return;
 	        }
@@ -30267,7 +30321,7 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	var widget = __webpack_require__(9);
 	var _ = __webpack_require__(5);
@@ -30277,24 +30331,24 @@
 	 * css properties exposed by the layout widget with their default values.
 	 */
 	var css_properties = {
-	    align_content: "",
-	    align_items: "",
-	    align_self: "",
-	    border: "",
-	    bottom: "",
-	    display: "",
-	    flex: "",
-	    flex_flow: "",
-	    height: "",
-	    justify_content: "",
-	    left: "",
-	    margin: "",
-	    overflow: "",
-	    padding: "",
-	    right: "",
-	    top: "",
-	    visibility: "",
-	    width: ""
+	    align_content: '',
+	    align_items: '',
+	    align_self: '',
+	    border: '',
+	    bottom: '',
+	    display: '',
+	    flex: '',
+	    flex_flow: '',
+	    height: '',
+	    justify_content: '',
+	    left: '',
+	    margin: '',
+	    overflow: '',
+	    padding: '',
+	    right: '',
+	    top: '',
+	    visibility: '',
+	    width: ''
 	};
 
 	/**
@@ -30302,8 +30356,8 @@
 	 */
 	var LayoutModel = widget.WidgetModel.extend({
 	    defaults: _.extend({}, widget.WidgetModel.prototype.defaults, {
-	        _model_name: "LayoutModel",
-	        _view_name: "LayoutView"
+	        _model_name: 'LayoutModel',
+	        _view_name: 'LayoutView'
 	    }, css_properties),
 	});
 
@@ -30370,7 +30424,7 @@
 	            if (parent) {
 	                parent.el.style[this.css_name(trait)] = value;
 	            } else {
-	                console.warn("Style not applied because a parent view doesn't exist");
+	                console.warn('Style not applied because a parent view doesn\'t exist');
 	            }
 	        }, this));
 	    },
@@ -30384,7 +30438,7 @@
 	                if (parent) {
 	                    parent.el.style[this.css_name(trait)] = '';
 	                } else {
-	                    console.warn("Style not removed because a parent view doesn't exist");
+	                    console.warn('Style not removed because a parent view doesn\'t exist');
 	                }
 	            }, this));
 	        }, this);
@@ -30403,7 +30457,7 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	var widget = __webpack_require__(9);
 	var _ = __webpack_require__(5);
@@ -30412,7 +30466,7 @@
 
 	    defaults: _.extend({}, widget.WidgetModel.prototype.defaults, {
 	        target: undefined,
-	        source: undefined,
+	        source: undefined
 	    }),
 
 	    update_value: function(source, target) {
@@ -30431,14 +30485,14 @@
 	    },
 
 	    cleanup: function() {
-	        // Stop listening to "change" and "destroy" events of the source and target
+	        // Stop listening to 'change' and 'destroy' events of the source and target
 	        if (this.source) {
-	            this.stopListening(this.source[0], "change:" + this.source[1], null, this);
-	            this.stopListening(this.source[0], "destroy", null, this);
+	            this.stopListening(this.source[0], 'change:' + this.source[1], null, this);
+	            this.stopListening(this.source[0], 'destroy', null, this);
 	        }
 	        if (this.target) {
-	            this.stopListening(this.target[0], "change:" + this.target[1], null, this);
-	            this.stopListening(this.target[0], "destroy", null, this);
+	            this.stopListening(this.target[0], 'change:' + this.target[1], null, this);
+	            this.stopListening(this.target[0], 'destroy', null, this);
 	        }
 	    },
 
@@ -30446,7 +30500,7 @@
 
 	    serializers: _.extend({
 	        target: {deserialize: widget.unpack_models},
-	        source: {deserialize: widget.unpack_models},
+	        source: {deserialize: widget.unpack_models}
 	    }, widget.WidgetModel.serializers),
 
 	});
@@ -30454,29 +30508,30 @@
 	var LinkModel = BaseLinkModel.extend({
 
 	    defaults: _.extend({}, BaseLinkModel.prototype.defaults, {
-	        _model_name: "LinkModel"
+	        _model_name: 'LinkModel'
 	    }),
 
 	    initialize: function() {
-	        this.on("change", this.update_bindings, this);
+	        this.on('change', this.update_bindings, this);
+	        this.update_bindings();
 	    },
 
 	    update_bindings: function() {
 	        this.cleanup();
-	        this.source = this.get("source");
-	        this.target = this.get("target");
+	        this.source = this.get('source');
+	        this.target = this.get('target');
 	        if (this.source) {
-	            this.listenTo(this.source[0], "change:" + this.source[1], function() {
+	            this.listenTo(this.source[0], 'change:' + this.source[1], function() {
 	                this.update_value(this.source, this.target);
 	            }, this);
 	            this.update_value(this.source, this.target);
-	            this.listenToOnce(this.source[0], "destroy", this.cleanup, this);
+	            this.listenToOnce(this.source[0], 'destroy', this.cleanup, this);
 	        }
 	        if (this.target) {
-	            this.listenTo(this.target[0], "change:" + this.target[1], function() {
+	            this.listenTo(this.target[0], 'change:' + this.target[1], function() {
 	                this.update_value(this.target, this.source);
 	            }, this);
-	            this.listenToOnce(this.target[0], "destroy", this.cleanup, this);
+	            this.listenToOnce(this.target[0], 'destroy', this.cleanup, this);
 	        }
 	    },
 	});
@@ -30484,26 +30539,27 @@
 	var DirectionalLinkModel = BaseLinkModel.extend({
 
 	    defaults: _.extend({}, BaseLinkModel.prototype.defaults, {
-	        _model_name: "DirectionalLinkModel"
+	        _model_name: 'DirectionalLinkModel'
 	    }),
 
 	    initialize: function() {
-	        this.on("change", this.update_bindings, this);
+	        this.on('change', this.update_bindings, this);
+	        this.update_bindings();
 	    },
 
 	    update_bindings: function() {
 	        this.cleanup();
-	        this.source = this.get("source");
-	        this.target = this.get("target");
+	        this.source = this.get('source');
+	        this.target = this.get('target');
 	        if (this.source) {
-	            this.listenTo(this.source[0], "change:" + this.source[1], function() {
+	            this.listenTo(this.source[0], 'change:' + this.source[1], function() {
 	                this.update_value(this.source, this.target);
 	            }, this);
 	            this.update_value(this.source, this.target);
-	            this.listenToOnce(this.source[0], "destroy", this.cleanup, this);
+	            this.listenToOnce(this.source[0], 'destroy', this.cleanup, this);
 	        }
 	        if (this.target) {
-	            this.listenToOnce(this.target[0], "destroy", this.cleanup, this);
+	            this.listenToOnce(this.target[0], 'destroy', this.cleanup, this);
 	        }
 	    },
 
@@ -30511,7 +30567,7 @@
 
 	module.exports = {
 	    LinkModel: LinkModel,
-	    DirectionalLinkModel: DirectionalLinkModel,
+	    DirectionalLinkModel: DirectionalLinkModel
 	};
 
 
@@ -30621,7 +30677,7 @@
 	        _model_name: 'ToggleButtonModel',
 	        tooltip: '',
 	        icon: '',
-	        button_style: '',
+	        button_style: ''
 	    }),
 	});
 
@@ -30691,7 +30747,7 @@
 
 	    events: {
 	        // Dictionary of events and their handlers.
-	        'click': '_handle_click',
+	        'click': '_handle_click'
 	    },
 
 	    _handle_click: function(event) {
@@ -30757,7 +30813,7 @@
 	    ToggleButtonModel: ToggleButtonModel,
 	    ToggleButtonView: ToggleButtonView,
 	    ValidModel: ValidModel,
-	    ValidView: ValidView,
+	    ValidView: ValidView
 	};
 
 
@@ -30842,7 +30898,7 @@
 
 	    events: {
 	        // Dictionary of events and their handlers.
-	        'click': '_handle_click',
+	        'click': '_handle_click'
 	    },
 
 	    _handle_click: function(event) {
@@ -30866,7 +30922,7 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	var widget = __webpack_require__(9);
 	var utils = __webpack_require__(8);
@@ -30874,12 +30930,12 @@
 
 	var BoxModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        _view_name: "BoxView",
-	        _model_name: "BoxModel",
+	        _view_name: 'BoxView',
+	        _model_name: 'BoxModel',
 	        children: [],
-	        box_style: "",
-	        overflow_x: "",
-	        overflow_y: "",
+	        box_style: '',
+	        overflow_x: '',
+	        overflow_y: ''
 	    }),
 	}, {
 	    serializers: _.extend({
@@ -30889,14 +30945,14 @@
 
 	var ProxyModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        _view_name: "ProxyView",
-	        _model_name: "ProxyModel",
-	        child: null,
-	    }),
+	        _view_name: 'ProxyView',
+	        _model_name: 'ProxyModel',
+	        child: null
+	    })
 	}, {
 	    serializers: _.extend({
 	        child: {deserialize: widget.unpack_models},
-	    }, widget.DOMWidgetModel.serializers),
+	    }, widget.DOMWidgetModel.serializers)
 	});
 
 	var ProxyView = widget.DOMWidgetView.extend({
@@ -30911,8 +30967,8 @@
 
 	    render: function() {
 	        var that = this;
-	        var child_view = this.set_child(this.model.get("child"));
-	        this.listenTo(this.model, "change:child", function(model, value) {
+	        var child_view = this.set_child(this.model.get('child'));
+	        this.listenTo(this.model, 'change:child', function(model, value) {
 	            this.set_child(value);
 	        });
 	        return child_view;
@@ -30937,7 +30993,7 @@
 	            this.child_promise = this.child_promise.then(function() {
 	                return that.create_child_view(value).then(function(view) {
 	                    if (that.box === undefined) {
-	                        console.error("Widget place holder does not exist");
+	                        console.error('Widget place holder does not exist');
 	                        return;
 	                    }
 	                    while (that.box.firstChild) {
@@ -30950,8 +31006,8 @@
 	                        view.trigger('displayed', that);
 	                    });
 	                    that.child = view;
-	                    that.trigger("child:created");
-	                }).catch(utils.reject("Couldn't add child view to proxy", true));
+	                    that.trigger('child:created');
+	                }).catch(utils.reject('Couldn\'t add child view to proxy', true));
 	            });
 	        }
 	        return this.child_promise;
@@ -30969,22 +31025,22 @@
 
 	var PlaceProxyModel = ProxyModel.extend({
 	    defaults: _.extend({}, ProxyModel.prototype.defaults, {
-	        _view_name: "PlaceProxyView",
-	        _model_name: "PlaceProxyModel",
-	        selector: "",
+	        _view_name: 'PlaceProxyView',
+	        _model_name: 'PlaceProxyModel',
+	        selector: ''
 	    }),
 	});
 
 	var PlaceProxyView = ProxyView.extend({
 	    initialize: function() {
 	        PlaceProxyView.__super__.initialize.apply(this, arguments);
-	        this.update_selector(this.model, this.model.get("selector"));
-	        this.listenTo(this.model, "change:selector", this.update_selector);
+	        this.update_selector(this.model, this.model.get('selector'));
+	        this.listenTo(this.model, 'change:selector', this.update_selector);
 	    },
 
 	    update_selector: function(model, selector) {
 	        this.box = document.querySelectorAll(selector) || this.el;
-	        this.set_child(this.model.get("child"));
+	        this.set_child(this.model.get('child'));
 	    },
 	});
 
@@ -31065,7 +31121,7 @@
 	                view.trigger('displayed', that);
 	            });
 	            return view;
-	        }).catch(utils.reject("Couldn't add child view to box", true));
+	        }).catch(utils.reject('Couldn\'t add child view to box', true));
 	    },
 
 	    remove: function() {
@@ -31081,11 +31137,11 @@
 
 	var FlexBoxModel = BoxModel.extend({ // TODO: Deprecated in 5.0 (entire model)
 	    defaults: _.extend({}, BoxModel.prototype.defaults, {
-	        _view_name: "FlexBoxView",
-	        _model_name: "FlexBoxModel",
-	        orientation: "vertical",
-	        pack: "start",
-	        alignt: "start",
+	        _view_name: 'FlexBoxView',
+	        _model_name: 'FlexBoxModel',
+	        orientation: 'vertical',
+	        pack: 'start',
+	        alignt: 'start'
 	    }),
 	});
 
@@ -31103,8 +31159,8 @@
 	    },
 
 	    update_orientation: function() {
-	        var orientation = this.model.get("orientation");
-	        if (orientation == "vertical") {
+	        var orientation = this.model.get('orientation');
+	        if (orientation == 'vertical') {
 	            this.box.classList.remove('hbox');
 	            this.box.classList.add(vbox);
 	        } else {
@@ -31143,7 +31199,7 @@
 	    ProxyModel: ProxyModel,
 	    ProxyView: ProxyView,
 	    PlaceProxyModel: PlaceProxyModel,
-	    PlaceProxyView: PlaceProxyView,
+	    PlaceProxyView: PlaceProxyView
 	};
 
 
@@ -31153,7 +31209,7 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	var widget = __webpack_require__(9);
 	var int_widgets = __webpack_require__(17);
@@ -31182,7 +31238,7 @@
 
 	module.exports = {
 	    FloatSliderView: FloatSliderView,
-	    FloatTextView: FloatTextView,
+	    FloatTextView: FloatTextView
 	};
 
 
@@ -31192,7 +31248,7 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	var widget = __webpack_require__(9);
 	var $ = __webpack_require__(2);
@@ -31418,9 +31474,9 @@
 	     * @return {number|number[]} value
 	     */
 	    stringToValue: function(text) {
-	        if (this.model.get("_range")) {
+	        if (this.model.get('_range')) {
 	            // range case
-	            // ranges can be expressed either "val-val" or "val:val" (+spaces)
+	            // ranges can be expressed either 'val-val' or 'val:val' (+spaces)
 	            var match = this._range_regex.exec(text);
 	            if (match) {
 	                return [this._parse_value(match[1]), this._parse_value(match[2])];
@@ -31512,7 +31568,7 @@
 	     */
 	    handleSliderChange: function(e, ui) {
 	        var actual_value;
-	        if (this.model.get("_range")) {
+	        if (this.model.get('_range')) {
 	            actual_value = ui.values.map(this._validate_slide_value);
 	            this.readout.textContent = actual_value.join('-');
 	        } else {
@@ -31535,7 +31591,7 @@
 	     */
 	    handleSliderChanged: function(e, ui) {
 	        var actual_value;
-	        if (this.model.get("_range")) {
+	        if (this.model.get('_range')) {
 	            actual_value = ui.values.map(this._validate_slide_value);
 	        } else {
 	            actual_value = this._validate_slide_value(ui.value);
@@ -31549,7 +31605,7 @@
 	         * Validate the value of the slider before sending it to the back-end
 	         * and applying it to the other views on the page.
 	         *
-	         * Double bit-wise not truncates the decimel (int cast).
+	         * Double bit-wise not truncates the decimal (int cast).
 	         */
 	        return ~~x;
 	    },
@@ -31557,8 +31613,8 @@
 
 	var IntTextModel = IntModel.extend({
 	    defaults: _.extend({}, IntModel.prototype.defaults, {
-	        _model_name: "IntTextModel",
-	        _view_name: "IntTextView"
+	        _model_name: 'IntTextModel',
+	        _view_name: 'IntTextView'
 	    }),
 	});
 
@@ -31694,10 +31750,10 @@
 
 	var ProgressModel = BoundedIntModel.extend({
 	    defaults: _.extend({}, BoundedIntModel.prototype.defaults, {
-	        _model_name: "ProgressModel",
-	        _view_name: "ProgressView",
-	        orientation: "horisontal",
-	        bar_style: ""
+	        _model_name: 'ProgressModel',
+	        _view_name: 'ProgressView',
+	        orientation: 'horizontal',
+	        bar_style: ''
 	    }),
 	});
 
@@ -31730,8 +31786,8 @@
 	        this.update();
 	        this.updateDescription();
 
-	        this.listenTo(this.model, "change:bar_style", this.update_bar_style, this);
-	        this.listenTo(this.model, "change:description", function(sender, value) {
+	        this.listenTo(this.model, 'change:bar_style', this.update_bar_style, this);
+	        this.listenTo(this.model, 'change:description', function(sender, value) {
 	            this.updateDescription();
 	        }, this);
 
@@ -31796,7 +31852,7 @@
 	        /**
 	         * Set a css attr of the widget view.
 	         */
-	        if (name == "color") {
+	        if (name == 'color') {
 	            this.bar.style.background = value;
 	        } else if (name.substring(0, 6) == 'border' || name == 'background') {
 	            this.progress.style[name] = value;
@@ -31814,7 +31870,7 @@
 	    IntTextModel: IntTextModel,
 	    IntTextView: IntTextView,
 	    ProgressModel: ProgressModel,
-	    ProgressView: ProgressView,
+	    ProgressView: ProgressView
 	};
 
 
@@ -31886,7 +31942,7 @@
 
 	module.exports = {
 	    ImageView: ImageView,
-	    ImageModel: ImageModel,
+	    ImageModel: ImageModel
 	};
 
 
@@ -31907,7 +31963,7 @@
 	        description: '',
 	        concise: false,
 	        _model_name: 'ColorPickerModel',
-	        _view_name: 'ColorPickerView',
+	        _view_name: 'ColorPickerView'
 	    }),
 	});
 
@@ -32008,7 +32064,7 @@
 
 	module.exports = {
 	    ColorPickerModel: ColorPickerModel,
-	    ColorPickerView: ColorPickerView,
+	    ColorPickerView: ColorPickerView
 	};
 
 
@@ -32018,7 +32074,7 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	var widget = __webpack_require__(9);
 	var utils = __webpack_require__(8);
@@ -32027,19 +32083,19 @@
 
 	var SelectionModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        _model_name: "SelectionModel",
-	        selected_label: "",
+	        _model_name: 'SelectionModel',
+	        selected_label: '',
 	        _options_labels: [],
 	        disabled: false,
-	        description: "",
+	        description: ''
 	    }),
 	});
 
 	var DropdownModel = SelectionModel.extend({
 	    defaults: _.extend({}, SelectionModel.prototype.defaults, {
-	        _model_name: "DropdownModel",
-	        _view_name: "DropdownView",
-	        button_style: ""
+	        _model_name: 'DropdownModel',
+	        _view_name: 'DropdownView',
+	        button_style: ''
 	    }),
 	});
 
@@ -32079,7 +32135,7 @@
 	        this.droplist.classList.add('dropdown-menu');
 	        this.buttongroup.appendChild(this.droplist);
 
-	        this.listenTo(this.model, "change:button_style", this.update_button_style, this);
+	        this.listenTo(this.model, 'change:button_style', this.update_button_style, this);
 	        this.update_button_style();
 
 	        // Set defaults.
@@ -32090,7 +32146,7 @@
 	     * Show the dropdown list.
 	     *
 	     * If the dropdown list doesn't fit below the dropdown label, this will
-	     * cause the dropdown to be dropped "up".
+	     * cause the dropdown to be dropped 'up'.
 	     * @param  {Event} e
 	     */
 	    _showDropdown: function(e) {
@@ -32132,7 +32188,7 @@
 	        if (options === undefined || options.updated_view != this) {
 	            var selected_item_text = this.model.get('selected_label');
 	            if (selected_item_text.trim().length === 0) {
-	                this.droplabel.innerHTML = "&nbsp;";
+	                this.droplabel.innerHTML = '&nbsp;';
 	            } else {
 	                this.droplabel.textContent = selected_item_text;
 	            }
@@ -32360,7 +32416,7 @@
 	var ToggleButtonsModel = SelectionModel.extend({
 	    defaults: _.extend({}, SelectionModel.prototype.defaults, {
 	        _model_name: 'ToggleButtonsModel',
-	        _view_name: 'ToggleButtonsView',
+	        _view_name: 'ToggleButtonsView'
 	    }),
 	});
 
@@ -32410,7 +32466,7 @@
 	            _.each(items, function(item, index) {
 	                if (item.trim().length === 0 && (!icons[index] ||
 	                    icons[index].trim().length === 0)) {
-	                    item_html = "&nbsp;";
+	                    item_html = '&nbsp;';
 	                } else {
 	                    item_html = utils.escape_html(item);
 	                }
@@ -32535,8 +32591,8 @@
 
 	var SelectModel = SelectionModel.extend({
 	    defaults: _.extend({}, SelectionModel.prototype.defaults, {
-	        _model_name: "SelectModel",
-	        _view_name: "SelectView",
+	        _model_name: 'SelectModel',
+	        _view_name: 'SelectView'
 	    }),
 	});
 
@@ -32652,9 +32708,9 @@
 
 	var SelectionSliderModel = SelectionModel.extend({
 	    defaults: _.extend({}, SelectionModel.prototype.defaults, {
-	        _model_name: "SelectionSliderModel",
-	        _view_name: "SelectionSliderView",
-	        orientation: "horizontal",
+	        _model_name: 'SelectionSliderModel',
+	        _view_name: 'SelectionSliderView',
+	        orientation: 'horizontal',
 	        readout: true
 	    }),
 	});
@@ -32748,7 +32804,7 @@
 	         * changed by another view or by a state update from the back-end.
 	         */
 	        if (options === undefined || options.updated_view != this) {
-	            var labels = this.model.get("_options_labels");
+	            var labels = this.model.get('_options_labels');
 	            var max = labels.length - 1;
 	            var min = 0;
 	            // this.$slider.slider('option', 'step', 1); // DW TODO
@@ -32767,7 +32823,7 @@
 	            // this.$slider.slider('option', 'value', min); // DW TODO
 	            // this.$slider.slider('option', 'orientation', orientation); // DW TODO
 
-	            var selected_label = this.model.get("selected_label");
+	            var selected_label = this.model.get('selected_label');
 	            var index = labels.indexOf(selected_label);
 	            // this.$slider.slider('option', 'value', index);
 
@@ -32817,7 +32873,7 @@
 	    events: {
 	        // Dictionary of events and their handlers.
 	        'slide': 'handleSliderChange',
-	        'slidestop': 'handleSliderChanged',
+	        'slidestop': 'handleSliderChanged'
 	    },
 
 	    /**
@@ -32865,14 +32921,14 @@
 	var MultipleSelectionModel = SelectionModel.extend({
 	    defaults: _.extend({}, SelectionModel.prototype.defaults, {
 	        _model_name: 'MultipleSelectionModel',
-	        selected_labels: [],
+	        selected_labels: []
 	    }),
 	});
 
 	var SelectMultipleModel = MultipleSelectionModel.extend({
 	    defaults: _.extend({}, MultipleSelectionModel.prototype.defaults, {
 	        _model_name: 'SelectMultipleModel',
-	        _view_name: 'SelectMultipleView',
+	        _view_name: 'SelectMultipleView'
 	    }),
 	});
 
@@ -32950,7 +33006,7 @@
 	    SelectionSliderModel: SelectionSliderModel,
 	    MultipleSelectionModel: MultipleSelectionModel,
 	    SelectMultipleView: SelectMultipleView,
-	    SelectMultipleModel: SelectMultipleModel,
+	    SelectMultipleModel: SelectMultipleModel
 	};
 
 
@@ -32971,7 +33027,7 @@
 	    defaults: _.extend({}, box.BoxModel.prototype.defaults, {
 	        _model_name: 'SelectionContainerModel',
 	        selected_index: 0,
-	        _titles: {},
+	        _titles: {}
 	    }),
 	});
 
@@ -33022,9 +33078,9 @@
 	        var titles = this.model.get('_titles');
 	        var that = this;
 	        _.each(titles, function(title, page_index) {
-	            var accordian = that.containers[page_index];
-	            if (accordian !== undefined) {
-	                accordian
+	            var accordion = that.containers[page_index];
+	            if (accordion !== undefined) {
+	                accordion
 	                    .children('.panel-heading')
 	                    .find('.accordion-toggle')
 	                    .text(title);
@@ -33106,7 +33162,7 @@
 	        accordion_toggle.setAttribute('data-parent', '#' + this.el.id);
 	        accordion_toggle.setAttribute('href', '#' + uuid);
 	        accordion_toggle.onclick = function() {
-	          that.model.set("selected_index", index, {updated_view: that});
+	          that.model.set('selected_index', index, {updated_view: that});
 	          that.touch();
 	        };
 	        accordion_toggle.textContent('Page ' + index);
@@ -33139,7 +33195,7 @@
 	                view.trigger('displayed', that);
 	            });
 	            return view;
-	        }).catch(utils.reject("Couldn't add child view to box", true));
+	        }).catch(utils.reject('Couldn\'t add child view to box', true));
 	    },
 
 	    remove: function() {
@@ -33231,7 +33287,7 @@
 	        tab_text.textContent = 'Page ' + index;
 	        tab.appendChild(tab_text);
 	        tab_text.onclick = () => {
-	          that.model.set("selected_index", index, {updated_view: that});
+	          that.model.set('selected_index', index, {updated_view: that});
 	          that.touch();
 	          that.select_page(index);
 	        };
@@ -33327,7 +33383,7 @@
 	    AccordionModel: AccordionModel,
 	    AccordionView: AccordionView,
 	    TabModel: TabModel,
-	    TabView: TabView,
+	    TabView: TabView
 	};
 
 
@@ -33337,25 +33393,25 @@
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
-	"use strict";
+	'use strict';
 
 	var widget = __webpack_require__(9);
 	var _ = __webpack_require__(5);
 
 	var StringModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        value: "",
+	        value: '',
 	        disabled: false,
-	        description: "",
-	        placeholder: "",
-	        _model_name: "StringModel"
+	        description: '',
+	        placeholder: '',
+	        _model_name: 'StringModel'
 	    }),
 	});
 
 	var HTMLModel = StringModel.extend({
 	    defaults: _.extend({}, StringModel.prototype.defaults, {
-	        _view_name: "HTMLView",
-	        _model_name: "HTMLModel"
+	        _view_name: 'HTMLView',
+	        _model_name: 'HTMLModel'
 	    }),
 	});
 
@@ -33383,8 +33439,8 @@
 
 	var LatexModel = StringModel.extend({
 	    defaults: _.extend({}, StringModel.prototype.defaults, {
-	        _view_name: "LatexView",
-	        _model_name: "LatexModel"
+	        _view_name: 'LatexView',
+	        _model_name: 'LatexModel'
 	    }),
 	});
 
@@ -33412,8 +33468,8 @@
 
 	var TextareaModel = StringModel.extend({
 	    defaults: _.extend({}, StringModel.prototype.defaults, {
-	        _view_name: "TextareaView",
-	        _model_name: "TextareaModel"
+	        _view_name: 'TextareaView',
+	        _model_name: 'TextareaModel'
 	    }),
 	});
 
@@ -33441,11 +33497,10 @@
 	        this.listenTo(this.model, 'msg:custom', function() {
 	          model._handle_textarea_msg()
 	        });
-	        this.listenTo(this.model,
-	                      'change:placeholder',
-	                      function(model, value, options) {
-	            this.update_placeholder(value);
-	        }, this);
+	        this.listenTo(this.model, 'change:placeholder',
+	            function(model, value, options) {
+	                this.update_placeholder(value);
+	            }, this);
 
 	        this.update_placeholder();
 	    },
@@ -33454,15 +33509,13 @@
 	        /**
 	         * Handle when a custom msg is recieved from the back-end.
 	         */
-	        if (content.method == "scroll_to_bottom") {
+	        if (content.method == 'scroll_to_bottom') {
 	            this.scroll_to_bottom();
 	        }
 	    },
 
 	    update_placeholder: function(value) {
-	        if (!value) {
-	            value = this.model.get('placeholder');
-	        }
+	        value = value || this.model.get('placeholder');
 	        this.textbox.setAttribute('placeholder', value);
 	    },
 
@@ -33518,8 +33571,8 @@
 
 	var TextModel = StringModel.extend({
 	    defaults: _.extend({}, StringModel.prototype.defaults, {
-	        _view_name: "TextView",
-	        _model_name: "TextModel"
+	        _view_name: 'TextView',
+	        _model_name: 'TextModel'
 	    }),
 	});
 
@@ -33584,12 +33637,12 @@
 
 	    events: {
 	        // Dictionary of events and their handlers.
-	        "keyup input"    : "handleChanging",
-	        "paste input"    : "handleChanging",
-	        "cut input"      : "handleChanging",
-	        "keypress input" : "handleKeypress",
-	        "blur input" : "handleBlur",
-	        "focusout input" : "handleFocusOut"
+	        'keyup input'    : 'handleChanging',
+	        'paste input'    : 'handleChanging',
+	        'cut input'      : 'handleChanging',
+	        'keypress input' : 'handleKeypress',
+	        'blur input' : 'handleBlur',
+	        'focusout input' : 'handleFocusOut'
 	    },
 
 	    handleChanging: function(e) {
@@ -33651,7 +33704,7 @@
 	    TextareaView: TextareaView,
 	    TextareaModel: TextareaModel,
 	    TextView: TextView,
-	    TextModel: TextModel,
+	    TextModel: TextModel
 	};
 
 
@@ -33672,7 +33725,7 @@
 	        _model_name: 'ControllerButtonModel',
 	        _view_name: 'ControllerButtonView',
 	        value: 0.0,
-	        pressed: false,
+	        pressed: false
 	    }),
 	});
 
@@ -33708,14 +33761,14 @@
 
 	    update: function() {
 	        this.bar.style.height = 100 * this.model.get('value') + '%';
-	    },
+	    }
 	});
 
 	var ControllerAxisModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
 	        _model_name: 'ControllerAxisModel',
 	        _view_name: 'ControllerAxisView',
-	        value: 0.0,
+	        value: 0.0
 	    }),
 	});
 
@@ -33769,7 +33822,7 @@
 	        connected: false,
 	        timestamp: 0,
 	        buttons: [],
-	        axes: [],
+	        axes: []
 	    }),
 
 	    initialize: function() {
@@ -33825,7 +33878,7 @@
 	            name: pad.id,
 	            mapping: pad.mapping,
 	            connected: pad.connected,
-	            timestamp: pad.timestamp,
+	            timestamp: pad.timestamp
 	        });
 	        // Create buttons and axes. When done, start the update loop
 	        var that = this;
@@ -33849,13 +33902,13 @@
 	        if (pad && index === pad.index && id === pad.id) {
 	            this.set({
 	                timestamp: pad.timestamp,
-	                connected: pad.connected,
+	                connected: pad.connected
 	            });
 	            this.save_changes();
 	            this.get('buttons').forEach(function(model, index) {
 	                model.set({
 	                    value: pad.buttons[index].value,
-	                    pressed: pad.buttons[index].pressed,
+	                    pressed: pad.buttons[index].pressed
 	                });
 	                model.save_changes();
 	            });
@@ -33884,7 +33937,7 @@
 	            connected: false,
 	            timestamp: 0.0,
 	            buttons: [],
-	            axes: [],
+	            axes: []
 	        });
 	        this.save_changes();
 	        window.requestAnimationFrame(this.wait_loop.bind(this));
@@ -33895,7 +33948,7 @@
 	         */
 	        return this.widget_manager.new_widget({
 	             model_name: 'ControllerButtonModel',
-	             widget_class: 'Jupyter.ControllerButton',
+	             widget_class: 'Jupyter.ControllerButton'
 	        }).then(function(model) {
 	             model.set('description', index);
 	             return model;
@@ -33907,7 +33960,7 @@
 	         */
 	        return this.widget_manager.new_widget({
 	             model_name: 'ControllerAxisModel',
-	             widget_class: 'Jupyter.ControllerAxis',
+	             widget_class: 'Jupyter.ControllerAxis'
 	        }).then(function(model) {
 	             model.set('description', index);
 	             return model;
@@ -33917,7 +33970,7 @@
 	}, {
 	    serializers: _.extend({
 	        buttons: {deserialize: widget.unpack_models},
-	        axes: {deserialize: widget.unpack_models},
+	        axes: {deserialize: widget.unpack_models}
 	    }, widget.DOMWidgetModel.serializers)
 	});
 
@@ -34006,7 +34059,7 @@
 	    ControllerAxisView: ControllerAxisView,
 	    ControllerAxisModel: ControllerAxisModel,
 	    ControllerModel: ControllerModel,
-	    ControllerView: ControllerView,
+	    ControllerView: ControllerView
 	};
 
 
@@ -39990,7 +40043,6 @@
 	// Distributed under the terms of the Modified BSD License.
 	'use strict';
 
-	// module.exports = '\\begin{equation} \\label{eq2} \\sum_{i = 1}^n i = \\frac{n(n + 1)}{2} \\end{equation}';
 	module.exports = '\\begin{equation}\\frac{1}{\\displaystyle 1+' +
 	'   \\frac{1}{\\displaystyle 2+' +
 	'   \\frac{1}{\\displaystyle 3+x}}} +' +

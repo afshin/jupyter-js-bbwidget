@@ -11,6 +11,7 @@
 @import "widget-valid.css";
 @import url("https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css");
 
+
 body {
   font-family: monaco, monospace, courier;
   font-size: 12px;
@@ -38,32 +39,38 @@ body {
 }
 
 
-.one {
+.one-a {
   text-align: center;
 }
 
-.two > div {
-  margin: 10px auto;
+
+.one-b > div {
+  margin: 5px auto;
   width: 175px;
 }
+
 
 .three {
   padding-top: 10px;
 }
+
 
 .three-a .widget-checkbox, .three-b > .widget-valid, .three-c > .widget-valid {
   width: 150px;
   margin: 0 auto;
 }
 
+
 .four-a, .four-b {
   padding-top: 10px;
 }
+
 
 .four-a .p-Widget, .four-b .p-Widget {
   width: 100px;
   margin: 0 auto 5px auto;
 }
+
 
 .four-a button, .four-b button {
   font-weight: bold;
@@ -71,7 +78,30 @@ body {
   height: 20px;
 }
 
+
 .four-b .widget-toggle-button.mod-active {
   border-color: #000000;
   color: #000000;
 }
+
+
+.one:before, .two:before, .three:before,
+.four:before, .five:before, .six:before,
+.seven:before, .eight:before, .nine:before {
+  color: #aaaaaa;
+  font-size: 10px;
+  position: absolute;
+  top: 3px;
+  right: 3px;
+}
+
+
+.one:before { content: "[1]"; }
+.two:before { content: "[2]"; }
+.three:before { content: "[3]"; }
+.four:before { content: "[4]"; }
+.five:before { content: "[5]"; }
+.six:before { content: "[6]"; }
+.seven:before { content: "[7]"; }
+.eight:before { content: "[8]"; }
+.nine:before { content: "[9]"; }
