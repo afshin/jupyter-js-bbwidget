@@ -20,13 +20,17 @@
   },
   "devDependencies": {
     "css-loader": "^0.23.1",
+    "ncp": "^2.0.0",
     "rimraf": "^2.5.2",
     "style-loader": "^0.13.0",
     "webpack": "^1.12.14"
   },
   "scripts": {
     "build": "tsc --project src",
-    "build:example": "cd example && rimraf node_modules && npm install && webpack --config webpack.conf.js",
+    "build:example": "npm run install:example && cd example && webpack --config webpack.conf.js",
+    "clean:example": "cd example && rimraf node_modules && rimraf build/*.js && rimraf build/*.css",
+    "css:example": "ncp node_modules/jupyter-js-widgets/css/widgets.css example/build/widgets.css",
+    "install:example": "npm run clean:example && npm run css:example && cd example && npm install",
     "postinstall": "npm dedupe"
   },
   "keywords": [

@@ -17,6 +17,8 @@ var imageData = require('./data/image');
 
 var latexData = require('./data/latex');
 
+var optionData = require('./data/option');
+
 
 function layoutPage() {
   var parent = new BoxPanel();
@@ -40,8 +42,10 @@ function layoutPage() {
   rowThree.spacing = 0;
   rowThree.direction = BoxPanel.LeftToRight;
   parent.addChild(rowThree);
+
   parent.attach(document.body);
   window.onresize = function () { parent.update(); };
+
   return [rowOne, rowTwo, rowThree];
 }
 
@@ -54,20 +58,62 @@ function main() {
   var rowTwo = layout[1];
   var rowThree = layout[2];
 
-  // Create row one widgets
+  // Row:Cell => 1:1
+  var one = new BoxPanel();
+  one.spacing = 0;
+  one.direction = BoxPanel.TopToBottom;
+
   var latexModel = new widgets.LatexModel({ callbacks: noop });
   latexModel.set('value', latexData);
-  var one = new BBWidget(new widgets.LatexView({ model: latexModel }));
-  one.addClass('one');
+  var oneA = new BBWidget(new widgets.LatexView({ model: latexModel }));
 
   var colorPickerModel = new widgets.ColorPickerModel({ callbacks: noop });
   colorPickerModel.set('description', 'Color picker widget');
-  var two = new BBWidget(new widgets.ColorPickerView({
+  var oneB = new BBWidget(new widgets.ColorPickerView({
     model: colorPickerModel
   }));
+
+  BoxPanel.setStretch(oneA, 1.33);
+  BoxPanel.setStretch(oneB, 1);
+
+  oneA.addClass('one-a');
+  oneB.addClass('one-b');
+
+  one.addChild(oneA);
+  one.addChild(oneB);
+  one.addClass('one');
+
+  // Row:Cell => 1:2
+  var two = new BoxPanel();
+  two.spacing = 0;
+  two.direction = BoxPanel.LeftToRight;
+
+  var selectModel = new widgets.SelectModel({ callbacks: noop });
+  selectModel.set('_options_labels', optionData);
+  selectModel.set('description', 'Select (single) widget');
+  var twoA = new BBWidget(new widgets.SelectView({
+    model: selectModel
+  }));
+
+  var selectMultipleModel = new widgets.SelectMultipleModel({
+    callbacks: noop
+  });
+  selectMultipleModel.set('_options_labels', optionData);
+  selectMultipleModel.set('description', 'Select (multiple) widget');
+  var twoB = new BBWidget(new widgets.SelectMultipleView({
+    model: selectMultipleModel
+  }));
+
+  twoA.addClass('two-a');
+  twoB.addClass('two-b');
+
+  two.addChild(twoA);
+  two.addChild(twoB);
   two.addClass('two');
 
+  // Row:Cell => 1:3
   var three = new BoxPanel();
+  three.spacing = 0;
   three.direction = BoxPanel.TopToBottom;
 
   var checkboxModel = new widgets.CheckboxModel({ callbacks: noop });
@@ -103,8 +149,9 @@ function main() {
   BoxPanel.setStretch(two, 1);
   BoxPanel.setStretch(three, 1);
 
-  // Create row two widgets
+  // Row:Cell => 2:1
   var four = new BoxPanel();
+  four.spacing = 0;
   four.direction = BoxPanel.LeftToRight;
 
   var fourA = new Panel();
@@ -140,18 +187,25 @@ function main() {
     })));
   });
 
+  // Row:Cell => 2:2
   var imageModel = new widgets.ImageModel({ callbacks: noop });
   imageModel.set('_b64value', imageData);
   imageModel.set('format', 'png');
   imageModel.set('width', '150');
   imageModel.set('height', '150');
-  var five = new BBWidget(new widgets.ImageView({
-    model: imageModel
-  }));
+  var five = new BBWidget(new widgets.ImageView({ model: imageModel }));
   five.addClass('five');
 
-  var six = new Widget();
-  six.node.textContent = '6 ';
+  // Row:Cell => 2:3
+  var radioButtonsModel = new widgets.RadioButtonsModel({
+    callbacks: noop
+  });
+  radioButtonsModel.set('_options_labels', optionData.slice(0, 5));
+  radioButtonsModel.set('description', 'Radio widget');
+
+  var six = new BBWidget(new widgets.RadioButtonsView({
+    model: radioButtonsModel
+  }));
   six.addClass('six');
 
   // Populate row two
@@ -162,17 +216,16 @@ function main() {
   BoxPanel.setStretch(five, 1);
   BoxPanel.setStretch(six, 1);
 
-  // Create row three widgets
+  // Row:Cell => 3:1
   var seven = new Widget();
-  seven.node.textContent = '7';
   seven.addClass('seven');
 
+  // Row:Cell => 3:2
   var eight = new Widget();
-  eight.node.textContent = '8';
   eight.addClass('eight');
 
+  // Row:Cell => 3:3
   var nine = new Widget();
-  nine.node.textContent = '9';
   nine.addClass('nine');
 
   // Populate row three
