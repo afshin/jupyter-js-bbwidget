@@ -202,7 +202,6 @@ function main() {
   });
   radioButtonsModel.set('_options_labels', optionData.slice(0, 5));
   radioButtonsModel.set('description', 'Radio widget');
-
   var six = new BBWidget(new widgets.RadioButtonsView({
     model: radioButtonsModel
   }));
@@ -217,7 +216,15 @@ function main() {
   BoxPanel.setStretch(six, 1);
 
   // Row:Cell => 3:1
-  var seven = new Widget();
+  var toggleButtonsModel = new widgets.ToggleButtonsModel({
+    callbacks: noop
+  });
+  toggleButtonsModel.set('_options_labels', optionData);
+  toggleButtonsModel.set('description', 'Toggle buttons widget');
+  toggleButtonsModel.set('button_style', 'danger');
+  var seven = new BBWidget(new widgets.ToggleButtonsView({
+    model: toggleButtonsModel
+  }));
   seven.addClass('seven');
 
   // Row:Cell => 3:2

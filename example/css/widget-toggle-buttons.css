@@ -1,0 +1,9 @@
+/*-----------------------------------------------------------------------------
+| Copyright (c) Jupyter Development Team.
+| Distributed under the terms of the Modified BSD License.
+|----------------------------------------------------------------------------*/
+
+.widget-toggle-buttons button {
+  margin: 2px;
+  min-width: 100px;
+}
