@@ -94,6 +94,18 @@ body {
   color: #000000;
 }
 
+.six .widget-radio {
+  width: 100%
+}
+
+.six label {
+  width: 90%;
+  display: block;
+  background-color: #dddddd;
+  margin: 5px auto;
+  padding: 2px;
+}
+
 
 .one:before, .two:before, .three:before,
 .four:before, .five:before, .six:before,
