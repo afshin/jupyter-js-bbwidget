@@ -94,9 +94,11 @@ body {
   color: #000000;
 }
 
+
 .six .widget-radio {
   width: 100%
 }
+
 
 .six label {
   width: 90%;
@@ -104,6 +106,12 @@ body {
   background-color: #dddddd;
   margin: 5px auto;
   padding: 2px;
+}
+
+
+.six input {
+  float: left;
+  margin: 0 10px 0 2px;
 }
 
 
