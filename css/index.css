@@ -49,6 +49,16 @@ body {
   width: 175px;
 }
 
+.two-a > .widget-select, .two-b > .widget-select-multiple {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.two-a select, .two-b select {
+  flex-grow: 1;
+}
+
 
 .three {
   padding-top: 10px;
