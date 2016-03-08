@@ -29292,8 +29292,8 @@
 	/**
 	 * escape text to HTML
 	 */
-	var escape_html = function (text) {
-	    let esc  = document.createElement('div');
+	var escape_html = function(text) {
+	    var esc  = document.createElement('div');
 	    esc.innerHTML = text;
 	    return esc.innerHTML;
 	};
@@ -32362,7 +32362,7 @@
 
 	                var item_elements = that.container.getElementsByClassName(item_query);
 	                if (item_elements.length > 0) {
-	                  let item_el = item_elements[0];
+	                  var item_el = item_elements[0];
 
 	                  if (that.model.get('selected_label') == item) {
 	                      item_el.prop('checked', true);
