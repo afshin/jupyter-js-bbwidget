@@ -44,3 +44,9 @@
   background-color: #d9534f;
   border-color: #b92c28;
 }
+
+
+.widget-toggle-button.mod-active {
+  border-color: #000000;
+  color: #000000;
+}

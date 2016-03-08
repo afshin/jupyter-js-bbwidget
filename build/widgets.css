@@ -333,45 +333,64 @@ Browsers not listed, including Safari, are supported via the styling under the
 .widget-colorpicker .input-group {
   flex-grow: 1;
 }
-.widget-button {
-  /* Button */
-  width: 148px;
-  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 3px 1px -2px rgba(0, 0, 0, 0.2), 0 1px 5px 0 rgba(0, 0, 0, 0.12);
-}
-.widget-button.btn,
-.widget-button.btn:active,
-.widget-button.btn:focus,
-.widget-button.btn.hover {
-  outline: none !important;
-}
-.widget-button.btn:active {
-  box-shadow: 0 4px 5px 0 rgba(0, 0, 0, 0.14), 0 1px 10px 0 rgba(0, 0, 0, 0.12), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-}
 .widget-checkbox {
   width: 148px;
 }
+.widget-button,
 .widget-toggle-button {
-  /* Button */
+  background-image: none;
+  border: 1px solid #dbdbdb;
+  color: white;
+  cursor: pointer;
+  display: inline-block;
+  margin-bottom: 0;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
   width: 148px;
   box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 3px 1px -2px rgba(0, 0, 0, 0.2), 0 1px 5px 0 rgba(0, 0, 0, 0.12);
 }
-.widget-toggle-button.btn,
-.widget-toggle-button.btn:active,
-.widget-toggle-button.btn:focus,
-.widget-toggle-button.btn.hover {
+.widget-button:hover,
+.widget-toggle-button:hover {
   outline: none !important;
 }
-.widget-toggle-buttons .btn,
-.widget-toggle-buttons .btn:active,
-.widget-toggle-buttons .btn:focus,
-.widget-toggle-buttons .btn.hover {
-  outline: none !important;
+.widget-button:active,
+.widget-toggle-button:active {
+  box-shadow: 0 4px 5px 0 rgba(0, 0, 0, 0.14), 0 1px 10px 0 rgba(0, 0, 0, 0.12), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
 }
-.widget-toggle-buttons .btn.active {
-  box-shadow: none !important;
+.widget-button.mod-primary,
+.widget-toggle-button.mod-primary {
+  background-color: #337ab7;
+  border-color: #245580;
 }
-.widget-toggle-buttons .btn-group {
-  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 3px 1px -2px rgba(0, 0, 0, 0.2), 0 1px 5px 0 rgba(0, 0, 0, 0.12);
+.widget-button.mod-success,
+.widget-toggle-button.mod-success {
+  background-color: #5cb85c;
+  border-color: #3e8f3e;
+}
+.widget-button.mod-info,
+.widget-toggle-button.mod-info {
+  background-color: #5bc0de;
+  border-color: #28a4c9;
+}
+.widget-button.mod-warning,
+.widget-toggle-button.mod-warning {
+  background-color: #f0ad4e;
+  border-color: #e38d13;
+}
+.widget-button.mod-danger,
+.widget-toggle-button.mod-danger {
+  background-color: #d9534f;
+  border-color: #b92c28;
+}
+.widget-button.mod-active,
+.widget-toggle-button.mod-active {
+  border-color: #000000;
+  color: #000000;
+}
+.widget-toggle-buttons button {
+  margin: 2px;
+  min-width: 100px;
 }
 .widget-text {
   /* Textbox */
@@ -595,4 +614,8 @@ Browsers not listed, including Safari, are supported via the styling under the
   margin-top: 2px;
   margin-bottom: 2px;
   margin-left: 22px;
+}
+.widget-radio-box input {
+  float: left;
+  margin-right: 5px;
 }

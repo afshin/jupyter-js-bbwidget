@@ -8,6 +8,7 @@
 @import "widget-colorpicker.css";
 @import "widget-image.css";
 @import "widget-toggle-button.css";
+@import "widget-toggle-buttons.css";
 @import "widget-valid.css";
 @import url("https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css");
 
@@ -57,6 +58,9 @@ body {
 
 .two-a select, .two-b select {
   flex-grow: 1;
+  border: 0;
+  border-left: 1px solid #eeeeee;
+  border-bottom: 1px solid #eeeeee;
 }
 
 
@@ -86,12 +90,6 @@ body {
   font-weight: bold;
   width: 100px;
   height: 20px;
-}
-
-
-.four-b .widget-toggle-button.mod-active {
-  border-color: #000000;
-  color: #000000;
 }
 
 
