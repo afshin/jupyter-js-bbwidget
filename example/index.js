@@ -216,9 +216,7 @@ function main() {
   BoxPanel.setStretch(six, 1);
 
   // Row:Cell => 3:1
-  var toggleButtonsModel = new widgets.ToggleButtonsModel({
-    callbacks: noop
-  });
+  var toggleButtonsModel = new widgets.ToggleButtonsModel({ callbacks: noop });
   toggleButtonsModel.set('_options_labels', optionData);
   toggleButtonsModel.set('description', 'Toggle buttons widget');
   toggleButtonsModel.set('button_style', 'danger');
@@ -228,7 +226,10 @@ function main() {
   seven.addClass('seven');
 
   // Row:Cell => 3:2
-  var eight = new Widget();
+  var dropdownModel = new widgets.DropdownModel({ callbacks: noop });
+  dropdownModel.set('_options_labels', optionData);
+  dropdownModel.set('description', 'Dropdown widget');
+  var eight = new BBWidget(new widgets.DropdownView({ model: dropdownModel }));
   eight.addClass('eight');
 
   // Row:Cell => 3:3
