@@ -32163,14 +32163,15 @@
 	        this.dropbutton.className = 'widget-dropdown-toggle ' +
 	            'widget-toggle-button';
 
-	        var caret = document.createElement('i');
-	        caret.className = 'widget-caret';
-	        this.dropbutton.appendChild(caret);
+	        this.caret = document.createElement('i');
+	        this.caret.className = 'widget-caret';
+	        this.dropbutton.appendChild(this.caret);
 	        this.buttongroup.appendChild(this.dropbutton);
 
 	        this.droplist = document.createElement('ul');
 	        this.droplist.className = 'widget-dropdown-droplist';
 	        document.body.appendChild(this.droplist);
+	        this.droplist.addEventListener('click', this._handle_click.bind(this));
 
 	        this.listenTo(this.model, 'change:button_style', this.update_button_style, this);
 	        this.update_button_style();
@@ -32200,13 +32201,6 @@
 	        }
 
 	        if (stale && (options === undefined || options.updated_view !== this)) {
-	            var value = this.model.get('value') || '';
-	            if (value.trim().length === 0) {
-	                this.droplabel.innerHTML = '&nbsp;';
-	            } else {
-	                this.droplabel.textContent = value;
-	            }
-
 	            this.droplist.textContent = '';
 	            _.each(items, function(item) {
 	                var li = document.createElement('li');
@@ -32218,10 +32212,15 @@
 	            });
 	        }
 
-	        this.buttongroup.disabled = disabled;
-	        this.droplabel.disabled = disabled;
 	        this.dropbutton.disabled = disabled;
-	        this.droplist.disabled = disabled;
+	        this.caret.disabled = disabled;
+
+	        var value = this.model.get('value') || '';
+	        if (value.trim().length === 0) {
+	            this.droplabel.innerHTML = '&nbsp;';
+	        } else {
+	            this.droplabel.textContent = value;
+	        }
 
 	        var description = this.model.get('description');
 	        if (description.length === 0) {
@@ -32263,11 +32262,10 @@
 
 	    events: {
 	        // Dictionary of events and their handlers.
-	        'click a': '_handle_click',
 	        'click button.widget-toggle-button': '_toggle'
 	    },
 
-	    _handle_click: function (event) {
+	    _handle_click: function(event) {
 	        /**
 	         * Handle when a value is clicked.
 	         *
@@ -32277,10 +32275,10 @@
 	        // Manually hide the droplist.
 	        event.stopPropagation();
 	        event.preventDefault();
+	        this._toggle(event);
 
 	        var value = event.target.textContent;
-	        console.log('boom', value);
-	        this.model.set('selected_label', value, { updated_view: this });
+	        this.model.set('value', value, { updated_view: this });
 	        this.touch();
 	    },
 
@@ -32293,21 +32291,58 @@
 	     */
 	    _toggle: function(event) {
 	        event.preventDefault();
-	        var buttongroupRect = this.buttongroup.getBoundingClientRect();
-	        this.droplist.style.top = buttongroupRect.bottom + 'px';
-	        this.droplist.style.left = buttongroupRect.left + 'px';
-
-	        var droplistRect = this.droplist.getBoundingClientRect();
-	        var bodyRect = document.body.getBoundingClientRect();
-	        var maxHeight = bodyRect.bottom - droplistRect.bottom;
+	        _.each(this.buttongroup.querySelectorAll('button'), function(button) {
+	            button.blur();
+	        });
 
 	        if (this.droplist.classList.contains('mod-active')) {
 	            this.droplist.classList.remove('mod-active');
-	        } else {
-	            this.droplist.classList.add('mod-active');
+	            return;
 	        }
 
-	        console.log('toggle dropdown, maxHeight', maxHeight);
+
+	        var buttongroupRect = this.buttongroup.getBoundingClientRect();
+	        var availableHeightAbove = buttongroupRect.top;
+	        var availableHeightBelow = window.innerHeight -
+	            buttongroupRect.bottom - buttongroupRect.height;
+	        var droplistRect = this.droplist.getBoundingClientRect();
+
+	        // Account for 1px border.
+	        this.droplist.style.left = (buttongroupRect.left - 1) + 'px';
+
+	        // If dropdown fits below, render below.
+	        if (droplistRect.height <= availableHeightBelow) {
+	            // Account for 1px border.
+	            this.droplist.style.top = (buttongroupRect.bottom - 1) + 'px';
+	            this.droplist.style.maxHeight = 'none';
+	            this.droplist.classList.add('mod-active');
+	            return;
+	        }
+	        // If droplist fits above, render above.
+	        if (droplistRect.height <= availableHeightAbove) {
+	            // Account for 1px border.
+	            this.droplist.style.top = (buttongroupRect.top -
+	                droplistRect.height + 1) + 'px';
+	            this.droplist.style.maxHeight = 'none';
+	            this.droplist.classList.add('mod-active');
+	            return;
+	        }
+	        // Otherwise, render in whichever has more space, above or below, and
+	        // set the maximum height of the drop list.
+	        if (availableHeightBelow >= availableHeightAbove) {
+	            // Account for 1px border.
+	            this.droplist.style.top = (buttongroupRect.bottom - 1) + 'px';
+	            this.droplist.style.maxHeight = availableHeightBelow + 'px';
+	            this.droplist.classList.add('mod-active');
+	            return;
+	        } else {
+	            // Account for 1px border.
+	            this.droplist.style.top = (buttongroupRect.top -
+	                droplistRect.height + 1) + 'px';
+	            this.droplist.style.maxHeight = availableHeightAbove + 'px';
+	            this.droplist.classList.add('mod-active');
+	            return;
+	        }
 	    }
 	});
 
