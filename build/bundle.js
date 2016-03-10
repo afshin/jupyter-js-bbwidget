@@ -262,9 +262,7 @@
 	  BoxPanel.setStretch(six, 1);
 
 	  // Row:Cell => 3:1
-	  var toggleButtonsModel = new widgets.ToggleButtonsModel({
-	    callbacks: noop
-	  });
+	  var toggleButtonsModel = new widgets.ToggleButtonsModel({ callbacks: noop });
 	  toggleButtonsModel.set('_options_labels', optionData);
 	  toggleButtonsModel.set('description', 'Toggle buttons widget');
 	  toggleButtonsModel.set('button_style', 'danger');
@@ -274,7 +272,10 @@
 	  seven.addClass('seven');
 
 	  // Row:Cell => 3:2
-	  var eight = new Widget();
+	  var dropdownModel = new widgets.DropdownModel({ callbacks: noop });
+	  dropdownModel.set('_options_labels', optionData);
+	  dropdownModel.set('description', 'Dropdown widget');
+	  var eight = new BBWidget(new widgets.DropdownView({ model: dropdownModel }));
 	  eight.addClass('eight');
 
 	  // Row:Cell => 3:3
@@ -32134,8 +32135,11 @@
 	});
 
 	var DropdownView = widget.DOMWidgetView.extend({
-	    render : function() {
-	        var view = this;
+	    remove: function() {
+	        document.body.removeChild(this.droplist);
+	        return DropdownView.__super__.remove.call(this);
+	    },
+	    render: function() {
 	        this.el.classList.add('jupyter-widgets');
 	        this.el.classList.add('widget-hbox');
 	        this.el.classList.add('widget-dropdown');
@@ -32146,28 +32150,27 @@
 	        this.label.style.display = 'none';
 
 	        this.buttongroup = document.createElement('div');
-	        this.buttongroup.className = 'widget_item btn-group';
+	        this.buttongroup.className = 'widget_item';
 	        this.el.appendChild(this.buttongroup);
 
 	        this.droplabel = document.createElement('button');
-	        this.droplabel.className = 'btn btn-default widget-combo-btn';
+	        this.droplabel.className = 'widget-dropdown-toggle ' +
+	            'widget-toggle-button';
 	        this.droplabel.innerHTML = '&nbsp;';
 	        this.buttongroup.appendChild(this.droplabel);
 
 	        this.dropbutton = document.createElement('button');
-	        this.dropbutton.className = 'btn btn-default';
-	        this.dropbutton.classList.add('dropdown-toggle');
-	        this.dropbutton.classList.add('widget-combo-carrot-btn');
-	        this.dropbutton.setAttribute('data-toggle', 'dropdown');
+	        this.dropbutton.className = 'widget-dropdown-toggle ' +
+	            'widget-toggle-button';
 
-	        var caret = document.createElement('span');
-	        caret.classList.add('caret');
+	        var caret = document.createElement('i');
+	        caret.className = 'widget-caret';
 	        this.dropbutton.appendChild(caret);
 	        this.buttongroup.appendChild(this.dropbutton);
 
 	        this.droplist = document.createElement('ul');
-	        this.droplist.classList.add('dropdown-menu');
-	        this.buttongroup.appendChild(this.droplist);
+	        this.droplist.className = 'widget-dropdown-droplist';
+	        document.body.appendChild(this.droplist);
 
 	        this.listenTo(this.model, 'change:button_style', this.update_button_style, this);
 	        this.update_button_style();
@@ -32183,58 +32186,61 @@
 	         * Called when the model is changed.  The model may have been
 	         * changed by another view or by a state update from the back-end.
 	         */
+	        var view = this;
+	        var items = this.model.get('_options_labels');
+	        var links = _.pluck(this.droplist.querySelectorAll('a'), 'textContent');
+	        var disabled = this.model.get('disabled');
+	        var stale = false;
 
-	        if (options === undefined || options.updated_view != this) {
-	            var selected_item_text = this.model.get('selected_label');
-	            if (selected_item_text.trim().length === 0) {
-	                this.droplabel.innerHTML = '&nbsp;';
-	            } else {
-	                this.droplabel.textContent = selected_item_text;
-	            }
-
-	            var items = this.model.get('_options_labels');
-	            var replace_droplist = document.createElement('ul');
-	            replace_droplist.classList.add('dropdown-menu');
-
-	            // Copy the style
-	            replace_droplist.setAttribute('style', this.droplist.style);
-	            var that = this;
-	            _.each(items, function(item, i) {
-	                var item_button = document.createElement('a');
-	                item_button.textContent = item;
-
-	                var btn_li = document.createElement('li');
-	                btn_li.appendChild(item_button);
-	                replace_droplist.appendChild(btn_li);
-	            });
-
-	            var parent = this.droplist.parentNode;
-	            this.droplist = parent.replaceChild(replace_droplist, this.droplist);
-
-	            var disabled = this.model.get('disabled');
-	            this.buttongroup.disabled = disabled;
-	            this.droplabel.disabled = disabled;
-	            this.dropbutton.disabled = disabled;
-	            this.droplist.disabled = disabled;
-
-	            var description = this.model.get('description');
-	            if (description.length === 0) {
-	                this.label.style.display = 'none';
-	            } else {
-	                this.typeset(this.label, description);
-	                this.label.style.display = '';
+	        for (var i = 0, len = items.length; i < len; ++i) {
+	            if (links[i] !== items[i]) {
+	                stale = true;
+	                break;
 	            }
 	        }
-	        return DropdownView.__super__.update.apply(this);
+
+	        if (stale && (options === undefined || options.updated_view !== this)) {
+	            var value = this.model.get('value') || '';
+	            if (value.trim().length === 0) {
+	                this.droplabel.innerHTML = '&nbsp;';
+	            } else {
+	                this.droplabel.textContent = value;
+	            }
+
+	            this.droplist.textContent = '';
+	            _.each(items, function(item) {
+	                var li = document.createElement('li');
+	                var a = document.createElement('a');
+	                a.setAttribute('href', '#');
+	                a.textContent = item;
+	                li.appendChild(a);
+	                view.droplist.appendChild(li);
+	            });
+	        }
+
+	        this.buttongroup.disabled = disabled;
+	        this.droplabel.disabled = disabled;
+	        this.dropbutton.disabled = disabled;
+	        this.droplist.disabled = disabled;
+
+	        var description = this.model.get('description');
+	        if (description.length === 0) {
+	            this.label.style.display = 'none';
+	        } else {
+	            this.typeset(this.label, description);
+	            this.label.style.display = '';
+	        }
+
+	        return DropdownView.__super__.update.call(this);
 	    },
 
 	    update_button_style: function() {
 	        var class_map = {
-	            primary: ['btn-primary'],
-	            success: ['btn-success'],
-	            info: ['btn-info'],
-	            warning: ['btn-warning'],
-	            danger: ['btn-danger']
+	            primary: ['mod-primary'],
+	            success: ['mod-success'],
+	            info: ['mod-info'],
+	            warning: ['mod-warning'],
+	            danger: ['mod-danger']
 	        };
 	        this.update_mapped_classes(class_map, 'button_style', this.droplabel);
 	        this.update_mapped_classes(class_map, 'button_style', this.dropbutton);
@@ -32258,7 +32264,7 @@
 	    events: {
 	        // Dictionary of events and their handlers.
 	        'click a': '_handle_click',
-	        'click button.widget-combo-carrot-btn': '_show_dropdown'
+	        'click button.widget-toggle-button': '_toggle'
 	    },
 
 	    _handle_click: function (event) {
@@ -32271,46 +32277,37 @@
 	        // Manually hide the droplist.
 	        event.stopPropagation();
 	        event.preventDefault();
-	        this.buttongroup.classList.remove('open');
 
 	        var value = event.target.textContent;
+	        console.log('boom', value);
 	        this.model.set('selected_label', value, { updated_view: this });
 	        this.touch();
 	    },
 
 	    /**
-	     * Show the dropdown list.
+	     * Toggle the dropdown list.
 	     *
 	     * If the dropdown list doesn't fit below the dropdown label, this will
 	     * cause the dropdown to be dropped 'up'.
 	     * @param  {Event} event
 	     */
-	    _show_dropdown: function(event) {
-	        // Don't allow bootstrap to show the dropdown!
-	        event.stopImmediatePropagation();
+	    _toggle: function(event) {
 	        event.preventDefault();
+	        var buttongroupRect = this.buttongroup.getBoundingClientRect();
+	        this.droplist.style.top = buttongroupRect.bottom + 'px';
+	        this.droplist.style.left = buttongroupRect.left + 'px';
 
-	        // Get the bottom of the dropdown label, and the bottom of the nb body.
-	        // The difference is the maximum height of the dropmenu when displayed
-	        // below the button.
-	        var droplabelRect = this.droplabel.getBoundingClientRect();
-	        var parent = this.droplabel.parentNode;
-	        while (parent.parentNode) {
-	          parent = parent.parentNode;
-	        }
-	        var bodyRect = parent.body.getBoundingClientRect();
-	        var maxHeight = bodyRect.bottom - droplabelRect.bottom;
+	        var droplistRect = this.droplist.getBoundingClientRect();
+	        var bodyRect = document.body.getBoundingClientRect();
+	        var maxHeight = bodyRect.bottom - droplistRect.bottom;
 
-	        // If the maximum height of the dropdown's space is less than the
-	        // height of the dropdown itself, make it drop up!
-	        if (maxHeight < 200) {
-	            this.buttongroup.classList.add('dropup');
+	        if (this.droplist.classList.contains('mod-active')) {
+	            this.droplist.classList.remove('mod-active');
 	        } else {
-	            this.buttongroup.classList.remove('dropup');
+	            this.droplist.classList.add('mod-active');
 	        }
 
-	        // Show the dropdown(or up)
-	        this.dropbutton.dropdown('toggle');
+	        console.log('toggle dropdown, maxHeight', maxHeight);
 	    }
 	});
 
@@ -32400,7 +32397,7 @@
 	              radio_el.disabled = view.model.get('disabled');
 	            }
 	        });
-	        return RadioButtonsView.__super__.update.apply(this);
+	        return RadioButtonsView.__super__.update.call(this);
 	    },
 
 	    update_attr: function(name, value) {
@@ -32542,7 +32539,7 @@
 	            this.label.style.display = '';
 	        }
 	        this.update_button_style();
-	        return ToggleButtonsView.__super__.update.apply(this);
+	        return ToggleButtonsView.__super__.update.call(this);
 	    },
 
 	    update_attr: function(name, value) { // TODO: Deprecated in 5.0
@@ -32665,7 +32662,7 @@
 	                var item_query = 'option[data-value="' +
 	                    encodeURIComponent(item) + '"]';
 	                var item_exists = view.listbox
-	                    .getElementsByClassName(item_query).length !== 0;
+	                    .querySelectorAll(item_query).length !== 0;
 	                var option;
 	                if (!item_exists) {
 	                    option = document.createElement('option');
@@ -32692,7 +32689,7 @@
 	                this.label.style.display = '';
 	            }
 	        }
-	        return SelectView.__super__.update.apply(this);
+	        return SelectView.__super__.update.call(this);
 	    },
 
 	    update_attr: function(name, value) { // TODO: Deprecated in 5.0
@@ -32738,44 +32735,38 @@
 	        /**
 	         * Called when view is rendered.
 	         */
-	        this.el.classList.add('jupyter-widgets');
-	        this.el.classList.add('widget-hbox');
-	        this.el.classList.add('widget-hslider');
+	        this.$el
+	            .addClass('jupyter-widgets widget-hbox widget-hslider');
 
 	        this.label = document.createElement('div');
 	        this.label.classList.add('widget-label');
 	        this.label.style.display = 'none';
-	        this.el.appendChild(this.label);
+	        this.$el.append(this.label);
 
-	        this.slider = document.createElement('input');
-	        this.slider.setAttribute('type', 'range');
-	        this.slider.classList.add('slider'); // TODO - is this necessary.
+	        this.$slider = $('<div />')
+	            .slider({})
+	            .addClass('slider')
+	            .on('slidechange', $.proxy(this.handleSliderChange, this));
 
 	        // Put the slider in a container
 	        this.slider_container = document.createElement('div');
 	        this.slider_container.classList.add('slider-container');
-	        this.slider_container.appendChild(this.slider);
-	        this.el.appendChild(this.slider_container);
+	        this.slider_container.appendChild(this.$slider[0]);
+	        this.$el.append(this.slider_container);
 
 	        this.readout = document.createElement('div');
-	        this.el.appendChild(this.readout);
+	        this.$el.append(this.readout);
 	        this.readout.classList.add('widget-readout');
 	        this.readout.style.display = 'none';
 
 	        this.listenTo(this.model, 'change:slider_color', function(sender, value) {
-	            var a_items = this.slider.getElementsByClassName('a');
-	            if (a_items.length) {
-	              a_items[0].style.background = value;
-	            }
+	            this.$slider.find('a').css('background', value);
 	        }, this);
 	        this.listenTo(this.model, 'change:description', function(sender, value) {
 	            this.updateDescription();
 	        }, this);
 
-	        var a_items = this.slider.getElementsByClassName('a');
-	        if (a_items.length) {
-	          a_items[0].style.background = value;
-	        }
+	        this.$slider.find('a').css('background', this.model.get('slider_color'));
 
 	        // Set defaults.
 	        this.update();
@@ -32825,9 +32816,9 @@
 	            var labels = this.model.get('_options_labels');
 	            var max = labels.length - 1;
 	            var min = 0;
-	            // this.$slider.slider('option', 'step', 1); // DW TODO
-	            // this.$slider.slider('option', 'max', max); // DW TODO
-	            // this.$slider.slider('option', 'min', min); // DW TODO
+	            this.$slider.slider('option', 'step', 1);
+	            this.$slider.slider('option', 'max', max);
+	            this.$slider.slider('option', 'min', min);
 
 	            // WORKAROUND FOR JQUERY SLIDER BUG.
 	            // The horizontal position of the slider handle
@@ -32838,42 +32829,31 @@
 	            // handle in the vertical slider is always
 	            // consistent.
 	            var orientation = this.model.get('orientation');
-	            // this.$slider.slider('option', 'value', min); // DW TODO
-	            // this.$slider.slider('option', 'orientation', orientation); // DW TODO
+	            this.$slider.slider('option', 'value', min);
+	            this.$slider.slider('option', 'orientation', orientation);
 
-	            var selected_label = this.model.get('selected_label');
-	            var index = labels.indexOf(selected_label);
-	            // this.$slider.slider('option', 'value', index);
-
-	            // this.$readout.text(selected_label);
-	            this.readout.textContent = selected_label;
+	            var value = this.model.get('value');
+	            var index = labels.indexOf(value);
+	            this.$slider.slider('option', 'value', index);
+	            this.readout.textContent = value;
 
 	            // Use the right CSS classes for vertical & horizontal sliders
-	            if (orientation=='vertical') {
-	                // this.$el
-	                //     .removeClass('widget-hslider')
-	                //     .addClass('widget-vslider');
-	                this.el.classList.remove('widget-hslider');
-	                this.el.classList.add('widget-vslider');
-
-	                // this.$el
-	                //     .removeClass('widget-hbox')
-	                //     .addClass('widget-vbox');
-	              this.el.classList.remove('widget-hbox');
-	              this.el.classList.add('widget-vbox');
+	            if (orientation === 'vertical') {
+	                this.$el
+	                    .removeClass('widget-hslider')
+	                    .addClass('widget-vslider');
+	                this.$el
+	                    .removeClass('widget-hbox')
+	                    .addClass('widget-vbox');
 
 	            } else {
-	                // this.$el
-	                //     .removeClass('widget-vslider')
-	                //     .addClass('widget-hslider');
-	                this.el.classList.remove('widget-vslider');
-	                this.el.classList.add('widget-hslider');
+	                this.$el
+	                    .removeClass('widget-vslider')
+	                    .addClass('widget-hslider');
 
-	                // this.$el
-	                //     .removeClass('widget-vbox')
-	                //     .addClass('widget-hbox');
-	                this.el.classList.remove('widget-vbox');
-	                this.el.classList.add('widget-hbox');
+	                this.$el
+	                    .removeClass('widget-vbox')
+	                    .addClass('widget-hbox');
 	            }
 
 	            var readout = this.model.get('readout');
@@ -32885,7 +32865,7 @@
 	                this.readout.style.display = 'none';
 	            }
 	        }
-	        return SelectionSliderView.__super__.update.apply(this);
+	        return SelectionSliderView.__super__.update.call(this);
 	    },
 
 	    events: {
@@ -32900,7 +32880,6 @@
 	    handleSliderChange: function(e, ui) {
 	        var actual_value = this._validate_slide_value(ui.value);
 	        var selected_label = this.model.get('_options_labels')[actual_value];
-	        // this.$readout.text(selected_label);
 	        this.readout.textContent = selected_label;
 
 	        // Only persist the value while sliding if the continuous_update
@@ -32919,7 +32898,6 @@
 	    handleSliderChanged: function(e, ui) {
 	        var actual_value = this._validate_slide_value(ui.value);
 	        var selected_label = this.model.get('_options_labels')[actual_value];
-	        // this.$readout.text(selected_label);
 	        this.readout.textContent = selected_label;
 	        this.model.set('selected_label', selected_label, {updated_view: this});
 	        this.touch();
@@ -32955,11 +32933,10 @@
 	        /**
 	         * Called when view is rendered.
 	         */
-	        SelectMultipleView.__super__.render.apply(this);
+	        SelectMultipleView.__super__.render.call(this);
 	        this.el.classList.remove('widget-select');
 	        this.el.classList.add('widget-select-multiple');
 	        this.listbox.multiple = true;
-
 	        this.update();
 	    },
 

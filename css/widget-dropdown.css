@@ -1,0 +1,36 @@
+/*-----------------------------------------------------------------------------
+| Copyright (c) Jupyter Development Team.
+| Distributed under the terms of the Modified BSD License.
+|----------------------------------------------------------------------------*/
+.widget-dropdown {
+  margin-left: 1px;
+}
+
+.widget-dropdown button {
+  margin-left: -1px;
+}
+
+.widget-dropdown i.widget-caret {
+  font-size: 1em;
+  line-height: 1em;
+  position: relative;
+}
+
+.widget-dropdown i.widget-caret:before {
+  content: "\f0d7";
+  font-family: FontAwesome;
+  font-style: normal;
+  font-size: 1em;
+}
+
+.widget-dropdown-droplist {
+  display: none;
+}
+
+.widget-dropdown-droplist.mod-active {
+  display: inline-block;
+  position: absolute;
+  background: red;
+  width: auto;
+  height: auto;
+}
