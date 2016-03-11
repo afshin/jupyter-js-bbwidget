@@ -31298,7 +31298,7 @@
 	        value: 0,
 	        disabled: false,
 	        description: ''
-	    }),
+	    })
 	});
 
 	var BoundedIntModel = IntModel.extend({
@@ -31307,7 +31307,7 @@
 	        step: 1,
 	        max: 100,
 	        min: 0
-	    }),
+	    })
 	});
 
 	var IntSliderModel = BoundedIntModel.extend({
@@ -31319,11 +31319,11 @@
 	        readout: true,
 	        slider_color: null,
 	        continuous_update: true
-	    }),
+	    })
 	});
 
 	var IntSliderView = widget.DOMWidgetView.extend({
-	    render : function() {
+	    render: function() {
 	        /**
 	         * Called when view is rendered.
 	         */
@@ -31398,7 +31398,7 @@
 	        }
 	    },
 
-	    update : function(options) {
+	    update: function(options) {
 	        /**
 	         * Update the contents of this view
 	         *
@@ -31644,18 +31644,18 @@
 	         * and applying it to the other views on the page.
 	         */
 	        return Math.floor(x);
-	    },
+	    }
 	});
 
 	var IntTextModel = IntModel.extend({
 	    defaults: _.extend({}, IntModel.prototype.defaults, {
 	        _model_name: 'IntTextModel',
 	        _view_name: 'IntTextView'
-	    }),
+	    })
 	});
 
 	var IntTextView = widget.DOMWidgetView.extend({
-	    render : function() {
+	    render: function() {
 	        /**
 	         * Called when view is rendered.
 	         */
@@ -31691,7 +31691,7 @@
 	        }
 	    },
 
-	    update : function(options) {
+	    update: function(options) {
 	        /**
 	         * Update the contents of this view
 	         *
@@ -31791,11 +31791,11 @@
 	        _view_name: 'ProgressView',
 	        orientation: 'horizontal',
 	        bar_style: ''
-	    }),
+	    })
 	});
 
 	var ProgressView = widget.DOMWidgetView.extend({
-	    render : function() {
+	    render: function() {
 	        /**
 	         * Called when view is rendered.
 	         */
@@ -31841,7 +31841,7 @@
 	        }
 	    },
 
-	    update : function() {
+	    update: function() {
 	        /**
 	         * Update the contents of this view
 	         *
@@ -31896,7 +31896,7 @@
 	        } else {
 	            this.el.style[name] = value
 	        }
-	    },
+	    }
 	});
 
 	module.exports = {
@@ -32116,6 +32116,7 @@
 	var widget = __webpack_require__(9);
 	var utils = __webpack_require__(8);
 	var _ = __webpack_require__(5);
+	var $ = __webpack_require__(3);
 
 	var SelectionModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
@@ -32151,24 +32152,25 @@
 	        this.label.style.display = 'none';
 
 	        this.buttongroup = document.createElement('div');
-	        this.buttongroup.className = 'widget_item';
+	        this.buttongroup.className = 'widget-item';
 	        this.el.appendChild(this.buttongroup);
 
 	        this.droplabel = document.createElement('button');
-	        this.droplabel.className = 'widget-dropdown-toggle ' +
-	            'widget-toggle-button';
+	        this.droplabel.className = 'widget-dropdown-toggle widget-button';
 	        this.droplabel.innerHTML = '&nbsp;';
 	        this.buttongroup.appendChild(this.droplabel);
 
 	        this.dropbutton = document.createElement('button');
-	        this.dropbutton.className = 'widget-dropdown-toggle ' +
-	            'widget-toggle-button';
+	        this.dropbutton.className = 'widget-dropdown-toggle widget-button';
 
 	        this.caret = document.createElement('i');
 	        this.caret.className = 'widget-caret';
 	        this.dropbutton.appendChild(this.caret);
 	        this.buttongroup.appendChild(this.dropbutton);
 
+	        // Drop lists are appended to the document body and absolutely
+	        // positioned so that they can appear outside the flow of whichever
+	        // container they were instantiated in.
 	        this.droplist = document.createElement('ul');
 	        this.droplist.className = 'widget-dropdown-droplist';
 	        document.body.appendChild(this.droplist);
@@ -32181,7 +32183,7 @@
 	        this.update();
 	    },
 
-	    update : function(options) {
+	    update: function(options) {
 	        /**
 	         * Update the contents of this view
 	         *
@@ -32213,8 +32215,8 @@
 	            });
 	        }
 
+	        this.droplabel.disabled = disabled;
 	        this.dropbutton.disabled = disabled;
-	        this.caret.disabled = disabled;
 
 	        var value = this.model.get('value') || '';
 	        if (value.trim().length === 0) {
@@ -32263,7 +32265,7 @@
 
 	    events: {
 	        // Dictionary of events and their handlers.
-	        'click button.widget-toggle-button': '_toggle'
+	        'click button.widget-button': '_toggle'
 	    },
 
 	    _handle_click: function(event) {
@@ -32273,9 +32275,10 @@
 	         * Calling model.set will trigger all of the other views of the
 	         * model to update.
 	         */
-	        // Manually hide the droplist.
 	        event.stopPropagation();
 	        event.preventDefault();
+
+	        // Manually hide the droplist.
 	        this._toggle(event);
 
 	        var value = event.target.textContent;
@@ -32290,8 +32293,7 @@
 	     * cause the dropdown to be dropped 'up'.
 	     * @param  {Event} event
 	     */
-	    _toggle: function(event) {
-	        event.preventDefault();
+	    _toggle: function() {
 	        _.each(this.buttongroup.querySelectorAll('button'), function(button) {
 	            button.blur();
 	        });
@@ -32301,31 +32303,31 @@
 	            return;
 	        }
 
-
 	        var buttongroupRect = this.buttongroup.getBoundingClientRect();
+
+	        this.droplist.style.left = buttongroupRect.left + 'px';
+
+	        // Make drop list visible to compute its dimensions.
+	        this.droplist.classList.add('mod-active');
+
 	        var availableHeightAbove = buttongroupRect.top;
 	        var availableHeightBelow = window.innerHeight -
 	            buttongroupRect.bottom - buttongroupRect.height;
 	        var droplistRect = this.droplist.getBoundingClientRect();
 
-	        // Account for 1px border.
-	        this.droplist.style.left = (buttongroupRect.left - 1) + 'px';
-
-	        // If dropdown fits below, render below.
+	        // If the drop list fits below, render below.
 	        if (droplistRect.height <= availableHeightBelow) {
 	            // Account for 1px border.
 	            this.droplist.style.top = (buttongroupRect.bottom - 1) + 'px';
 	            this.droplist.style.maxHeight = 'none';
-	            this.droplist.classList.add('mod-active');
 	            return;
 	        }
-	        // If droplist fits above, render above.
+	        // If the drop list fits above, render above.
 	        if (droplistRect.height <= availableHeightAbove) {
 	            // Account for 1px border.
 	            this.droplist.style.top = (buttongroupRect.top -
 	                droplistRect.height + 1) + 'px';
 	            this.droplist.style.maxHeight = 'none';
-	            this.droplist.classList.add('mod-active');
 	            return;
 	        }
 	        // Otherwise, render in whichever has more space, above or below, and
@@ -32334,7 +32336,6 @@
 	            // Account for 1px border.
 	            this.droplist.style.top = (buttongroupRect.bottom - 1) + 'px';
 	            this.droplist.style.maxHeight = availableHeightBelow + 'px';
-	            this.droplist.classList.add('mod-active');
 	            return;
 	        } else {
 	            // Account for 1px border.
@@ -32378,7 +32379,7 @@
 	        this.update();
 	    },
 
-	    update : function(options) {
+	    update: function(options) {
 	        /**
 	         * Update the contents of this view
 	         *
@@ -32498,7 +32499,7 @@
 	        this.update();
 	    },
 
-	    update : function(options) {
+	    update: function(options) {
 	        /**
 	         * Update the contents of this view
 	         *
@@ -32593,15 +32594,16 @@
 	    update_style_traits: function(button) {
 	        for (var name in this._css_state) {
 	            if (this._css_state.hasOwnProperty(name)) {
-	                if (name == 'margin') {
+	                if (name === 'margin') {
 	                    this.buttongroup.style[name] = this._css_state[name];
-	                } else if (name != 'width') {
+	                } else if (name !== 'width') {
 	                    if (button) {
 	                        button.style[name] = this._css_state[name];
 	                    } else {
-	                        var btns = this.buttongroup.querySelectorAll('button');
-	                        if (btns.length) {
-	                          btns[0].style[name] = this._css_state[name];
+	                        var buttons = this.buttongroup
+	                            .querySelectorAll('button');
+	                        if (buttons.length) {
+	                            buttons[0].style[name] = this._css_state[name];
 	                        }
 	                    }
 	                }
@@ -32636,7 +32638,7 @@
 	         * Calling model.set will trigger all of the other views of the
 	         * model to update.
 	         */
-	        var value = event.target.getAttribute('value');
+	        var value = event.target.value;
 	        this.model.set('value', value, { updated_view: this });
 	        this.touch();
 	    }
@@ -32771,8 +32773,7 @@
 	        /**
 	         * Called when view is rendered.
 	         */
-	        this.$el
-	            .addClass('jupyter-widgets widget-hbox widget-hslider');
+	        this.$el.addClass('jupyter-widgets widget-hbox widget-hslider');
 
 	        this.label = document.createElement('div');
 	        this.label.classList.add('widget-label');
@@ -32818,11 +32819,10 @@
 	        } else if (name.substring(0, 4) == 'font') {
 	            this.readout.style[name] = value;
 	        } else if (name.substring(0, 6) == 'border') {
-	            var slider_items = this.slider.getElementsByClassName('a');
+	            var slider_items = this.slider.querySelectorAll('a');
 	            if (slider_items.length) {
 	              slider_items[0].style[name] = value;
 	            }
-
 	            this.slider_container.style[name] = value;
 	        } else if (name == 'background') {
 	            this.slider_container.style[name] = value;
