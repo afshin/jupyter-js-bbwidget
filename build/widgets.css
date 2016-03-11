@@ -405,21 +405,49 @@ Browsers not listed, including Safari, are supported via the styling under the
   width: 300px;
 }
 .widget-dropdown {
-  /* Dropdown */
-  width: 300px;
+  margin-left: 1px;
 }
-.widget-dropdown .widget_item {
-  display: flex;
-  flex-grow: 1;
+.widget-dropdown button {
+  margin-left: -1px;
+  outline: 0;
 }
-.widget-dropdown .widget-combo-btn {
-  flex-grow: 1;
-  min-width: 10px;
+.widget-dropdown i.widget-caret {
+  font-size: 1em;
+  font-style: normal;
+  font-family: FontAwesome;
+  line-height: 1em;
+  position: relative;
 }
-.widget-dropdown .dropdown-menu {
-  max-height: 200px;
-  overflow: hidden;
-  overflow-y: auto;
+.widget-dropdown i.widget-caret:before {
+  content: "\f0d7";
+}
+ul.widget-dropdown-droplist {
+  background: #eeeeee;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #dddddd;
+  list-style-type: none;
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  width: auto;
+  height: auto;
+  overflow: auto;
+  visibility: hidden;
+}
+ul.widget-dropdown-droplist a {
+  color: inherit;
+  text-decoration: none;
+}
+ul.widget-dropdown-droplist li {
+  display: block;
+  padding: 0 5px;
+}
+ul.widget-dropdown-droplist li:hover {
+  background: #dddddd;
+}
+ul.widget-dropdown-droplist.mod-active {
+  visibility: visible;
 }
 .widget-numeric-text {
   /* Single Line Textbox - used for IntTextView and FloatTextView */

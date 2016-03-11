@@ -275,6 +275,7 @@
 	  var dropdownModel = new widgets.DropdownModel({ callbacks: noop });
 	  dropdownModel.set('_options_labels', optionData);
 	  dropdownModel.set('description', 'Dropdown widget');
+	  dropdownModel.set('button_style', 'info');
 	  var eight = new BBWidget(new widgets.DropdownView({ model: dropdownModel }));
 	  eight.addClass('eight');
 
