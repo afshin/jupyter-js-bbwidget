@@ -113,6 +113,9 @@ body {
   margin: 0 10px 0 2px;
 }
 
+.eight div.widget-dropdown div.widget-item {
+  margin-left: 5px;
+}
 
 .one:before, .two:before, .three:before,
 .four:before, .five:before, .six:before,
