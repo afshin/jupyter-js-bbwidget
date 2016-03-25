@@ -63,9 +63,9 @@ function main() {
   one.spacing = 0;
   one.direction = BoxPanel.TopToBottom;
 
-  var latexModel = new widgets.LatexModel({ callbacks: noop });
-  latexModel.set('value', latexData);
-  var oneA = new BBWidget(new widgets.LatexView({ model: latexModel }));
+  var labelModel = new widgets.LabelModel({ callbacks: noop });
+  labelModel.set('value', latexData);
+  var oneA = new BBWidget(new widgets.LabelView({ model: labelModel }));
 
   var colorPickerModel = new widgets.ColorPickerModel({ callbacks: noop });
   colorPickerModel.set('description', 'Color picker widget');
@@ -234,8 +234,26 @@ function main() {
   eight.addClass('eight');
 
   // Row:Cell => 3:3
-  var nine = new Widget();
+  var tabModel = new widgets.TabModel(new widgets.ManagerBase());
+
+  var htmlModelOne = new widgets.HTMLModel({ callbacks: noop });
+  htmlModelOne.set('value', 'HTML view 1');
+
+  var htmlModelTwo = new widgets.HTMLModel({ callbacks: noop });
+  htmlModelTwo.set('value', 'HTML view 2');
+
+  var htmlModelThree = new widgets.HTMLModel({ callbacks: noop });
+  htmlModelThree.set('value', 'HTML view 3');
+
+  tabModel.set('children', [htmlModelOne, htmlModelTwo, htmlModelThree]);
+  tabModel.set('_titles', optionData.slice(0, 3));
+
+  var tabView = new widgets.TabView({ model: tabModel });
+
+  var nine = new BBWidget(tabView);
   nine.addClass('nine');
+
+  requestAnimationFrame(function() { tabView.trigger('displayed'); });
 
   // Populate row three
   rowThree.addChild(seven);
