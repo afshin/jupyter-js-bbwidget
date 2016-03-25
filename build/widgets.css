@@ -460,6 +460,10 @@ ul.widget-dropdown-droplist li {
 ul.widget-dropdown-droplist li:hover {
   background: #dddddd;
 }
+ul.widget-dropdown-droplist li.mod-active {
+  background: #999999;
+  color: #eeeeee;
+}
 ul.widget-dropdown-droplist.mod-active {
   display: block;
 }

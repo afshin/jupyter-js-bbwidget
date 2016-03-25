@@ -61,6 +61,11 @@ ul.widget-dropdown-droplist li {
   padding: 0 5px;
 }
 
+ul.widget-dropdown-droplist li.mod-active {
+  background: #999999;
+  color: #eeeeee;
+}
+
 ul.widget-dropdown-droplist li:hover {
   background: #dddddd;
 }

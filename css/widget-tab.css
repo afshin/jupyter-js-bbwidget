@@ -1,0 +1,103 @@
+/*-----------------------------------------------------------------------------
+| Copyright (c) Jupyter Development Team.
+| Distributed under the terms of the Modified BSD License.
+|----------------------------------------------------------------------------*/
+
+.widget-tab {
+ height: 100%
+}
+
+
+.widget-tab .widget-tab-contents {
+  height: 100%
+}
+
+.widget-tab .widget-tab-contents .widget-tab-child {
+  display: none;
+  height: 100%;
+  background: green;
+}
+
+
+.widget-tab .widget-tab-contents .widget-tab-child.mod-active {
+  display: block;
+}
+
+
+.widget-tab .widget-tab-bar.p-TabBar {
+  min-height: 28px;
+  max-height: 28px;
+  color: #757575;
+  background: #F5F5F5;
+  font: 12px Helvetica, Arial, sans-serif;
+}
+
+
+.widget-tab .widget-tab-bar.p-TabBar > .p-TabBar-header {
+  flex: 0 0 1px;
+  background: #BDBDBD;
+}
+
+
+.widget-tab .widget-tab-bar.p-TabBar-content {
+  min-width: 0;
+  max-height: 22px;
+}
+
+
+.widget-tab .widget-tab-bar.p-TabBar > .p-TabBar-footer {
+  flex: 0 0 0px;
+  background: #FAFAFA;
+  border-top: 1px solid #BDBDBD;
+  border-bottom: 1px solid #E0E0E0;
+}
+
+
+.widget-tab .widget-tab-bar .p-TabBar-tab {
+  flex-basis: 124px;
+  min-height: 23px;
+  max-height: 23px;
+  min-width: 35px;
+  margin-left: -1px;
+  padding: 0px 10px;
+  background: #EEEEEE;
+  border: 1px solid #BDBDBD;
+  border-bottom: none;
+  transform: translateY(-1px);
+}
+
+
+.widget-tab .widget-tab-bar .p-TabBar-tab:last-child {
+  margin-right: -1px;
+}
+
+
+.widget-tab .widget-tab-bar .p-TabBar-tab.p-mod-current {
+  min-height: 24px;
+  max-height: 24px;
+  background: #FAFAFA;
+  border-top: 1px solid #F27624;
+}
+
+
+.widget-tab .widget-tab-bar .p-TabBar-tab:hover:not(.p-mod-current) {
+  background: #FAFAFA;
+}
+
+
+.widget-tab .widget-tab-bar .p-TabBar-tabIcon,
+.widget-tab .widget-tab-bar .p-TabBar-tabText,
+.widget-tab .widget-tab-bar .p-TabBar-tabCloseIcon {
+  line-height: 22px;
+}
+
+
+.widget-tab .widget-tab-bar .p-TabBar-tab.p-mod-closable > .p-TabBar-tabCloseIcon {
+  margin-left: 4px;
+}
+
+
+.widget-tab .widget-tab-bar .p-TabBar-tab.p-mod-closable > .p-TabBar-tabCloseIcon:before {
+  font-family: FontAwesome;
+  content: '\f00d'; /* close */
+}

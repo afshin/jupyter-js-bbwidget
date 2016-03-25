@@ -51,19 +51,19 @@
 
 	var widgets = __webpack_require__(1);
 
-	var BBWidget = __webpack_require__(24).BBWidget;
+	var BBWidget = __webpack_require__(59).BBWidget;
 
-	var BoxPanel = __webpack_require__(40).BoxPanel;
+	var BoxPanel = __webpack_require__(45).BoxPanel;
 
 	var Panel = __webpack_require__(48).Panel;
 
-	var Widget = __webpack_require__(25).Widget;
+	var Widget = __webpack_require__(32).Widget;
 
-	var imageData = __webpack_require__(52);
+	var imageData = __webpack_require__(60);
 
-	var latexData = __webpack_require__(53);
+	var latexData = __webpack_require__(61);
 
-	var optionData = __webpack_require__(54);
+	var optionData = __webpack_require__(62);
 
 
 	function layoutPage() {
@@ -109,9 +109,9 @@
 	  one.spacing = 0;
 	  one.direction = BoxPanel.TopToBottom;
 
-	  var latexModel = new widgets.LatexModel({ callbacks: noop });
-	  latexModel.set('value', latexData);
-	  var oneA = new BBWidget(new widgets.LatexView({ model: latexModel }));
+	  var labelModel = new widgets.LabelModel({ callbacks: noop });
+	  labelModel.set('value', latexData);
+	  var oneA = new BBWidget(new widgets.LabelView({ model: labelModel }));
 
 	  var colorPickerModel = new widgets.ColorPickerModel({ callbacks: noop });
 	  colorPickerModel.set('description', 'Color picker widget');
@@ -280,8 +280,26 @@
 	  eight.addClass('eight');
 
 	  // Row:Cell => 3:3
-	  var nine = new Widget();
+	  var tabModel = new widgets.TabModel(new widgets.ManagerBase());
+
+	  var htmlModelOne = new widgets.HTMLModel({ callbacks: noop });
+	  htmlModelOne.set('value', 'HTML view 1');
+
+	  var htmlModelTwo = new widgets.HTMLModel({ callbacks: noop });
+	  htmlModelTwo.set('value', 'HTML view 2');
+
+	  var htmlModelThree = new widgets.HTMLModel({ callbacks: noop });
+	  htmlModelThree.set('value', 'HTML view 3');
+
+	  tabModel.set('children', [htmlModelOne, htmlModelTwo, htmlModelThree]);
+	  tabModel.set('_titles', optionData.slice(0, 3));
+
+	  var tabView = new widgets.TabView({ model: tabModel });
+
+	  var nine = new BBWidget(tabView);
 	  nine.addClass('nine');
+
+	  requestAnimationFrame(function() { tabView.trigger('displayed'); });
 
 	  // Populate row three
 	  rowThree.addChild(seven);
@@ -309,24 +327,6 @@
 	var managerBase = __webpack_require__(6);
 	var widget = __webpack_require__(9);
 
-	/**
-	 * Registers all of the widget models and views in an object.
-	 * @param  {object} module - contains widget view and model defs.
-	 */
-	function register(module) {
-	    for (var target_name in module) {
-	        if (module.hasOwnProperty(target_name)) {
-	            var target = module[target_name];
-	            if (target.prototype instanceof widget.WidgetModel) {
-	                managerBase.ManagerBase.register_widget_model(target_name, target);
-	            } else if (target.prototype instanceof widget.WidgetView) {
-	                managerBase.ManagerBase.register_widget_view(target_name, target);
-	            }
-	        }
-	    }
-	    return module;
-	}
-
 	module.exports = {
 	    shims: {
 	        services: __webpack_require__(10)
@@ -336,20 +336,20 @@
 	var loadedModules = [
 	    managerBase,
 	    __webpack_require__(8),
-	    register(widget),
-	    register(__webpack_require__(11)),
-	    register(__webpack_require__(12)),
-	    register(__webpack_require__(13)),
-	    register(__webpack_require__(14)),
-	    register(__webpack_require__(15)),
-	    register(__webpack_require__(16)),
-	    register(__webpack_require__(18)),
-	    register(__webpack_require__(17)),
-	    register(__webpack_require__(19)),
-	    register(__webpack_require__(20)),
-	    register(__webpack_require__(21)),
-	    register(__webpack_require__(22)),
-	    register(__webpack_require__(23))
+	    widget,
+	    __webpack_require__(11),
+	    __webpack_require__(12),
+	    __webpack_require__(13),
+	    __webpack_require__(14),
+	    __webpack_require__(15),
+	    __webpack_require__(16),
+	    __webpack_require__(18),
+	    __webpack_require__(17),
+	    __webpack_require__(19),
+	    __webpack_require__(20),
+	    __webpack_require__(21),
+	    __webpack_require__(57),
+	    __webpack_require__(58),
 	];
 	for (var i in loadedModules) {
 	    if (loadedModules.hasOwnProperty(i)) {
@@ -393,7 +393,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
-	 * jQuery JavaScript Library v2.2.1
+	 * jQuery JavaScript Library v2.2.2
 	 * http://jquery.com/
 	 *
 	 * Includes Sizzle.js
@@ -403,7 +403,7 @@
 	 * Released under the MIT license
 	 * http://jquery.org/license
 	 *
-	 * Date: 2016-02-22T19:11Z
+	 * Date: 2016-03-17T17:51Z
 	 */
 
 	(function( global, factory ) {
@@ -459,7 +459,7 @@
 
 
 	var
-		version = "2.2.1",
+		version = "2.2.2",
 
 		// Define a local copy of jQuery
 		jQuery = function( selector, context ) {
@@ -670,6 +670,7 @@
 		},
 
 		isPlainObject: function( obj ) {
+			var key;
 
 			// Not plain objects:
 			// - Any object or value whose internal [[Class]] property is not "[object Object]"
@@ -679,14 +680,18 @@
 				return false;
 			}
 
+			// Not own constructor property must be Object
 			if ( obj.constructor &&
-					!hasOwn.call( obj.constructor.prototype, "isPrototypeOf" ) ) {
+					!hasOwn.call( obj, "constructor" ) &&
+					!hasOwn.call( obj.constructor.prototype || {}, "isPrototypeOf" ) ) {
 				return false;
 			}
 
-			// If the function hasn't returned already, we're confident that
-			// |obj| is a plain object, created by {} or constructed with new Object
-			return true;
+			// Own properties are enumerated firstly, so to speed up,
+			// if last one is own, then all properties are own
+			for ( key in obj ) {}
+
+			return key === undefined || hasOwn.call( obj, key );
 		},
 
 		isEmptyObject: function( obj ) {
@@ -7719,6 +7724,12 @@
 		}
 	} );
 
+	// Support: IE <=11 only
+	// Accessing the selectedIndex property
+	// forces the browser to respect setting selected
+	// on the option
+	// The getter ensures a default option is selected
+	// when in an optgroup
 	if ( !support.optSelected ) {
 		jQuery.propHooks.selected = {
 			get: function( elem ) {
@@ -7727,6 +7738,16 @@
 					parent.parentNode.selectedIndex;
 				}
 				return null;
+			},
+			set: function( elem ) {
+				var parent = elem.parentNode;
+				if ( parent ) {
+					parent.selectedIndex;
+
+					if ( parent.parentNode ) {
+						parent.parentNode.selectedIndex;
+					}
+				}
 			}
 		};
 	}
@@ -7921,7 +7942,8 @@
 
 
 
-	var rreturn = /\r/g;
+	var rreturn = /\r/g,
+		rspaces = /[\x20\t\r\n\f]+/g;
 
 	jQuery.fn.extend( {
 		val: function( value ) {
@@ -7997,9 +8019,15 @@
 			option: {
 				get: function( elem ) {
 
-					// Support: IE<11
-					// option.value not trimmed (#14858)
-					return jQuery.trim( elem.value );
+					var val = jQuery.find.attr( elem, "value" );
+					return val != null ?
+						val :
+
+						// Support: IE10-11+
+						// option.text throws exceptions (#14686, #14858)
+						// Strip and collapse whitespace
+						// https://html.spec.whatwg.org/#strip-and-collapse-whitespace
+						jQuery.trim( jQuery.text( elem ) ).replace( rspaces, " " );
 				}
 			},
 			select: {
@@ -8052,7 +8080,7 @@
 					while ( i-- ) {
 						option = options[ i ];
 						if ( option.selected =
-								jQuery.inArray( jQuery.valHooks.option.get( option ), values ) > -1
+							jQuery.inArray( jQuery.valHooks.option.get( option ), values ) > -1
 						) {
 							optionSet = true;
 						}
@@ -9747,18 +9775,6 @@
 
 
 
-	// Support: Safari 8+
-	// In Safari 8 documents created via document.implementation.createHTMLDocument
-	// collapse sibling forms: the second one becomes a child of the first one.
-	// Because of that, this security measure has to be disabled in Safari 8.
-	// https://bugs.webkit.org/show_bug.cgi?id=137337
-	support.createHTMLDocument = ( function() {
-		var body = document.implementation.createHTMLDocument( "" ).body;
-		body.innerHTML = "<form></form><form></form>";
-		return body.childNodes.length === 2;
-	} )();
-
-
 	// Argument "data" should be string of html
 	// context (optional): If specified, the fragment will be created in this context,
 	// defaults to document
@@ -9771,12 +9787,7 @@
 			keepScripts = context;
 			context = false;
 		}
-
-		// Stop scripts or inline event handlers from being executed immediately
-		// by using document.implementation
-		context = context || ( support.createHTMLDocument ?
-			document.implementation.createHTMLDocument( "" ) :
-			document );
+		context = context || document;
 
 		var parsed = rsingleTag.exec( data ),
 			scripts = !keepScripts && [];
@@ -26826,17 +26837,21 @@
 	ManagerBase._view_types = {}; /* Dictionary of view names and view types. */
 	ManagerBase._managers = []; /* List of widget managers */
 
+	// TODO: Remove me in ipywidgets 6.0
 	ManagerBase.register_widget_model = function (model_name, model_type) {
 	    /**
 	     * Registers a widget model by name.
 	     */
+	    console.warn('register_widget_model is deprecated.  Models and views should be linked to their backend counterparts using the require.js load path (see the `_view_module` and `_model_module` traits)');
 	    ManagerBase._model_types[model_name] = model_type;
 	};
 
+	// TODO: Remove me in ipywidgets 6.0
 	ManagerBase.register_widget_view = function (view_name, view_type) {
 	    /**
 	     * Registers a widget view by name.
 	     */
+	    console.warn('register_widget_view is deprecated.  Models and views should be linked to their backend counterparts using the require.js load path (see the `_view_module` and `_model_module` traits)');
 	    ManagerBase._view_types[view_name] = view_type;
 	};
 
@@ -27076,13 +27091,12 @@
 	    } else {
 	        throw new Error('Neither comm nor model_id provided in options object. At least one must exist.');
 	    }
-	    var model_promise = this.loadClass(
-	        options.model_name,
-	        options.model_module,
-	        ManagerBase._model_types
-	    ).then(function(ModelType) {
-	        return ModelType._deserialize_state(serialized_state, that)
-	            .then(function(attributes) {
+
+	    var model_promise = this.loadClass(options.model_name,
+	                                       options.model_module,
+	                                       ManagerBase._model_types)
+	        .then(function(ModelType) {
+	            return ModelType._deserialize_state(serialized_state || ModelType.prototype.defaults, that).then(function(attributes) {
 	                var widget_model = new ModelType(that, model_id, options.comm, attributes);
 	                widget_model.once('comm:close', function () {
 	                    delete that._models[model_id];
@@ -27100,6 +27114,25 @@
 	    return model_promise;
 	};
 
+	/**
+
+	 * Close all widgets and empty the widget state.
+	 * @param  {boolean} commlessOnly should only commless widgets be removed
+	 * @return {Promise}              promise that resolves when the widget state is
+	 *                                cleared.
+	 */
+	ManagerBase.prototype.clear_state = function(commlessOnly) {
+	    var that = this;
+	    return utils.resolvePromisesDict(this._models).then(function(models) {
+	        Object.keys(models).forEach(function(id) {
+	            if (!commlessOnly || models[id].comm) {
+	                models[id].close();
+	            }
+	        });
+	        that._models = {};
+	    });
+	};
+
 	ManagerBase.prototype.get_state = function(options) {
 	    /**
 	     * Asynchronously get the state of the widget manager.
@@ -27114,6 +27147,8 @@
 	     *          Only return models with one or more displayed views.
 	     *      not_live: (optional) boolean=false
 	     *          Include models that have comms with severed connections.
+	     *      drop_defaults: (optional) boolean=false
+	     *          Drop model attributed that are equal to their default values.
 	     *
 	     * Returns
 	     * -------
@@ -27136,8 +27171,8 @@
 	                    state[model_id] = {
 	                        model_name: model.name,
 	                        model_module: model.module,
-	                        state: model.get_state(),
-	                        views: []
+	                        state: model.get_state(options.drop_defaults),
+	                        views: [],
 	                    };
 
 	                    // Get the views that are displayed *now*.
@@ -27226,9 +27261,9 @@
 /* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(global) {//     Backbone.js 1.2.3
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(global) {//     Backbone.js 1.2.0
 
-	//     (c) 2010-2016 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	//     (c) 2010-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	//     Backbone may be freely distributed under the MIT license.
 	//     For all details and documentation:
 	//     http://backbonejs.org
@@ -27237,8 +27272,8 @@
 
 	  // Establish the root object, `window` (`self`) in the browser, or `global` on the server.
 	  // We use `self` instead of `window` for `WebWorker` support.
-	  var root = (typeof self == 'object' && self.self === self && self) ||
-	            (typeof global == 'object' && global.global === global && global);
+	  var root = (typeof self == 'object' && self.self == self && self) ||
+	            (typeof global == 'object' && global.global == global && global);
 
 	  // Set up Backbone appropriately for the environment. Start with AMD.
 	  if (true) {
@@ -27251,7 +27286,7 @@
 	  // Next for Node.js or CommonJS. jQuery may not be needed as a module.
 	  } else if (typeof exports !== 'undefined') {
 	    var _ = require('underscore'), $;
-	    try { $ = require('jquery'); } catch (e) {}
+	    try { $ = require('jquery'); } catch(e) {}
 	    factory(root, exports, _, $);
 
 	  // Finally, as a browser global.
@@ -27259,7 +27294,7 @@
 	    root.Backbone = factory(root, {}, root._, (root.jQuery || root.Zepto || root.ender || root.$));
 	  }
 
-	})(function(root, Backbone, _, $) {
+	}(function(root, Backbone, _, $) {
 
 	  // Initial Setup
 	  // -------------
@@ -27268,11 +27303,12 @@
 	  // restored later on, if `noConflict` is used.
 	  var previousBackbone = root.Backbone;
 
-	  // Create a local reference to a common array method we'll want to use later.
-	  var slice = Array.prototype.slice;
+	  // Create local references to array methods we'll want to use later.
+	  var array = [];
+	  var slice = array.slice;
 
 	  // Current version of the library. Keep in sync with `package.json`.
-	  Backbone.VERSION = '1.2.3';
+	  Backbone.VERSION = '1.2.0';
 
 	  // For Backbone's purposes, jQuery, Zepto, Ender, or My Library (kidding) owns
 	  // the `$` variable.
@@ -27296,60 +27332,12 @@
 	  // form param named `model`.
 	  Backbone.emulateJSON = false;
 
-	  // Proxy Backbone class methods to Underscore functions, wrapping the model's
-	  // `attributes` object or collection's `models` array behind the scenes.
-	  //
-	  // collection.filter(function(model) { return model.get('age') > 10 });
-	  // collection.each(this.addView);
-	  //
-	  // `Function#apply` can be slow so we use the method's arg count, if we know it.
-	  var addMethod = function(length, method, attribute) {
-	    switch (length) {
-	      case 1: return function() {
-	        return _[method](this[attribute]);
-	      };
-	      case 2: return function(value) {
-	        return _[method](this[attribute], value);
-	      };
-	      case 3: return function(iteratee, context) {
-	        return _[method](this[attribute], cb(iteratee, this), context);
-	      };
-	      case 4: return function(iteratee, defaultVal, context) {
-	        return _[method](this[attribute], cb(iteratee, this), defaultVal, context);
-	      };
-	      default: return function() {
-	        var args = slice.call(arguments);
-	        args.unshift(this[attribute]);
-	        return _[method].apply(_, args);
-	      };
-	    }
-	  };
-	  var addUnderscoreMethods = function(Class, methods, attribute) {
-	    _.each(methods, function(length, method) {
-	      if (_[method]) Class.prototype[method] = addMethod(length, method, attribute);
-	    });
-	  };
-
-	  // Support `collection.sortBy('attr')` and `collection.findWhere({id: 1})`.
-	  var cb = function(iteratee, instance) {
-	    if (_.isFunction(iteratee)) return iteratee;
-	    if (_.isObject(iteratee) && !instance._isModel(iteratee)) return modelMatcher(iteratee);
-	    if (_.isString(iteratee)) return function(model) { return model.get(iteratee); };
-	    return iteratee;
-	  };
-	  var modelMatcher = function(attrs) {
-	    var matcher = _.matches(attrs);
-	    return function(model) {
-	      return matcher(model.attributes);
-	    };
-	  };
-
 	  // Backbone.Events
 	  // ---------------
 
 	  // A module that can be mixed in to *any object* in order to provide it with
-	  // a custom event channel. You may bind a callback to an event with `on` or
-	  // remove with `off`; `trigger`-ing an event fires all callbacks in
+	  // custom events. You may bind with `on` or remove with `off` callback
+	  // functions to an event; `trigger`-ing an event fires all callbacks in
 	  // succession.
 	  //
 	  //     var object = {};
@@ -27364,25 +27352,25 @@
 
 	  // Iterates over the standard `event, callback` (as well as the fancy multiple
 	  // space-separated events `"change blur", callback` and jQuery-style event
-	  // maps `{event: callback}`).
-	  var eventsApi = function(iteratee, events, name, callback, opts) {
+	  // maps `{event: callback}`), reducing them by manipulating `memo`.
+	  // Passes a normalized single event name and callback, as well as any
+	  // optional `opts`.
+	  var eventsApi = function(iteratee, memo, name, callback, opts) {
 	    var i = 0, names;
 	    if (name && typeof name === 'object') {
 	      // Handle event maps.
-	      if (callback !== void 0 && 'context' in opts && opts.context === void 0) opts.context = callback;
 	      for (names = _.keys(name); i < names.length ; i++) {
-	        events = eventsApi(iteratee, events, names[i], name[names[i]], opts);
+	        memo = iteratee(memo, names[i], name[names[i]], opts);
 	      }
 	    } else if (name && eventSplitter.test(name)) {
-	      // Handle space-separated event names by delegating them individually.
+	      // Handle space separated event names.
 	      for (names = name.split(eventSplitter); i < names.length; i++) {
-	        events = iteratee(events, names[i], callback, opts);
+	        memo = iteratee(memo, names[i], callback, opts);
 	      }
 	    } else {
-	      // Finally, standard events.
-	      events = iteratee(events, name, callback, opts);
+	      memo = iteratee(memo, name, callback, opts);
 	    }
-	    return events;
+	    return memo;
 	  };
 
 	  // Bind an event to a `callback` function. Passing `"all"` will bind
@@ -27391,12 +27379,13 @@
 	    return internalOn(this, name, callback, context);
 	  };
 
-	  // Guard the `listening` argument from the public API.
+	  // An internal use `on` function, used to guard the `listening` argument from
+	  // the public API.
 	  var internalOn = function(obj, name, callback, context, listening) {
 	    obj._events = eventsApi(onApi, obj._events || {}, name, callback, {
-	      context: context,
-	      ctx: obj,
-	      listening: listening
+	        context: context,
+	        ctx: obj,
+	        listening: listening
 	    });
 
 	    if (listening) {
@@ -27408,9 +27397,8 @@
 	  };
 
 	  // Inversion-of-control versions of `on`. Tell *this* object to listen to
-	  // an event in another object... keeping track of what it's listening to
-	  // for easier unbinding later.
-	  Events.listenTo = function(obj, name, callback) {
+	  // an event in another object... keeping track of what it's listening to.
+	  Events.listenTo =  function(obj, name, callback) {
 	    if (!obj) return this;
 	    var id = obj._listenId || (obj._listenId = _.uniqueId('l'));
 	    var listeningTo = this._listeningTo || (this._listeningTo = {});
@@ -27435,7 +27423,7 @@
 	      var context = options.context, ctx = options.ctx, listening = options.listening;
 	      if (listening) listening.count++;
 
-	      handlers.push({callback: callback, context: context, ctx: context || ctx, listening: listening});
+	      handlers.push({ callback: callback, context: context, ctx: context || ctx, listening: listening });
 	    }
 	    return events;
 	  };
@@ -27444,18 +27432,18 @@
 	  // callbacks with that function. If `callback` is null, removes all
 	  // callbacks for the event. If `name` is null, removes all bound
 	  // callbacks for all events.
-	  Events.off = function(name, callback, context) {
+	  Events.off =  function(name, callback, context) {
 	    if (!this._events) return this;
 	    this._events = eventsApi(offApi, this._events, name, callback, {
-	      context: context,
-	      listeners: this._listeners
+	        context: context,
+	        listeners: this._listeners
 	    });
 	    return this;
 	  };
 
 	  // Tell this object to stop listening to either specific events ... or
 	  // to every object it's currently listening to.
-	  Events.stopListening = function(obj, name, callback) {
+	  Events.stopListening =  function(obj, name, callback) {
 	    var listeningTo = this._listeningTo;
 	    if (!listeningTo) return this;
 
@@ -27470,15 +27458,17 @@
 
 	      listening.obj.off(name, callback, this);
 	    }
+	    if (_.isEmpty(listeningTo)) this._listeningTo = void 0;
 
 	    return this;
 	  };
 
 	  // The reducing API that removes a callback from the `events` object.
 	  var offApi = function(events, name, callback, options) {
+	    // No events to consider.
 	    if (!events) return;
 
-	    var i = 0, listening;
+	    var i = 0, length, listening;
 	    var context = options.context, listeners = options.listeners;
 
 	    // Delete all events listeners and "drop" events.
@@ -27526,28 +27516,28 @@
 	        delete events[name];
 	      }
 	    }
-	    return events;
+	    if (_.size(events)) return events;
 	  };
 
 	  // Bind an event to only be triggered a single time. After the first time
-	  // the callback is invoked, its listener will be removed. If multiple events
-	  // are passed in using the space-separated syntax, the handler will fire
-	  // once for each event, not once for a combination of all events.
-	  Events.once = function(name, callback, context) {
+	  // the callback is invoked, it will be removed. When multiple events are
+	  // passed in using the space-separated syntax, the event will fire once for every
+	  // event you passed in, not once for a combination of all events
+	  Events.once =  function(name, callback, context) {
 	    // Map the event into a `{event: once}` object.
 	    var events = eventsApi(onceMap, {}, name, callback, _.bind(this.off, this));
-	    return this.on(events, callback, context);
+	    return this.on(events, void 0, context);
 	  };
 
 	  // Inversion-of-control versions of `once`.
-	  Events.listenToOnce = function(obj, name, callback) {
+	  Events.listenToOnce =  function(obj, name, callback) {
 	    // Map the event into a `{event: once}` object.
 	    var events = eventsApi(onceMap, {}, name, callback, _.bind(this.stopListening, this, obj));
 	    return this.listenTo(obj, events);
 	  };
 
 	  // Reduces the event callbacks into a map of `{event: onceWrapper}`.
-	  // `offer` unbinds the `onceWrapper` after it has been called.
+	  // `offer` unbinds the `onceWrapper` after it as been called.
 	  var onceMap = function(map, name, callback, offer) {
 	    if (callback) {
 	      var once = map[name] = _.once(function() {
@@ -27563,7 +27553,7 @@
 	  // passed the same arguments as `trigger` is, apart from the event name
 	  // (unless you're listening on `"all"`, which will cause your callback to
 	  // receive the true name of the event as the first argument).
-	  Events.trigger = function(name) {
+	  Events.trigger =  function(name) {
 	    if (!this._events) return this;
 
 	    var length = Math.max(0, arguments.length - 1);
@@ -27575,7 +27565,7 @@
 	  };
 
 	  // Handles triggering the appropriate event callbacks.
-	  var triggerApi = function(objEvents, name, callback, args) {
+	  var triggerApi = function(objEvents, name, cb, args) {
 	    if (objEvents) {
 	      var events = objEvents[name];
 	      var allEvents = objEvents.all;
@@ -27598,6 +27588,35 @@
 	      case 3: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2, a3); return;
 	      default: while (++i < l) (ev = events[i]).callback.apply(ev.ctx, args); return;
 	    }
+	  };
+
+	  // Proxy Underscore methods to a Backbone class' prototype using a
+	  // particular attribute as the data argument
+	  var addMethod = function(length, method, attribute) {
+	    switch (length) {
+	      case 1: return function() {
+	        return _[method](this[attribute]);
+	      };
+	      case 2: return function(value) {
+	        return _[method](this[attribute], value);
+	      };
+	      case 3: return function(iteratee, context) {
+	        return _[method](this[attribute], iteratee, context);
+	      };
+	      case 4: return function(iteratee, defaultVal, context) {
+	        return _[method](this[attribute], iteratee, defaultVal, context);
+	      };
+	      default: return function() {
+	        var args = slice.call(arguments);
+	        args.unshift(this[attribute]);
+	        return _[method].apply(_, args);
+	      };
+	    }
+	  };
+	  var addUnderscoreMethods = function(Class, methods, attribute) {
+	    _.each(methods, function(length, method) {
+	      if (_[method]) Class.prototype[method] = addMethod(length, method, attribute);
+	    });
 	  };
 
 	  // Aliases for backwards compatibility.
@@ -27625,8 +27644,7 @@
 	    this.attributes = {};
 	    if (options.collection) this.collection = options.collection;
 	    if (options.parse) attrs = this.parse(attrs, options) || {};
-	    var defaults = _.result(this, 'defaults');
-	    attrs = _.defaults(_.extend({}, defaults, attrs), defaults);
+	    attrs = _.defaults({}, attrs, _.result(this, 'defaults'));
 	    this.set(attrs, options);
 	    this.changed = {};
 	    this.initialize.apply(this, arguments);
@@ -27689,10 +27707,10 @@
 	    // the core primitive operation of a model, updating the data and notifying
 	    // anyone who needs to know about the change in state. The heart of the beast.
 	    set: function(key, val, options) {
+	      var attr, attrs, unset, changes, silent, changing, prev, current;
 	      if (key == null) return this;
 
 	      // Handle both `"key", value` and `{key: value}` -style arguments.
-	      var attrs;
 	      if (typeof key === 'object') {
 	        attrs = key;
 	        options = val;
@@ -27706,35 +27724,32 @@
 	      if (!this._validate(attrs, options)) return false;
 
 	      // Extract attributes and options.
-	      var unset      = options.unset;
-	      var silent     = options.silent;
-	      var changes    = [];
-	      var changing   = this._changing;
-	      this._changing = true;
+	      unset           = options.unset;
+	      silent          = options.silent;
+	      changes         = [];
+	      changing        = this._changing;
+	      this._changing  = true;
 
 	      if (!changing) {
 	        this._previousAttributes = _.clone(this.attributes);
 	        this.changed = {};
 	      }
+	      current = this.attributes, prev = this._previousAttributes;
 
-	      var current = this.attributes;
-	      var changed = this.changed;
-	      var prev    = this._previousAttributes;
+	      // Check for changes of `id`.
+	      if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
 
 	      // For each `set` attribute, update or delete the current value.
-	      for (var attr in attrs) {
+	      for (attr in attrs) {
 	        val = attrs[attr];
 	        if (!_.isEqual(current[attr], val)) changes.push(attr);
 	        if (!_.isEqual(prev[attr], val)) {
-	          changed[attr] = val;
+	          this.changed[attr] = val;
 	        } else {
-	          delete changed[attr];
+	          delete this.changed[attr];
 	        }
 	        unset ? delete current[attr] : current[attr] = val;
 	      }
-
-	      // Update the `id`.
-	      if (this.idAttribute in attrs) this.id = this.get(this.idAttribute);
 
 	      // Trigger all relevant attribute changes.
 	      if (!silent) {
@@ -27787,14 +27802,13 @@
 	    // determining if there *would be* a change.
 	    changedAttributes: function(diff) {
 	      if (!diff) return this.hasChanged() ? _.clone(this.changed) : false;
+	      var val, changed = false;
 	      var old = this._changing ? this._previousAttributes : this.attributes;
-	      var changed = {};
 	      for (var attr in diff) {
-	        var val = diff[attr];
-	        if (_.isEqual(old[attr], val)) continue;
-	        changed[attr] = val;
+	        if (_.isEqual(old[attr], (val = diff[attr]))) continue;
+	        (changed || (changed = {}))[attr] = val;
 	      }
-	      return _.size(changed) ? changed : false;
+	      return changed;
 	    },
 
 	    // Get the previous value of an attribute, recorded at the time the last
@@ -27813,12 +27827,12 @@
 	    // Fetch the model from the server, merging the response with the model's
 	    // local attributes. Any changed attributes will trigger a "change" event.
 	    fetch: function(options) {
-	      options = _.extend({parse: true}, options);
+	      options = options ? _.clone(options) : {};
+	      if (options.parse === void 0) options.parse = true;
 	      var model = this;
 	      var success = options.success;
 	      options.success = function(resp) {
-	        var serverAttrs = options.parse ? model.parse(resp, options) : resp;
-	        if (!model.set(serverAttrs, options)) return false;
+	        if (!model.set(model.parse(resp, options), options)) return false;
 	        if (success) success.call(options.context, model, resp, options);
 	        model.trigger('sync', model, resp, options);
 	      };
@@ -27830,8 +27844,9 @@
 	    // If the server returns an attributes hash that differs, the model's
 	    // state will be `set` again.
 	    save: function(key, val, options) {
+	      var attrs, method, xhr, attributes = this.attributes, wait;
+
 	      // Handle both `"key", value` and `{key: value}` -style arguments.
-	      var attrs;
 	      if (key == null || typeof key === 'object') {
 	        attrs = key;
 	        options = val;
@@ -27839,43 +27854,47 @@
 	        (attrs = {})[key] = val;
 	      }
 
-	      options = _.extend({validate: true, parse: true}, options);
-	      var wait = options.wait;
+	      options = _.extend({validate: true}, options);
+	      wait = options.wait;
 
 	      // If we're not waiting and attributes exist, save acts as
 	      // `set(attr).save(null, opts)` with validation. Otherwise, check if
 	      // the model will be valid when the attributes, if any, are set.
 	      if (attrs && !wait) {
 	        if (!this.set(attrs, options)) return false;
-	      } else if (!this._validate(attrs, options)) {
-	        return false;
+	      } else {
+	        if (!this._validate(attrs, options)) return false;
+	      }
+
+	      // Set temporary attributes if `{wait: true}`.
+	      if (attrs && wait) {
+	        this.attributes = _.extend({}, attributes, attrs);
 	      }
 
 	      // After a successful server-side save, the client is (optionally)
 	      // updated with the server-side state.
+	      if (options.parse === void 0) options.parse = true;
 	      var model = this;
 	      var success = options.success;
-	      var attributes = this.attributes;
 	      options.success = function(resp) {
 	        // Ensure attributes are restored during synchronous saves.
 	        model.attributes = attributes;
 	        var serverAttrs = options.parse ? model.parse(resp, options) : resp;
-	        if (wait) serverAttrs = _.extend({}, attrs, serverAttrs);
-	        if (serverAttrs && !model.set(serverAttrs, options)) return false;
+	        if (wait) serverAttrs = _.extend(attrs || {}, serverAttrs);
+	        if (_.isObject(serverAttrs) && !model.set(serverAttrs, options)) {
+	          return false;
+	        }
 	        if (success) success.call(options.context, model, resp, options);
 	        model.trigger('sync', model, resp, options);
 	      };
 	      wrapError(this, options);
 
-	      // Set temporary attributes if `{wait: true}` to properly find new ids.
-	      if (attrs && wait) this.attributes = _.extend({}, attributes, attrs);
-
-	      var method = this.isNew() ? 'create' : (options.patch ? 'patch' : 'update');
+	      method = this.isNew() ? 'create' : (options.patch ? 'patch' : 'update');
 	      if (method === 'patch' && !options.attrs) options.attrs = attrs;
-	      var xhr = this.sync(method, this, options);
+	      xhr = this.sync(method, this, options);
 
 	      // Restore attributes.
-	      this.attributes = attributes;
+	      if (attrs && wait) this.attributes = attributes;
 
 	      return xhr;
 	    },
@@ -27920,8 +27939,8 @@
 	        _.result(this.collection, 'url') ||
 	        urlError();
 	      if (this.isNew()) return base;
-	      var id = this.get(this.idAttribute);
-	      return base.replace(/[^\/]$/, '$&/') + encodeURIComponent(id);
+	      var id = this.id || this.attributes[this.idAttribute];
+	      return base.replace(/([^\/])$/, '$1/') + encodeURIComponent(id);
 	    },
 
 	    // **parse** converts a response into the hash of attributes to be `set` on
@@ -27942,7 +27961,7 @@
 
 	    // Check if the model is currently in a valid state.
 	    isValid: function(options) {
-	      return this._validate({}, _.extend({}, options, {validate: true}));
+	      return this._validate({}, _.extend(options || {}, { validate: true }));
 	    },
 
 	    // Run validation against the next complete set of model attributes,
@@ -27958,10 +27977,9 @@
 
 	  });
 
-	  // Underscore methods that we want to implement on the Model, mapped to the
-	  // number of arguments they take.
-	  var modelMethods = {keys: 1, values: 1, pairs: 1, invert: 1, pick: 0,
-	      omit: 0, chain: 1, isEmpty: 1};
+	  // Underscore methods that we want to implement on the Model.
+	  var modelMethods = { keys: 1, values: 1, pairs: 1, invert: 1, pick: 0,
+	      omit: 0, chain: 1, isEmpty: 1 };
 
 	  // Mix in each Underscore method as a proxy to `Model#attributes`.
 	  addUnderscoreMethods(Model, modelMethods, 'attributes');
@@ -27992,17 +28010,6 @@
 	  var setOptions = {add: true, remove: true, merge: true};
 	  var addOptions = {add: true, remove: false};
 
-	  // Splices `insert` into `array` at index `at`.
-	  var splice = function(array, insert, at) {
-	    at = Math.min(Math.max(at, 0), array.length);
-	    var tail = Array(array.length - at);
-	    var length = insert.length;
-	    var i;
-	    for (i = 0; i < tail.length; i++) tail[i] = array[i + at];
-	    for (i = 0; i < length; i++) array[i + at] = insert[i];
-	    for (i = 0; i < tail.length; i++) array[i + length + at] = tail[i];
-	  };
-
 	  // Define the Collection's inheritable methods.
 	  _.extend(Collection.prototype, Events, {
 
@@ -28017,7 +28024,7 @@
 	    // The JSON representation of a Collection is an array of the
 	    // models' attributes.
 	    toJSON: function(options) {
-	      return this.map(function(model) { return model.toJSON(options); });
+	      return this.map(function(model){ return model.toJSON(options); });
 	    },
 
 	    // Proxy `Backbone.sync` by default.
@@ -28025,24 +28032,19 @@
 	      return Backbone.sync.apply(this, arguments);
 	    },
 
-	    // Add a model, or list of models to the set. `models` may be Backbone
-	    // Models or raw JavaScript objects to be converted to Models, or any
-	    // combination of the two.
+	    // Add a model, or list of models to the set.
 	    add: function(models, options) {
 	      return this.set(models, _.extend({merge: false}, options, addOptions));
 	    },
 
 	    // Remove a model, or a list of models from the set.
 	    remove: function(models, options) {
-	      options = _.extend({}, options);
-	      var singular = !_.isArray(models);
-	      models = singular ? [models] : models.slice();
-	      var removed = this._removeModels(models, options);
-	      if (!options.silent && removed.length) {
-	        options.changes = {added: [], merged: [], removed: removed};
-	        this.trigger('update', this, options);
-	      }
-	      return singular ? removed[0] : removed;
+	      var singular = !_.isArray(models), removed;
+	      models = singular ? [models] : _.clone(models);
+	      options || (options = {});
+	      removed = this._removeModels(models, options);
+	      if (!options.silent && removed) this.trigger('update', this, options);
+	      return singular ? models[0] : models;
 	    },
 
 	    // Update a collection by `set`-ing a new list of models, adding new ones,
@@ -28050,114 +28052,97 @@
 	    // already exist in the collection, as necessary. Similar to **Model#set**,
 	    // the core operation for updating the data contained by the collection.
 	    set: function(models, options) {
-	      if (models == null) return;
-
-	      options = _.extend({}, setOptions, options);
-	      if (options.parse && !this._isModel(models)) {
-	        models = this.parse(models, options) || [];
-	      }
-
+	      options = _.defaults({}, options, setOptions);
+	      if (options.parse) models = this.parse(models, options);
 	      var singular = !_.isArray(models);
-	      models = singular ? [models] : models.slice();
-
+	      models = singular ? (models ? [models] : []) : models.slice();
+	      var id, model, attrs, existing, sort;
 	      var at = options.at;
 	      if (at != null) at = +at;
-	      if (at > this.length) at = this.length;
 	      if (at < 0) at += this.length + 1;
-
-	      var set = [];
-	      var toAdd = [];
-	      var toMerge = [];
-	      var toRemove = [];
-	      var modelMap = {};
-
-	      var add = options.add;
-	      var merge = options.merge;
-	      var remove = options.remove;
-
-	      var sort = false;
-	      var sortable = this.comparator && at == null && options.sort !== false;
+	      var sortable = this.comparator && (at == null) && options.sort !== false;
 	      var sortAttr = _.isString(this.comparator) ? this.comparator : null;
+	      var toAdd = [], toRemove = [], modelMap = {};
+	      var add = options.add, merge = options.merge, remove = options.remove;
+	      var order = !sortable && add && remove ? [] : false;
+	      var orderChanged = false;
 
 	      // Turn bare objects into model references, and prevent invalid models
 	      // from being added.
-	      var model, i;
-	      for (i = 0; i < models.length; i++) {
-	        model = models[i];
+	      for (var i = 0; i < models.length; i++) {
+	        attrs = models[i];
 
 	        // If a duplicate is found, prevent it from being added and
 	        // optionally merge it into the existing model.
-	        var existing = this.get(model);
-	        if (existing) {
-	          if (merge && model !== existing) {
-	            var attrs = this._isModel(model) ? model.attributes : model;
+	        if (existing = this.get(attrs)) {
+	          if (remove) modelMap[existing.cid] = true;
+	          if (merge && attrs !== existing) {
+	            attrs = this._isModel(attrs) ? attrs.attributes : attrs;
 	            if (options.parse) attrs = existing.parse(attrs, options);
 	            existing.set(attrs, options);
-	            toMerge.push(existing);
-	            if (sortable && !sort) sort = existing.hasChanged(sortAttr);
-	          }
-	          if (!modelMap[existing.cid]) {
-	            modelMap[existing.cid] = true;
-	            set.push(existing);
+	            if (sortable && !sort && existing.hasChanged(sortAttr)) sort = true;
 	          }
 	          models[i] = existing;
 
 	        // If this is a new, valid model, push it to the `toAdd` list.
 	        } else if (add) {
-	          model = models[i] = this._prepareModel(model, options);
-	          if (model) {
-	            toAdd.push(model);
-	            this._addReference(model, options);
-	            modelMap[model.cid] = true;
-	            set.push(model);
-	          }
+	          model = models[i] = this._prepareModel(attrs, options);
+	          if (!model) continue;
+	          toAdd.push(model);
+	          this._addReference(model, options);
 	        }
+
+	        // Do not add multiple models with the same `id`.
+	        model = existing || model;
+	        if (!model) continue;
+	        id = this.modelId(model.attributes);
+	        if (order && (model.isNew() || !modelMap[id])) {
+	          order.push(model);
+
+	          // Check to see if this is actually a new model at this index.
+	          orderChanged = orderChanged || !this.models[i] || model.cid !== this.models[i].cid;
+	        }
+
+	        modelMap[id] = true;
 	      }
 
-	      // Remove stale models.
+	      // Remove nonexistent models if appropriate.
 	      if (remove) {
-	        for (i = 0; i < this.length; i++) {
-	          model = this.models[i];
-	          if (!modelMap[model.cid]) toRemove.push(model);
+	        for (var i = 0; i < this.length; i++) {
+	          if (!modelMap[(model = this.models[i]).cid]) toRemove.push(model);
 	        }
 	        if (toRemove.length) this._removeModels(toRemove, options);
 	      }
 
 	      // See if sorting is needed, update `length` and splice in new models.
-	      var orderChanged = false;
-	      var replace = !sortable && add && remove;
-	      if (set.length && replace) {
-	        orderChanged = this.length !== set.length || _.some(this.models, function(m, index) {
-	          return m !== set[index];
-	        });
-	        this.models.length = 0;
-	        splice(this.models, set, 0);
-	        this.length = this.models.length;
-	      } else if (toAdd.length) {
+	      if (toAdd.length || orderChanged) {
 	        if (sortable) sort = true;
-	        splice(this.models, toAdd, at == null ? this.length : at);
-	        this.length = this.models.length;
+	        this.length += toAdd.length;
+	        if (at != null) {
+	          for (var i = 0; i < toAdd.length; i++) {
+	            this.models.splice(at + i, 0, toAdd[i]);
+	          }
+	        } else {
+	          if (order) this.models.length = 0;
+	          var orderedModels = order || toAdd;
+	          for (var i = 0; i < orderedModels.length; i++) {
+	            this.models.push(orderedModels[i]);
+	          }
+	        }
 	      }
 
 	      // Silently sort the collection if appropriate.
 	      if (sort) this.sort({silent: true});
 
-	      // Unless silenced, it's time to fire all appropriate add/sort/update events.
+	      // Unless silenced, it's time to fire all appropriate add/sort events.
 	      if (!options.silent) {
-	        for (i = 0; i < toAdd.length; i++) {
-	          if (at != null) options.index = at + i;
-	          model = toAdd[i];
-	          model.trigger('add', model, this, options);
+	        var addOpts = at != null ? _.clone(options) : options;
+	        for (var i = 0; i < toAdd.length; i++) {
+	          if (at != null) addOpts.index = at + i;
+	          (model = toAdd[i]).trigger('add', model, this, addOpts);
 	        }
 	        if (sort || orderChanged) this.trigger('sort', this, options);
-	        if (toAdd.length || toRemove.length || toMerge.length) {
-	          options.changes = {
-	            added: toAdd,
-	            removed: toRemove,
-	            merged: toMerge
-	          };
-	          this.trigger('update', this, options);
-	        }
+	        if (toAdd.length || toRemove.length) this.trigger('update', this, options);
 	      }
 
 	      // Return the added (or merged) model (or models).
@@ -28188,7 +28173,8 @@
 	    // Remove a model from the end of the collection.
 	    pop: function(options) {
 	      var model = this.at(this.length - 1);
-	      return this.remove(model, options);
+	      this.remove(model, options);
+	      return model;
 	    },
 
 	    // Add a model to the beginning of the collection.
@@ -28199,7 +28185,8 @@
 	    // Remove a model from the beginning of the collection.
 	    shift: function(options) {
 	      var model = this.at(0);
-	      return this.remove(model, options);
+	      this.remove(model, options);
+	      return model;
 	    },
 
 	    // Slice out a sub-array of models from the collection.
@@ -28207,18 +28194,11 @@
 	      return slice.apply(this.models, arguments);
 	    },
 
-	    // Get a model from the set by id, cid, model object with id or cid
-	    // properties, or an attributes object that is transformed through modelId.
+	    // Get a model from the set by id.
 	    get: function(obj) {
 	      if (obj == null) return void 0;
-	      return this._byId[obj] ||
-	        this._byId[this.modelId(obj.attributes || obj)] ||
-	        obj.cid && this._byId[obj.cid];
-	    },
-
-	    // Returns `true` if the model is in the collection.
-	    has: function(obj) {
-	      return this.get(obj) != null;
+	      var id = this.modelId(this._isModel(obj) ? obj.attributes : obj);
+	      return this._byId[obj] || this._byId[id] || this._byId[obj.cid];
 	    },
 
 	    // Get the model at the given index.
@@ -28230,7 +28210,10 @@
 	    // Return models with matching attributes. Useful for simple cases of
 	    // `filter`.
 	    where: function(attrs, first) {
-	      return this[first ? 'find' : 'filter'](attrs);
+	      var matches = _.matches(attrs);
+	      return this[first ? 'find' : 'filter'](function(model) {
+	        return matches(model.attributes);
+	      });
 	    },
 
 	    // Return the first model with matching attributes. Useful for simple cases
@@ -28243,33 +28226,31 @@
 	    // normal circumstances, as the set will maintain sort order as each item
 	    // is added.
 	    sort: function(options) {
-	      var comparator = this.comparator;
-	      if (!comparator) throw new Error('Cannot sort a set without a comparator');
+	      if (!this.comparator) throw new Error('Cannot sort a set without a comparator');
 	      options || (options = {});
 
-	      var length = comparator.length;
-	      if (_.isFunction(comparator)) comparator = _.bind(comparator, this);
-
 	      // Run sort based on type of `comparator`.
-	      if (length === 1 || _.isString(comparator)) {
-	        this.models = this.sortBy(comparator);
+	      if (_.isString(this.comparator) || this.comparator.length === 1) {
+	        this.models = this.sortBy(this.comparator, this);
 	      } else {
-	        this.models.sort(comparator);
+	        this.models.sort(_.bind(this.comparator, this));
 	      }
+
 	      if (!options.silent) this.trigger('sort', this, options);
 	      return this;
 	    },
 
 	    // Pluck an attribute from each model in the collection.
 	    pluck: function(attr) {
-	      return this.map(attr + '');
+	      return _.invoke(this.models, 'get', attr);
 	    },
 
 	    // Fetch the default set of models for this collection, resetting the
 	    // collection when they arrive. If `reset: true` is passed, the response
 	    // data will be passed through the `reset` method instead of `set`.
 	    fetch: function(options) {
-	      options = _.extend({parse: true}, options);
+	      options = options ? _.clone(options) : {};
+	      if (options.parse === void 0) options.parse = true;
 	      var success = options.success;
 	      var collection = this;
 	      options.success = function(resp) {
@@ -28288,14 +28269,13 @@
 	    create: function(model, options) {
 	      options = options ? _.clone(options) : {};
 	      var wait = options.wait;
-	      model = this._prepareModel(model, options);
-	      if (!model) return false;
+	      if (!(model = this._prepareModel(model, options))) return false;
 	      if (!wait) this.add(model, options);
 	      var collection = this;
 	      var success = options.success;
-	      options.success = function(m, resp, callbackOpts) {
-	        if (wait) collection.add(m, callbackOpts);
-	        if (success) success.call(callbackOpts.context, m, resp, callbackOpts);
+	      options.success = function(model, resp, callbackOpts) {
+	        if (wait) collection.add(model, callbackOpts);
+	        if (success) success.call(callbackOpts.context, model, resp, callbackOpts);
 	      };
 	      model.save(null, options);
 	      return model;
@@ -28316,7 +28296,7 @@
 	    },
 
 	    // Define how to uniquely identify models in the collection.
-	    modelId: function(attrs) {
+	    modelId: function (attrs) {
 	      return attrs[this.model.prototype.idAttribute || 'id'];
 	    },
 
@@ -28343,37 +28323,36 @@
 	      return false;
 	    },
 
-	    // Internal method called by both remove and set.
+	    // Internal method called by both remove and set. Does not trigger any
+	    // additional events. Returns true if anything was actually removed.
 	    _removeModels: function(models, options) {
-	      var removed = [];
-	      for (var i = 0; i < models.length; i++) {
-	        var model = this.get(models[i]);
+	      var i, l, index, model, removed = false;
+	      for (var i = 0, j = 0; i < models.length; i++) {
+	        var model = models[i] = this.get(models[i]);
 	        if (!model) continue;
-
+	        var id = this.modelId(model.attributes);
+	        if (id != null) delete this._byId[id];
+	        delete this._byId[model.cid];
 	        var index = this.indexOf(model);
 	        this.models.splice(index, 1);
 	        this.length--;
-
-	        // Remove references before triggering 'remove' event to prevent an
-	        // infinite loop. #3693
-	        delete this._byId[model.cid];
-	        var id = this.modelId(model.attributes);
-	        if (id != null) delete this._byId[id];
-
 	        if (!options.silent) {
 	          options.index = index;
 	          model.trigger('remove', model, this, options);
 	        }
-
-	        removed.push(model);
+	        models[j++] = model;
 	        this._removeReference(model, options);
+	        removed = true;
 	      }
+	      // We only need to slice if models array should be smaller, which is
+	      // caused by some models not actually getting removed.
+	      if (models.length !== j) models = models.slice(0, j);
 	      return removed;
 	    },
 
 	    // Method for checking whether an object should be considered a model for
 	    // the purposes of adding to the collection.
-	    _isModel: function(model) {
+	    _isModel: function (model) {
 	      return model instanceof Model;
 	    },
 
@@ -28387,9 +28366,6 @@
 
 	    // Internal method to sever a model's ties to a collection.
 	    _removeReference: function(model, options) {
-	      delete this._byId[model.cid];
-	      var id = this.modelId(model.attributes);
-	      if (id != null) delete this._byId[id];
 	      if (this === model.collection) delete model.collection;
 	      model.off('all', this._onModelEvent, this);
 	    },
@@ -28399,16 +28375,14 @@
 	    // events simply proxy through. "add" and "remove" events that originate
 	    // in other collections are ignored.
 	    _onModelEvent: function(event, model, collection, options) {
-	      if (model) {
-	        if ((event === 'add' || event === 'remove') && collection !== this) return;
-	        if (event === 'destroy') this.remove(model, options);
-	        if (event === 'change') {
-	          var prevId = this.modelId(model.previousAttributes());
-	          var id = this.modelId(model.attributes);
-	          if (prevId !== id) {
-	            if (prevId != null) delete this._byId[prevId];
-	            if (id != null) this._byId[id] = model;
-	          }
+	      if ((event === 'add' || event === 'remove') && collection !== this) return;
+	      if (event === 'destroy') this.remove(model, options);
+	      if (event === 'change') {
+	        var prevId = this.modelId(model.previousAttributes());
+	        var id = this.modelId(model.attributes);
+	        if (prevId !== id) {
+	          if (prevId != null) delete this._byId[prevId];
+	          if (id != null) this._byId[id] = model;
 	        }
 	      }
 	      this.trigger.apply(this, arguments);
@@ -28419,17 +28393,30 @@
 	  // Underscore methods that we want to implement on the Collection.
 	  // 90% of the core usefulness of Backbone Collections is actually implemented
 	  // right here:
-	  var collectionMethods = {forEach: 3, each: 3, map: 3, collect: 3, reduce: 0,
-	      foldl: 0, inject: 0, reduceRight: 0, foldr: 0, find: 3, detect: 3, filter: 3,
-	      select: 3, reject: 3, every: 3, all: 3, some: 3, any: 3, include: 3, includes: 3,
-	      contains: 3, invoke: 0, max: 3, min: 3, toArray: 1, size: 1, first: 3,
+	  var collectionMethods = { forEach: 3, each: 3, map: 3, collect: 3, reduce: 4,
+	      foldl: 4, inject: 4, reduceRight: 4, foldr: 4, find: 3, detect: 3, filter: 3,
+	      select: 3, reject: 3, every: 3, all: 3, some: 3, any: 3, include: 2,
+	      contains: 2, invoke: 2, max: 3, min: 3, toArray: 1, size: 1, first: 3,
 	      head: 3, take: 3, initial: 3, rest: 3, tail: 3, drop: 3, last: 3,
 	      without: 0, difference: 0, indexOf: 3, shuffle: 1, lastIndexOf: 3,
-	      isEmpty: 1, chain: 1, sample: 3, partition: 3, groupBy: 3, countBy: 3,
-	      sortBy: 3, indexBy: 3, findIndex: 3, findLastIndex: 3};
+	      isEmpty: 1, chain: 1, sample: 3, partition: 3 };
 
 	  // Mix in each Underscore method as a proxy to `Collection#models`.
 	  addUnderscoreMethods(Collection, collectionMethods, 'models');
+
+	  // Underscore methods that take a property name as an argument.
+	  var attributeMethods = ['groupBy', 'countBy', 'sortBy', 'indexBy'];
+
+	  // Use attributes instead of properties.
+	  _.each(attributeMethods, function(method) {
+	    if (!_[method]) return;
+	    Collection.prototype[method] = function(value, context) {
+	      var iterator = _.isFunction(value) ? value : function(model) {
+	        return model.get(value);
+	      };
+	      return _[method](this.models, iterator, context);
+	    };
+	  });
 
 	  // Backbone.View
 	  // -------------
@@ -28446,6 +28433,7 @@
 	  // if an existing element is not provided...
 	  var View = Backbone.View = function(options) {
 	    this.cid = _.uniqueId('view');
+	    options || (options = {});
 	    _.extend(this, _.pick(options, viewOptions));
 	    this._ensureElement();
 	    this.initialize.apply(this, arguments);
@@ -28454,7 +28442,7 @@
 	  // Cached regex to split keys for `delegate`.
 	  var delegateEventSplitter = /^(\S+)\s*(.*)$/;
 
-	  // List of view options to be set as properties.
+	  // List of view options to be merged as properties.
 	  var viewOptions = ['model', 'collection', 'el', 'id', 'attributes', 'className', 'tagName', 'events'];
 
 	  // Set up all inheritable **Backbone.View** properties and methods.
@@ -28528,12 +28516,11 @@
 	    // Uses event delegation for efficiency.
 	    // Omitting the selector binds the event to `this.el`.
 	    delegateEvents: function(events) {
-	      events || (events = _.result(this, 'events'));
-	      if (!events) return this;
+	      if (!(events || (events = _.result(this, 'events')))) return this;
 	      this.undelegateEvents();
 	      for (var key in events) {
 	        var method = events[key];
-	        if (!_.isFunction(method)) method = this[method];
+	        if (!_.isFunction(method)) method = this[events[key]];
 	        if (!method) continue;
 	        var match = key.match(delegateEventSplitter);
 	        this.delegate(match[1], match[2], _.bind(method, this));
@@ -28546,7 +28533,6 @@
 	    // `blur`, and not `change`, `submit`, and `reset` in Internet Explorer.
 	    delegate: function(eventName, selector, listener) {
 	      this.$el.on(eventName + '.delegateEvents' + this.cid, selector, listener);
-	      return this;
 	    },
 
 	    // Clears all callbacks previously bound to the view by `delegateEvents`.
@@ -28561,7 +28547,6 @@
 	    // `selector` and `listener` are both optional.
 	    undelegate: function(eventName, selector, listener) {
 	      this.$el.off(eventName + '.delegateEvents' + this.cid, selector, listener);
-	      return this;
 	    },
 
 	    // Produces a DOM element to be assigned to your view. Exposed for
@@ -28676,9 +28661,9 @@
 	  var methodMap = {
 	    'create': 'POST',
 	    'update': 'PUT',
-	    'patch': 'PATCH',
+	    'patch':  'PATCH',
 	    'delete': 'DELETE',
-	    'read': 'GET'
+	    'read':   'GET'
 	  };
 
 	  // Set the default implementation of `Backbone.ajax` to proxy through to `$`.
@@ -28798,7 +28783,7 @@
 	  // falls back to polling.
 	  var History = Backbone.History = function() {
 	    this.handlers = [];
-	    this.checkUrl = _.bind(this.checkUrl, this);
+	    _.bindAll(this, 'checkUrl');
 
 	    // Ensure that `History` can be used outside of the browser.
 	    if (typeof window !== 'undefined') {
@@ -28835,8 +28820,8 @@
 	    // Does the pathname match the root?
 	    matchRoot: function() {
 	      var path = this.decodeFragment(this.location.pathname);
-	      var rootPath = path.slice(0, this.root.length - 1) + '/';
-	      return rootPath === this.root;
+	      var root = path.slice(0, this.root.length - 1) + '/';
+	      return root === this.root;
 	    },
 
 	    // Unicode characters in `location.pathname` are percent encoded so they're
@@ -28891,7 +28876,7 @@
 	      this.options          = _.extend({root: '/'}, this.options, options);
 	      this.root             = this.options.root;
 	      this._wantsHashChange = this.options.hashChange !== false;
-	      this._hasHashChange   = 'onhashchange' in window && (document.documentMode === void 0 || document.documentMode > 7);
+	      this._hasHashChange   = 'onhashchange' in window;
 	      this._useHashChange   = this._wantsHashChange && this._hasHashChange;
 	      this._wantsPushState  = !!this.options.pushState;
 	      this._hasPushState    = !!(this.history && this.history.pushState);
@@ -28908,8 +28893,8 @@
 	        // If we've started off with a route from a `pushState`-enabled
 	        // browser, but we're currently in a browser that doesn't support it...
 	        if (!this._hasPushState && !this.atRoot()) {
-	          var rootPath = this.root.slice(0, -1) || '/';
-	          this.location.replace(rootPath + '#' + this.getPath());
+	          var root = this.root.slice(0, -1) || '/';
+	          this.location.replace(root + '#' + this.getPath());
 	          // Return immediately as browser will do redirect to new url
 	          return true;
 
@@ -28925,20 +28910,19 @@
 	      // support the `hashchange` event, HTML5 history, or the user wants
 	      // `hashChange` but not `pushState`.
 	      if (!this._hasHashChange && this._wantsHashChange && !this._usePushState) {
-	        this.iframe = document.createElement('iframe');
-	        this.iframe.src = 'javascript:0';
-	        this.iframe.style.display = 'none';
-	        this.iframe.tabIndex = -1;
+	        var iframe = document.createElement('iframe');
+	        iframe.src = 'javascript:0';
+	        iframe.style.display = 'none';
+	        iframe.tabIndex = -1;
 	        var body = document.body;
 	        // Using `appendChild` will throw on IE < 9 if the document is not ready.
-	        var iWindow = body.insertBefore(this.iframe, body.firstChild).contentWindow;
-	        iWindow.document.open();
-	        iWindow.document.close();
-	        iWindow.location.hash = '#' + this.fragment;
+	        this.iframe = body.insertBefore(iframe, body.firstChild).contentWindow;
+	        this.iframe.document.open().close();
+	        this.iframe.location.hash = '#' + this.fragment;
 	      }
 
 	      // Add a cross-platform `addEventListener` shim for older browsers.
-	      var addEventListener = window.addEventListener || function(eventName, listener) {
+	      var addEventListener = window.addEventListener || function (eventName, listener) {
 	        return attachEvent('on' + eventName, listener);
 	      };
 
@@ -28959,7 +28943,7 @@
 	    // but possibly useful for unit testing Routers.
 	    stop: function() {
 	      // Add a cross-platform `removeEventListener` shim for older browsers.
-	      var removeEventListener = window.removeEventListener || function(eventName, listener) {
+	      var removeEventListener = window.removeEventListener || function (eventName, listener) {
 	        return detachEvent('on' + eventName, listener);
 	      };
 
@@ -28972,7 +28956,7 @@
 
 	      // Clean up the iframe if necessary.
 	      if (this.iframe) {
-	        document.body.removeChild(this.iframe);
+	        document.body.removeChild(this.iframe.frameElement);
 	        this.iframe = null;
 	      }
 
@@ -28995,7 +28979,7 @@
 	      // If the user pressed the back button, the iframe's hash will have
 	      // changed and we should use that for comparison.
 	      if (current === this.fragment && this.iframe) {
-	        current = this.getHash(this.iframe.contentWindow);
+	        current = this.getHash(this.iframe);
 	      }
 
 	      if (current === this.fragment) return false;
@@ -29010,7 +28994,7 @@
 	      // If the root doesn't match, no routes can match either.
 	      if (!this.matchRoot()) return false;
 	      fragment = this.fragment = this.getFragment(fragment);
-	      return _.some(this.handlers, function(handler) {
+	      return _.any(this.handlers, function(handler) {
 	        if (handler.route.test(fragment)) {
 	          handler.callback(fragment);
 	          return true;
@@ -29033,11 +29017,11 @@
 	      fragment = this.getFragment(fragment || '');
 
 	      // Don't include a trailing slash on the root.
-	      var rootPath = this.root;
+	      var root = this.root;
 	      if (fragment === '' || fragment.charAt(0) === '?') {
-	        rootPath = rootPath.slice(0, -1) || '/';
+	        root = root.slice(0, -1) || '/';
 	      }
-	      var url = rootPath + fragment;
+	      var url = root + fragment;
 
 	      // Strip the hash and decode for matching.
 	      fragment = this.decodeFragment(fragment.replace(pathStripper, ''));
@@ -29053,18 +29037,12 @@
 	      // fragment to store history.
 	      } else if (this._wantsHashChange) {
 	        this._updateHash(this.location, fragment, options.replace);
-	        if (this.iframe && fragment !== this.getHash(this.iframe.contentWindow)) {
-	          var iWindow = this.iframe.contentWindow;
-
+	        if (this.iframe && (fragment !== this.getHash(this.iframe))) {
 	          // Opening and closing the iframe tricks IE7 and earlier to push a
 	          // history entry on hash-tag change.  When replace is true, we don't
 	          // want this.
-	          if (!options.replace) {
-	            iWindow.document.open();
-	            iWindow.document.close();
-	          }
-
-	          this._updateHash(iWindow.location, fragment, options.replace);
+	          if (!options.replace) this.iframe.document.open().close();
+	          this._updateHash(this.iframe.location, fragment, options.replace);
 	        }
 
 	      // If you've told us that you explicitly don't want fallback hashchange-
@@ -29115,9 +29093,14 @@
 	    _.extend(child, parent, staticProps);
 
 	    // Set the prototype chain to inherit from `parent`, without calling
-	    // `parent`'s constructor function and add the prototype properties.
-	    child.prototype = _.create(parent.prototype, protoProps);
-	    child.prototype.constructor = child;
+	    // `parent` constructor function.
+	    var Surrogate = function(){ this.constructor = child; };
+	    Surrogate.prototype = parent.prototype;
+	    child.prototype = new Surrogate;
+
+	    // Add prototype properties (instance properties) to the subclass,
+	    // if supplied.
+	    if (protoProps) _.extend(child.prototype, protoProps);
 
 	    // Set a convenience property in case the parent's prototype is needed
 	    // later.
@@ -29144,13 +29127,14 @@
 	  };
 
 	  return Backbone;
-	});
+
+	}));
 
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
 /* 8 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
 	// Distributed under the terms of the Modified BSD License.
@@ -29216,13 +29200,26 @@
 
 	        // Try loading the view module using require.js
 	        if (module_name) {
-	            requirejs([module_name], function(module) {
+
+	            // If the module is jupyter-js-widgets, we can just self import.
+	            var modulePromise;
+	            if (module_name === 'jupyter-js-widgets') {
+	                modulePromise = Promise.resolve(__webpack_require__(1));
+	            } else {
+	                modulePromise = new Promise(function(innerResolve, innerReject) {
+	                    window.require([module_name], function(module) {
+	                        innerResolve(module);
+	                    }, innerReject);
+	                });
+	            }
+
+	            modulePromise.then(function(module) {
 	                if (module[class_name] === undefined) {
 	                    reject(new Error('Class '+class_name+' not found in module '+module_name));
 	                } else {
 	                    resolve(module[class_name]);
 	                }
-	            }, reject);
+	            });
 	        } else {
 	            if (registry && registry[class_name]) {
 	                resolve(registry[class_name]);
@@ -29368,9 +29365,9 @@
 	var WidgetModel = Backbone.Model.extend({
 
 	    defaults: {
-	        _model_module: null,
-	        _model_name: 'WidgetModel',
-	        _view_module: '',
+	        _model_module: "jupyter-js-widgets",
+	        _model_name: "WidgetModel",
+	        _view_module: "jupyter-js-widgets",
 	        _view_name: null,
 	        msg_throttle: 3
 	    },
@@ -29505,10 +29502,25 @@
 	        }
 	    },
 
-	    get_state: function() {
-	        // Get the serializable state of the model.
-	        // Equivalent to Backbone.Model.toJSON()
-	        return _.clone(this.attributes);
+	    get_state: function(drop_defaults) {
+	        /**
+	         * Get the serializable state of the model.
+	         *
+	         * If drop_default is thruthy, attributes that are equal to their default
+	         * values are dropped.
+	         */
+	        var state = this.attributes;
+	        if (drop_defaults) {
+	            var defaults = _.result(this, 'defaults');
+	            return Object.keys(state).reduce(function(obj, key) {
+	                if (!_.isEqual(state[key], defaults[key])) {
+	                    obj[key] = state[key];
+	                }
+	                return obj;
+	            }, {});
+	        } else {
+	            return _.clone(state);
+	        }
 	    },
 
 	    _handle_status: function (msg, callbacks) {
@@ -29656,7 +29668,6 @@
 	        this._buffered_state_diff = {};
 	    },
 
-
 	    send_sync_message: function(attrs, callbacks) {
 	        // prepare and send a comm message syncing attrs
 	        var that = this;
@@ -29753,7 +29764,7 @@
 	            deserialized = state;
 	        }
 	        return utils.resolvePromisesDict(deserialized);
-	    },
+	    }
 	});
 
 
@@ -29829,14 +29840,31 @@
 	var DOMWidgetModel = WidgetModel.extend({
 	    defaults: _.extend({}, WidgetModel.prototype.defaults, {
 	        layout: undefined,
+	        visible: true,
+	        _dom_classes: [],
+
+	        // Deprecated attributes
+	        color: null,
+	        height: '',
+	        border_radius: '',
+	        border_width: '',
+	        background_color: null,
+	        font_style: '',
+	        width: '',
+	        font_family: '',
+	        border_color: null,
+	        padding: '',
+	        font_weight: '',
+	        icon: '',
+	        border_style: '',
+	        font_size: '',
+	        margin: ''
 	    }),
 	}, {
 	    serializers: _.extend({
 	        layout: {deserialize: unpack_models},
-	    }, WidgetModel.serializers),
+	    }, WidgetModel.serializers)
 	});
-
-	managerBase.ManagerBase.register_widget_model('DOMWidgetModel', DOMWidgetModel);
 
 	var DOMWidgetViewMixin = {
 	    initialize: function (parameters) {
@@ -30039,7 +30067,7 @@
 
 	    typeset: function(element, text){
 	        utils.typeset.apply(null, arguments);
-	    },
+	    }
 	};
 
 
@@ -30118,10 +30146,8 @@
 	            that.views = [];
 	            that._models = [];
 	        });
-	    },
+	    }
 	});
-
-	managerBase.ManagerBase.register_widget_model('WidgetModel', WidgetModel);
 
 	// For backwards compatibility.
 	var WidgetView = Backbone.View.extend(WidgetViewMixin);
@@ -30396,7 +30422,7 @@
 	    defaults: _.extend({}, widget.WidgetModel.prototype.defaults, {
 	        _model_name: 'LayoutModel',
 	        _view_name: 'LayoutView'
-	    }, css_properties),
+	    }, css_properties)
 	});
 
 	var LayoutView = widget.WidgetView.extend({
@@ -30532,14 +30558,14 @@
 	            this.stopListening(this.target[0], 'change:' + this.target[1], null, this);
 	            this.stopListening(this.target[0], 'destroy', null, this);
 	        }
-	    },
+	    }
 
 	}, {
 
 	    serializers: _.extend({
 	        target: {deserialize: widget.unpack_models},
 	        source: {deserialize: widget.unpack_models}
-	    }, widget.WidgetModel.serializers),
+	    }, widget.WidgetModel.serializers)
 
 	});
 
@@ -30571,7 +30597,7 @@
 	            }, this);
 	            this.listenToOnce(this.target[0], 'destroy', this.cleanup, this);
 	        }
-	    },
+	    }
 	});
 
 	var DirectionalLinkModel = BaseLinkModel.extend({
@@ -30599,7 +30625,7 @@
 	        if (this.target) {
 	            this.listenToOnce(this.target[0], 'destroy', this.cleanup, this);
 	        }
-	    },
+	    }
 
 	});
 
@@ -30875,7 +30901,7 @@
 	        button_style: '',
 	        _view_name: 'ButtonView',
 	        _model_name: 'ButtonModel'
-	    }),
+	    })
 	});
 
 	var ButtonView = widget.DOMWidgetView.extend({
@@ -30945,7 +30971,7 @@
 	         */
 	        event.preventDefault();
 	        this.send({event: 'click'});
-	    },
+	    }
 	});
 
 	module.exports = {
@@ -30974,11 +31000,11 @@
 	        box_style: '',
 	        overflow_x: '',
 	        overflow_y: ''
-	    }),
+	    })
 	}, {
 	    serializers: _.extend({
 	        children: {deserialize: widget.unpack_models},
-	    }, widget.DOMWidgetModel.serializers),
+	    }, widget.DOMWidgetModel.serializers)
 	});
 
 	var ProxyModel = widget.DOMWidgetModel.extend({
@@ -30989,7 +31015,7 @@
 	    })
 	}, {
 	    serializers: _.extend({
-	        child: {deserialize: widget.unpack_models},
+	        child: {deserialize: widget.unpack_models}
 	    }, widget.DOMWidgetModel.serializers)
 	});
 
@@ -31030,7 +31056,7 @@
 	            var that = this;
 	            this.child_promise = this.child_promise.then(function() {
 	                return that.create_child_view(value).then(function(view) {
-	                    if (that.box === undefined) {
+	                    if (!that.box) {
 	                        console.error('Widget place holder does not exist');
 	                        return;
 	                    }
@@ -31057,8 +31083,8 @@
 	     * @param  {object} value
 	     */
 	    update_attr: function(name, value) { // TODO: Deprecated in 5.0
-	        this.box.style.visibility[name] = value;
-	    },
+	        this.box.style[name] = value;
+	    }
 	});
 
 	var PlaceProxyModel = ProxyModel.extend({
@@ -31066,7 +31092,7 @@
 	        _view_name: 'PlaceProxyView',
 	        _model_name: 'PlaceProxyModel',
 	        selector: ''
-	    }),
+	    })
 	});
 
 	var PlaceProxyView = ProxyView.extend({
@@ -31077,9 +31103,9 @@
 	    },
 
 	    update_selector: function(model, selector) {
-	        this.box = document.querySelectorAll(selector) || this.el;
+	        this.box = selector && document.querySelector(selector) || this.el;
 	        this.set_child(this.model.get('child'));
-	    },
+	    }
 	});
 
 	var BoxView = widget.DOMWidgetView.extend({
@@ -31170,7 +31196,7 @@
 	         */
 	        BoxView.__super__.remove.apply(this, arguments);
 	        this.children_views.remove();
-	    },
+	    }
 	});
 
 	var FlexBoxModel = BoxModel.extend({ // TODO: Deprecated in 5.0 (entire model)
@@ -31180,7 +31206,7 @@
 	        orientation: 'vertical',
 	        pack: 'start',
 	        alignt: 'start'
-	    }),
+	    })
 	});
 
 	var FlexBoxView = BoxView.extend({ // TODO: Deprecated in 5.0 (entire view)
@@ -31226,7 +31252,7 @@
 	            this.box.classList.remove('align-' + this.model.previous('align'));
 	        }
 	        this.box.classList.add('align-' + this.model.get('align'));
-	    },
+	    }
 	});
 
 	module.exports = {
@@ -31289,8 +31315,9 @@
 	'use strict';
 
 	var widget = __webpack_require__(9);
-	var $ = __webpack_require__(2);
 	var _ = __webpack_require__(5);
+	var $ = __webpack_require__(3);
+
 
 	var IntModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
@@ -31342,12 +31369,10 @@
 	                stop: this.handleSliderChanged.bind(this)
 	            })
 	            .addClass('slider');
-
 	        // Put the slider in a container
 	        this.$slider_container = $('<div />')
 	            .addClass('slider-container')
 	            .append(this.$slider);
-
 	        this.$el.append(this.$slider_container);
 
 	        this.readout = document.createElement('div');
@@ -31575,14 +31600,14 @@
 	                    this.model.set('value', value, {updated_view: this});
 	                    this.touch();
 	                } else {
-	                    this.readout.textContent = this.valueToString(this.mode.get('value'));
+	                    this.readout.textContent = this.valueToString(this.model.get('value'));
 	                }
 	            }
 	        } else {
 
 	            // single value case
 	            if (isNaN(value)) {
-	                this.readout.textContent = this.valueToString(this.mode.get('value'));
+	                this.readout.textContent = this.valueToString(this.model.get('value'));
 	            } else {
 	                value = Math.max(Math.min(value, vmax), vmin);
 
@@ -31686,7 +31711,7 @@
 	        if (description.length === 0) {
 	            this.label.style.display = 'none';
 	        } else {
-	            this.typeset(this.label, description);
+	            this.typeset(this.$label, description);
 	            this.label.style.display = '';
 	        }
 	    },
@@ -31700,7 +31725,7 @@
 	         */
 	        if (options === undefined || options.updated_view != this) {
 	            var value = this.model.get('value');
-	            if (this._parse_value(this.textbox.value) != value) {
+	            if (this._parse_value(this.textbox.value != value)) {
 	                this.textbox.value = value;
 	            }
 
@@ -31856,19 +31881,15 @@
 	        if (orientation === 'horizontal') {
 	            this.el.classList.remove('widget-vbox');
 	            this.el.classList.add('widget-hbox');
-
 	            this.el.classList.remove('widget-vprogress');
 	            this.el.classList.add('widget-hprogress');
-
 	            this.bar.style.width = percent + '%';
 	            this.bar.style.height = '100%';
 	        } else {
 	            this.el.classList.remove('widget-hbox');
 	            this.el.classList.add('widget-vbox');
-
 	            this.el.classList.remove('widget-hprogress');
 	            this.el.classList.add('widget-hprogress');
-
 	            this.bar.style.width = '100%';
 	            this.bar.style.height = percent + '%';
 	        }
@@ -31894,7 +31915,7 @@
 	        } else if (name.substring(0, 6) == 'border' || name == 'background') {
 	            this.progress.style[name] = value;
 	        } else {
-	            this.el.style[name] = value
+	            this.el.style[name] = value;
 	        }
 	    }
 	});
@@ -31930,7 +31951,7 @@
 	        width: '',
 	        height: '',
 	        _b64value: ''
-	    }),
+	    })
 	});
 
 	var ImageView = widget.DOMWidgetView.extend({
@@ -31974,7 +31995,7 @@
 	            this.el.removeAttribute('height');
 	        }
 	        return ImageView.__super__.update.apply(this);
-	    },
+	    }
 	});
 
 	module.exports = {
@@ -32001,7 +32022,7 @@
 	        concise: false,
 	        _model_name: 'ColorPickerModel',
 	        _view_name: 'ColorPickerView'
-	    }),
+	    })
 	});
 
 	var ColorPickerView = widget.DOMWidgetView.extend({
@@ -32039,11 +32060,13 @@
 	        this._update_value();
 	        this._update_description();
 	    },
+
 	    _update_value: function() {
 	        var value = this.model.get('value');
 	        this.colorpicker.value = color2hex(value);
 	        this.textbox.value = value;
 	    },
+
 	    _update_description: function() {
 	        var description = this.model.get('description');
 	        if (description.length === 0) {
@@ -32055,6 +32078,7 @@
 	            this.label.style.display = '';
 	        }
 	    },
+
 	    _update_concise: function() {
 	        var concise = this.model.get('concise');
 	        if (concise) {
@@ -32065,18 +32089,21 @@
 	            this.textbox.style.display = '';
 	        }
 	    },
+
 	    _picker_change: function() {
 	        this.model.set('value', this.colorpicker.value);
 	        this.touch();
 	    },
+
 	    _text_change: function() {
 	        this.model.set('value', this._validate_color(this.textbox.value, this.model.get('value')));
 	        this.touch();
 	    },
+
 	    _validate_color: function(color, fallback) {
 	        return color.match(/#[a-fA-F0-9]{3}(?:[a-fA-F0-9]{3})?$/) ||
 	          named_colors[color.toLowerCase()] ? color: fallback;
-	    },
+	    }
 	});
 
 	var named_colors = { aliceblue: '#f0f8ff', antiquewhite: '#faebd7', aqua: '#00ffff', aquamarine: '#7fffd4', azure: '#f0ffff', beige: '#f5f5dc', bisque: '#ffe4c4', black: '#000000', blanchedalmond: '#ffebcd', blue: '#0000ff', blueviolet: '#8a2be2', brown: '#a52a2a', burlywood: '#deb887', cadetblue: '#5f9ea0', chartreuse: '#7fff00', chocolate: '#d2691e', coral: '#ff7f50', cornflowerblue: '#6495ed', cornsilk: '#fff8dc', crimson: '#dc143c', cyan: '#00ffff', darkblue: '#00008b', darkcyan: '#008b8b', darkgoldenrod: '#b8860b', darkgray: '#a9a9a9', darkgrey: '#a9a9a9', darkgreen: '#006400', darkkhaki: '#bdb76b', darkmagenta: '#8b008b', darkolivegreen: '#556b2f', darkorange: '#ff8c00', darkorchid: '#9932cc', darkred: '#8b0000', darksalmon: '#e9967a', darkseagreen: '#8fbc8f', darkslateblue: '#483d8b', darkslategray: '#2f4f4f', darkslategrey: '#2f4f4f', darkturquoise: '#00ced1', darkviolet: '#9400d3', deeppink: '#ff1493', deepskyblue: '#00bfff', dimgray : '#696969', dimgrey : '#696969', dodgerblue: '#1e90ff', firebrick: '#b22222', floralwhite: '#fffaf0', forestgreen: '#228b22', fuchsia: '#ff00ff', gainsboro: '#dcdcdc', ghostwhite: '#f8f8ff', gold: '#ffd700', goldenrod: '#daa520', gray: '#808080', grey: '#808080', green: '#008000', greenyellow: '#adff2f', honeydew: '#f0fff0', hotpink: '#ff69b4', indianred: '#cd5c5c', indigo: '#4b0082', ivory: '#fffff0', khaki: '#f0e68c', lavender: '#e6e6fa', lavenderblush: '#fff0f5', lawngreen: '#7cfc00', lemonchiffon: '#fffacd', lightblue: '#add8e6', lightcoral: '#f08080', lightcyan: '#e0ffff', lightgoldenrodyellow: '#fafad2', lightgreen: '#90ee90', lightgray: '#d3d3d3', lightgrey: '#d3d3d3', lightpink: '#ffb6c1', lightsalmon: '#ffa07a', lightseagreen: '#20b2aa', lightskyblue: '#87cefa', lightslategray: '#778899', lightslategrey: '#778899', lightsteelblue: '#b0c4de', lightyellow: '#ffffe0', lime: '#00ff00', limegreen: '#32cd32', linen: '#faf0e6', magenta: '#ff00ff', maroon: '#800000', mediumaquamarine: '#66cdaa', mediumblue: '#0000cd', mediumorchid: '#ba55d3', mediumpurple: '#9370db', mediumseagreen: '#3cb371', mediumslateblue: '#7b68ee', mediumspringgreen: '#00fa9a', mediumturquoise: '#48d1cc', mediumvioletred: '#c71585', midnightblue: '#191970', mintcream: '#f5fffa', mistyrose: '#ffe4e1', moccasin: '#ffe4b5', navajowhite: '#ffdead', navy: '#000080', oldlace: '#fdf5e6', olive: '#808000', olivedrab: '#6b8e23', orange: '#ffa500', orangered: '#ff4500', orchid: '#da70d6', palegoldenrod: '#eee8aa', palegreen: '#98fb98', paleturquoise: '#afeeee', palevioletred: '#db7093', papayawhip: '#ffefd5', peachpuff: '#ffdab9', peru: '#cd853f', pink: '#ffc0cb', plum: '#dda0dd', powderblue: '#b0e0e6', purple: '#800080', red: '#ff0000', rosybrown: '#bc8f8f', royalblue: '#4169e1', saddlebrown: '#8b4513', salmon: '#fa8072', sandybrown: '#f4a460', seagreen: '#2e8b57', seashell: '#fff5ee', sienna: '#a0522d', silver: '#c0c0c0', skyblue: '#87ceeb', slateblue: '#6a5acd', slategray: '#708090', slategrey: '#708090', snow: '#fffafa', springgreen: '#00ff7f', steelblue: '#4682b4', tan: '#d2b48c', teal: '#008080', thistle: '#d8bfd8', tomato: '#ff6347', turquoise: '#40e0d0', violet: '#ee82ee', wheat: '#f5deb3', white: '#ffffff', whitesmoke: '#f5f5f5', yellow: '#ffff00', yellowgreen: '#9acd32', };
@@ -32115,8 +32142,9 @@
 
 	var widget = __webpack_require__(9);
 	var utils = __webpack_require__(8);
+	var $ = __webpack_require__(2);
 	var _ = __webpack_require__(5);
-	var $ = __webpack_require__(3);
+
 
 	var SelectionModel = widget.DOMWidgetModel.extend({
 	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
@@ -32137,10 +32165,16 @@
 	});
 
 	var DropdownView = widget.DOMWidgetView.extend({
+	    initialize: function() {
+	        this.keydown = this._handle_keydown.bind(this);
+	        DropdownView.__super__.initialize.apply(this, arguments);
+	    },
+
 	    remove: function() {
 	        document.body.removeChild(this.droplist);
 	        return DropdownView.__super__.remove.call(this);
 	    },
+
 	    render: function() {
 	        this.el.classList.add('jupyter-widgets');
 	        this.el.classList.add('widget-hbox');
@@ -32157,7 +32191,6 @@
 
 	        this.droplabel = document.createElement('button');
 	        this.droplabel.className = 'widget-dropdown-toggle widget-button';
-	        this.droplabel.innerHTML = '&nbsp;';
 	        this.buttongroup.appendChild(this.droplabel);
 
 	        this.dropbutton = document.createElement('button');
@@ -32208,6 +32241,7 @@
 	            _.each(items, function(item) {
 	                var li = document.createElement('li');
 	                var a = document.createElement('a');
+	                li.className = 'widget-dropdown-item';
 	                a.setAttribute('href', '#');
 	                a.textContent = item;
 	                li.appendChild(a);
@@ -32265,7 +32299,8 @@
 
 	    events: {
 	        // Dictionary of events and their handlers.
-	        'click button.widget-button': '_toggle'
+	        'click button.widget-button': '_toggle',
+	        'keydown button.widget-button': '_activate'
 	    },
 
 	    _handle_click: function(event) {
@@ -32279,11 +32314,101 @@
 	        event.preventDefault();
 
 	        // Manually hide the droplist.
-	        this._toggle(event);
+	        this._toggle();
 
 	        var value = event.target.textContent;
 	        this.model.set('value', value, { updated_view: this });
 	        this.touch();
+	    },
+
+	    _handle_keydown: function(event) {
+	        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+	            return;
+	        }
+
+	        // If some error condition has caused the keydown listener to still
+	        // be active despite the drop list being invisible, remove the listener.
+	        if (!this.droplist.classList.contains('mod-active')) {
+	            document.removeEventListener('keydown', this.keydown);
+	            return;
+	        }
+
+	        switch (event.keyCode) {
+	        case 13:  // Enter key
+	            event.preventDefault();
+	            event.stopPropagation();
+	            var active = this.droplist.querySelector('.mod-active');
+	            if (active) {
+	                var value = active.textContent;
+	                this.model.set('value', value, { updated_view: this });
+	                this.touch();
+	            }
+	            // Close the drop list.
+	            this._toggle();
+	            this.dropbutton.focus();
+	            return;
+	        case 27:  // Escape key
+	            event.preventDefault();
+	            event.stopPropagation();
+	            // Close the drop list.
+	            this._toggle();
+	            this.dropbutton.focus();
+	            return;
+	        case 38:  // Up arrow key
+	            event.preventDefault();
+	            event.stopPropagation();
+	            var active = this.droplist.querySelector('.mod-active');
+	            var items = this.droplist.querySelectorAll('.widget-dropdown-item');
+	            var index;
+	            if (active) {
+	                index = _.indexOf(items, active);
+	                index = index > 0 ? index - 1 : items.length - 1;
+	                active.classList.remove('mod-active');
+	            } else {
+	                // If there is no selection, up arrow selects the last item.
+	                index = items.length - 1;
+	            }
+	            items[index].classList.add('mod-active');
+	            return;
+	        case 40:  // Down arrow key
+	            event.preventDefault();
+	            event.stopPropagation();
+	            var active = this.droplist.querySelector('.mod-active');
+	            var items = this.droplist.querySelectorAll('.widget-dropdown-item');
+	            var index;
+	            if (active) {
+	                index = _.indexOf(items, active);
+	                index = index < items.length - 1 ? index + 1 : 0;
+	                active.classList.remove('mod-active');
+	            } else {
+	                // If there is no selection, down arrow selects the first item.
+	                index = 0;
+	            }
+	            items[index].classList.add('mod-active');
+	            return;
+	        }
+	    },
+
+	    /**
+	     * Activate the drop list.
+	     *
+	     * If the drop button is focused and the user presses enter, up, or down,
+	     * activate the drop list.
+	     */
+	    _activate: function(event) {
+	        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+	            return;
+	        }
+
+	        switch (event.keyCode) {
+	        case 13:  // Enter key
+	        case 38:  // Up arrow key
+	        case 40:  // Down arrow key
+	            event.preventDefault();
+	            event.stopPropagation();
+	            this._toggle();
+	            return;
+	        }
 	    },
 
 	    /**
@@ -32291,17 +32416,26 @@
 	     *
 	     * If the dropdown list doesn't fit below the dropdown label, this will
 	     * cause the dropdown to be dropped 'up'.
-	     * @param  {Event} event
 	     */
 	    _toggle: function() {
-	        _.each(this.buttongroup.querySelectorAll('button'), function(button) {
-	            button.blur();
-	        });
+	        this.droplabel.blur();
+	        this.dropbutton.blur();
 
 	        if (this.droplist.classList.contains('mod-active')) {
+	            // Deselect active item.
+	            var active = this.droplist.querySelector('.mod-active');
+	            if (active) {
+	                active.classList.remove('mod-active');
+	            }
+	            // Close the drop list.
 	            this.droplist.classList.remove('mod-active');
+	            // Remove global event listener.
+	            document.removeEventListener('keydown', this.keydown);
 	            return;
 	        }
+
+	        // Add a global keydown listener for drop list events.
+	        document.addEventListener('keydown', this.keydown);
 
 	        var buttongroupRect = this.buttongroup.getBoundingClientRect();
 
@@ -32342,7 +32476,6 @@
 	            this.droplist.style.top = (buttongroupRect.top -
 	                droplistRect.height + 1) + 'px';
 	            this.droplist.style.maxHeight = availableHeightAbove + 'px';
-	            this.droplist.classList.add('mod-active');
 	            return;
 	        }
 	    }
@@ -32819,7 +32952,7 @@
 	        } else if (name.substring(0, 4) == 'font') {
 	            this.readout.style[name] = value;
 	        } else if (name.substring(0, 6) == 'border') {
-	            var slider_items = this.slider.querySelectorAll('a');
+	            var slider_items = this.$slider[0].querySelectorAll('a');
 	            if (slider_items.length) {
 	              slider_items[0].style[name] = value;
 	            }
@@ -32943,8 +33076,6 @@
 	        /**
 	         * Validate the value of the slider before sending it to the back-end
 	         * and applying it to the other views on the page.
-	         *
-	         * Double bit-wise not truncates the decimal (int cast).
 	         */
 	        return Math.floor(x);
 	    }
@@ -32984,7 +33115,7 @@
 	         * changed by another view or by a state update from the back-end.
 	         */
 	        SelectMultipleView.__super__.update.apply(this, arguments);
-	        var selected = this.model.get('selected_labels');
+	        var selected = this.model.get('value') || [];
 	        var values = _.map(selected, encodeURIComponent);
 	        var options = this.listbox.options;
 	        for (var i = 0, len = options.length; i < len; ++i) {
@@ -33013,7 +33144,7 @@
 	            .call(this.listbox.selectedOptions || [], function(option) {
 	                return items[option.index];
 	            });
-	        this.model.set('selected_labels', values, {updated_view: this});
+	        this.model.set('value', values, {updated_view: this});
 	        this.touch();
 	    }
 	});
@@ -33048,20 +33179,22 @@
 	var utils = __webpack_require__(8);
 	var box = __webpack_require__(15);
 	var _ = __webpack_require__(5);
+	var TabBar = __webpack_require__(22).TabBar;
+	var Title = __webpack_require__(32).Title;
 
 	var SelectionContainerModel = box.BoxModel.extend({
 	    defaults: _.extend({}, box.BoxModel.prototype.defaults, {
 	        _model_name: 'SelectionContainerModel',
 	        selected_index: 0,
 	        _titles: {}
-	    }),
+	    })
 	});
 
 	var AccordionModel = SelectionContainerModel.extend({
 	    defaults: _.extend({}, SelectionContainerModel.prototype.defaults, {
 	        _model_name: 'AccordionModel',
 	        _view_name: 'AccordionView'
-	    }),
+	    })
 	});
 
 	var AccordionView = widget.DOMWidgetView.extend({
@@ -33232,14 +33365,14 @@
 	         */
 	        AccordionView.__super__.remove.apply(this, arguments);
 	        this.children_views.remove();
-	    },
+	    }
 	});
 
 	var TabModel = SelectionContainerModel.extend({
 	    defaults: _.extend({}, SelectionContainerModel.prototype.defaults, {
 	        _model_name: 'TabModel',
 	        _view_name: 'TabView'
-	    }),
+	    })
 	});
 
 	var TabView = widget.DOMWidgetView.extend({
@@ -33248,10 +33381,13 @@
 	         * Public constructor.
 	         */
 	        TabView.__super__.initialize.apply(this, arguments);
-	        this.containers = [];
-	        this.children_views = new widget.ViewList(this.add_child_view, this.remove_child_view, this);
+	        this.childrenViews = new widget.ViewList(
+	            this.addChildView,
+	            this.removeChildView,
+	            this
+	        );
 	        this.listenTo(this.model, 'change:children', function(model, value) {
-	            this.children_views.update(value);
+	            this.childrenViews.update(value);
 	        }, this);
 	    },
 
@@ -33259,90 +33395,61 @@
 	        /**
 	         * Called when view is rendered.
 	         */
-	        var uuid = 'tabs'+utils.uuid();
+	        var parent = this;
 
-	        this.tabs = document.createElement('div');
-	        this.tabs.id = uuid;
-	        this.tabs.classList.add('nav');
-	        this.tabs.classList.add('nav-tabs');
-	        this.el.appendChild(this.tabs);
+	        this.el.classList.add('jupyter-widgets');
+	        this.el.classList.add('widget-tab');
 
-	        this.tab_contents = document.createElement('div');
-	        this.tab_contents.setAttribute('id', uuid + 'Content');
-	        this.el.appendChild(this.tab_contents);
+	        this.tabBar = new TabBar();
+	        this.tabBar.tabsMovable = false;
+	        this.tabBar.addClass('widget-tab-bar');
+	        this.tabBar.currentChanged.connect(this._onTabChanged, this);
+	        this.tabBar.tabCloseRequested.connect(this._onTabCloseRequested, this);
 
-	        this.children_views.update(this.model.get('children'));
+	        this.tabContents = document.createElement('div');
+	        this.tabContents.className = 'widget-tab-contents';
+
+	        this.childrenViews.update(this.model.get('children'));
+
+	        this.displayed.then(function() {
+	            parent.tabBar.attach(parent.el);
+	            parent.el.appendChild(parent.tabContents);
+	        });
 	    },
 
-	    update_attr: function(name, value) { // TODO: Deprecated in 5.0
-	        /**
-	         * Set a css attr of the widget view.
-	         */
-	        if (['padding', 'margin', 'height', 'width'].indexOf(name) !== -1) {
-	            this.el.style[name] = value;
-	        } else {
-	            this.tabs.style[name] = value;
-	        }
-	    },
-
-	    remove_child_view: function(view) {
-	        /**
-	         * Called when a child is removed from children list.
-	         */
-	        this.containers.splice(view.parent_tab.tab_text_index, 1);
-	        view.parent_tab.remove();
-	        view.parent_container.remove();
-	        view.remove();
-	    },
-
-	    add_child_view: function(model) {
+	    addChildView: function(model) {
 	        /**
 	         * Called when a child is added to children list.
 	         */
-	        var index = this.containers.length;
-	        var uuid = utils.uuid();
+	        var parent = this;
 
-	        var that = this;
-	        var tab = document.createElement('li');
-	        tab.style['list-style-type'] = 'none';
-	        this.tabs.appendChild(tab);
+	        return this.create_child_view(model).then(function(child) {
+	            var current = parent.el.querySelector('.mod-active');
+	            if (current) {
+	                current.classList.remove('mod-active');
+	            }
 
-	        var tab_text = document.createElement('a');
-	        tab_text.setAttribute('href', '#' + uuid);
-	        tab_text.setAttribute('data-toggle', 'tab');
-	        tab_text.textContent = 'Page ' + index;
-	        tab.appendChild(tab_text);
-	        tab_text.onclick = function() {
-	          that.model.set('selected_index', index, {updated_view: that});
-	          that.touch();
-	          that.select_page(index);
-	        };
+	            child.el.classList.add('widget-tab-child');
+	            child.el.classList.add('mod-active');
 
-	        tab.tab_text_index = that.containers.push(tab_text) - 1;
-
-	        var dummy = document.createElement('div');
-
-	        var contents_div = document.createElement('div');
-	        contents_div.id = uuid;
-	        contents_div.classList.add('tab-pane');
-	        contents_div.classList.add('fade');
-	        contents_div.appendChild(dummy);
-	        that.tab_contents.appendChild(contents_div);
-
-	        this.update();
-	        return this.create_child_view(model).then(function(view) {
-	            dummy.replaceWith(view.$el);
-	            view.parent_tab = tab;
-	            view.parent_container = contents_div;
-
-	            // Trigger the displayed event of the child view.
-	            that.displayed.then(function() {
-	                view.trigger('displayed', that);
-	                that.update();
+	            parent.tabContents.appendChild(child.el);
+	            parent.tabBar.addItem({
+	                title: new Title({ text: '', closable: true })
 	            });
-	            return view;
-	        }).catch(utils.reject('Could not add child view to box', true));
+	            var tab = parent.tabBar.itemAt(parent.tabBar.itemCount() - 1);
+
+	            parent.displayed.then(function() {
+	                child.trigger('displayed', parent);
+	                parent.update();
+	            });
+
+	            child.on('remove', function() { parent.tabBar.removeItem(tab); });
+
+	            return child;
+	        }).catch(utils.reject('Couldn\'t add child view to box', true));
 	    },
+
+	    removeChildView: function(child) { child.remove(); },
 
 	    update: function(options) {
 	        /**
@@ -33351,46 +33458,51 @@
 	         * Called when the model is changed.  The model may have been
 	         * changed by another view or by a state update from the back-end.
 	         */
-	        this.update_titles();
-	        this.update_selected_index(options);
-	        return TabView.__super__.update.apply(this);
+	        this.updateTitles();
+	        this.updateSelectedIndex(options);
+	        return TabView.__super__.update.call(this);
 	    },
 
 	    /**
 	     * Updates the tab page titles.
 	     */
-	    update_titles: function() {
-	        var titles = this.model.get('_titles');
-	        var that = this;
-	        _.each(titles, function(title, page_index) {
-	           var tab_text = that.containers[page_index];
-	            if (tab_text !== undefined) {
-	                tab_text.text(title);
+	    updateTitles: function() {
+	        var titles = this.model.get('_titles') || [];
+	        for (var i = this.tabBar.itemCount() - 1; i > -1; i--) {
+	            this.tabBar.itemAt(i).title.text = titles[i] || (i + 1) + '';
+	        }
+	    },
+
+	    /**
+	     * Updates the tab page titles.
+	     */
+	    updateSelectedIndex: function(options) {
+	        if (options === undefined || options.updated_view !== this) {
+	            var index = this.model.get('selected_index');
+	            if (typeof index === 'undefined') {
+	                index = 0;
 	            }
-	        });
-	    },
-
-	    /**
-	     * Updates the tab page titles.
-	     */
-	    update_selected_index: function(options) {
-	        if (options === undefined || options.updated_view != this) {
-	            var selected_index = this.model.get('selected_index');
-	            if (0 <= selected_index && selected_index < this.containers.length) {
-	                this.select_page(selected_index);
+	            if (0 <= index && index < this.tabBar.itemCount()) {
+	                this.selectPage(index);
 	            }
 	        }
 	    },
 
-	    select_page: function(index) {
+	    selectPage: function(index) {
 	        /**
 	         * Select a page.
 	         */
-	        var tab_li = this.tabs.getElementsByClassName('li');
-	        if (tab_li.length) {
-	          tab_li[0].classList.remove('active');
+	        var actives = this.el.querySelectorAll('.mod-active');
+	        if (actives.length) {
+	            for (var i = 0, len = actives.length; i < len; i++) {
+	                actives[i].classList.remove('mod-active');
+	            }
 	        }
-	        this.containers[index].tab('show');
+
+	        var active = this.el.querySelectorAll('.widget-tab-child')[index];
+	        if (active) {
+	            active.classList.add('mod-active');
+	        }
 	    },
 
 	    remove: function() {
@@ -33400,8 +33512,26 @@
 	         * removing each individual child separately.
 	         */
 	        TabView.__super__.remove.apply(this, arguments);
-	        this.children_views.remove();
+	        this.childrenViews.remove();
+	        this.tabBar.dispose();
 	    },
+
+	    _onTabChanged: function(sender, args) {
+	        this.model.set('selected_index', args.index, { updated_view: this });
+	        this.touch();
+	    },
+
+	    _onTabCloseRequested: function(sender, args) {
+	        var children = this.model.get('children');
+	        var titles = this.model.get('_titles') || [];
+	        this.model.set('_titles', _.filter(titles, function(title, index) {
+	            return index !== args.index;
+	        }));
+	        this.model.set('children', _.filter(children, function(child, index) {
+	            return index !== args.index;
+	        }));
+	        this.touch();
+	    }
 	});
 
 	module.exports = {
@@ -33417,724 +33547,1656 @@
 /* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	// Copyright (c) Jupyter Development Team.
-	// Distributed under the terms of the Modified BSD License.
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
 	'use strict';
-
-	var widget = __webpack_require__(9);
-	var _ = __webpack_require__(5);
-
-	var StringModel = widget.DOMWidgetModel.extend({
-	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        value: '',
-	        disabled: false,
-	        description: '',
-	        placeholder: '',
-	        _model_name: 'StringModel'
-	    }),
-	});
-
-	var HTMLModel = StringModel.extend({
-	    defaults: _.extend({}, StringModel.prototype.defaults, {
-	        _view_name: 'HTMLView',
-	        _model_name: 'HTMLModel'
-	    }),
-	});
-
-	var HTMLView = widget.DOMWidgetView.extend({
-	    render : function() {
-	        /**
-	         * Called when view is rendered.
-	         */
-	        this.el.classList.add('jupyter-widgets');
-	        this.el.classList.add('widget-html');
-	        this.update(); // Set defaults.
-	    },
-
-	    update : function() {
-	        /**
-	         * Update the contents of this view
-	         *
-	         * Called when the model is changed.  The model may have been
-	         * changed by another view or by a state update from the back-end.
-	         */
-	        this.el.innerHTML = this.model.get('value');
-	        return HTMLView.__super__.update.apply(this);
-	    },
-	});
-
-	var LatexModel = StringModel.extend({
-	    defaults: _.extend({}, StringModel.prototype.defaults, {
-	        _view_name: 'LatexView',
-	        _model_name: 'LatexModel'
-	    }),
-	});
-
-	var LatexView = widget.DOMWidgetView.extend({
-	    render : function() {
-	        /**
-	         * Called when view is rendered.
-	         */
-	        this.el.classList.add('jupyter-widgets');
-	        this.el.classList.add('widget-latex');
-	        this.update(); // Set defaults.
-	    },
-
-	    update : function() {
-	        /**
-	         * Update the contents of this view
-	         *
-	         * Called when the model is changed.  The model may have been
-	         * changed by another view or by a state update from the back-end.
-	         */
-	        this.typeset(this.el, this.model.get('value'));
-	        return LatexView.__super__.update.apply(this);
-	    },
-	});
-
-	var TextareaModel = StringModel.extend({
-	    defaults: _.extend({}, StringModel.prototype.defaults, {
-	        _view_name: 'TextareaView',
-	        _model_name: 'TextareaModel'
-	    }),
-	});
-
-	var TextareaView = widget.DOMWidgetView.extend({
-	    render: function() {
-	        /**
-	         * Called when view is rendered.
-	         */
-	        this.el.classList.add('jupyter-widgets');
-	        this.el.classList.add('widget-hbox');
-	        this.el.classList.add('widget-textarea');
-
-	        this.label = document.createElement('div');
-	        this.label.classList.add('widget-label');
-	        this.label.style.display = 'none';
-	        this.el.appendChild(this.label);
-
-	        this.textbox = document.createElement('textarea');
-	        this.textbox.setAttribute('rows', 5);
-	        this.textbox.classList.add('form-control');
-	        this.el.appendChild(this.textbox);
-
-	        this.update(); // Set defaults.
-	        var model = this;
-	        this.listenTo(this.model, 'msg:custom', function() {
-	          model._handle_textarea_msg()
-	        });
-	        this.listenTo(this.model, 'change:placeholder',
-	            function(model, value, options) {
-	                this.update_placeholder(value);
-	            }, this);
-
-	        this.update_placeholder();
-	    },
-
-	    _handle_textarea_msg: function (content) {
-	        /**
-	         * Handle when a custom msg is recieved from the back-end.
-	         */
-	        if (content.method == 'scroll_to_bottom') {
-	            this.scroll_to_bottom();
-	        }
-	    },
-
-	    update_placeholder: function(value) {
-	        value = value || this.model.get('placeholder');
-	        this.textbox.setAttribute('placeholder', value);
-	    },
-
-	    scroll_to_bottom: function () {
-	        /**
-	         * Scroll the text-area view to the bottom.
-	         */
-	        //this.$textbox.scrollTop(this.$textbox[0].scrollHeight); // DW TODO
-	    },
-
-	    update: function(options) {
-	        /**
-	         * Update the contents of this view
-	         *
-	         * Called when the model is changed.  The model may have been
-	         * changed by another view or by a state update from the back-end.
-	         */
-	        if (options === undefined || options.updated_view != this) {
-	            this.textbox.value = this.model.get('value');
-
-	            var disabled = this.model.get('disabled');
-	            this.textbox.disabled = disabled;
-
-	            var description = this.model.get('description');
-	            if (description.length === 0) {
-	                this.label.style.display = 'none';
-	            } else {
-	                this.typeset(this.label, description);
-	                this.label.style.display = '';
-	            }
-	        }
-	        return TextareaView.__super__.update.apply(this);
-	    },
-
-	    events: {
-	        // Dictionary of events and their handlers.
-	        'keyup textarea' : 'handleChanging',
-	        'paste textarea' : 'handleChanging',
-	        'cut textarea'   : 'handleChanging'
-	    },
-
-	    handleChanging: function(e) {
-	        /**
-	         * Handles and validates user input.
-	         *
-	         * Calling model.set will trigger all of the other views of the
-	         * model to update.
-	         */
-	        this.model.set('value', e.target.value, {updated_view: this});
-	        this.touch();
-	    },
-	});
-
-	var TextModel = StringModel.extend({
-	    defaults: _.extend({}, StringModel.prototype.defaults, {
-	        _view_name: 'TextView',
-	        _model_name: 'TextModel'
-	    }),
-	});
-
-	var TextView = widget.DOMWidgetView.extend({
-	    render: function() {
-	        /**
-	         * Called when view is rendered.
-	         */
-	        this.el.classList.add('jupyter-widgets');
-	        this.el.classList.add('widget-hbox');
-	        this.el.classList.add('widget-text');
-	        this.label = document.createElement('div');
-	        this.label.className = 'widget-label';
-	        this.el.appendChild(this.label);
-	        this.label.style.display = 'none';
-
-	        this.textbox = document.createElement('input');
-	        this.textbox.setAttribute('type', 'text');
-	        this.textbox.className = 'input form-control';
-	        this.el.appendChild(this.textbox);
-
-	        this.update(); // Set defaults.
-	        this.listenTo(this.model, 'change:placeholder', function(model, value, options) {
-	            this.update_placeholder(value);
-	        }, this);
-
-	        this.update_placeholder();
-	    },
-
-	    update_placeholder: function(value) {
-	        if (!value) {
-	            value = this.model.get('placeholder');
-	        }
-	        this.textbox.setAttribute('placeholder', value);
-	    },
-
-	    update: function(options) {
-	        /**
-	         * Update the contents of this view
-	         *
-	         * Called when the model is changed.  The model may have been
-	         * changed by another view or by a state update from the back-end.
-	         */
-	        if (options === undefined || options.updated_view != this) {
-	            if (this.textbox.value != this.model.get('value')) {
-	              this.textbox.value = this.model.get('value');
-	            }
-
-	            var disabled = this.model.get('disabled');
-	            this.textbox.disabled = disabled;
-
-	            var description = this.model.get('description');
-	            if (description.length === 0) {
-	                this.label.style.display = 'none';
-	            } else {
-	                this.typeset(this.label, description);
-	                this.label.style.display = '';
-	            }
-	        }
-	        return TextView.__super__.update.apply(this);
-	    },
-
-	    events: {
-	        // Dictionary of events and their handlers.
-	        'keyup input'    : 'handleChanging',
-	        'paste input'    : 'handleChanging',
-	        'cut input'      : 'handleChanging',
-	        'keypress input' : 'handleKeypress',
-	        'blur input' : 'handleBlur',
-	        'focusout input' : 'handleFocusOut'
-	    },
-
-	    handleChanging: function(e) {
-	        /**
-	         * Handles user input.
-	         *
-	         * Calling model.set will trigger all of the other views of the
-	         * model to update.
-	         */
-	        this.model.set('value', e.target.value, {updated_view: this});
-	        this.touch();
-	    },
-
-	    handleKeypress: function(e) {
-	        /**
-	         * Handles text submition
-	         */
-	        if (e.keyCode == 13) { // Return key
-	            this.send({event: 'submit'});
-	            e.stopPropagation();
-	            e.preventDefault();
-	            return false;
-	        }
-	    },
-
-	    handleBlur: function(e) {
-	        /**
-	         * Prevent a blur from firing if the blur was not user intended.
-	         * This is a workaround for the return-key focus loss bug.
-	         * TODO: Is the original bug actually a fault of the keyboard
-	         * manager?
-	         */
-	        if (e.relatedTarget === null) {
-	            e.stopPropagation();
-	            e.preventDefault();
-	            return false;
-	        }
-	    },
-
-	    handleFocusOut: function(e) {
-	        /**
-	         * Prevent a blur from firing if the blur was not user intended.
-	         * This is a workaround for the return-key focus loss bug.
-	         */
-	        if (e.relatedTarget === null) {
-	            e.stopPropagation();
-	            e.preventDefault();
-	            return false;
-	        }
-	    },
-	});
-
-	module.exports = {
-	    StringModel: StringModel,
-	    HTMLView: HTMLView,
-	    HTMLModel: HTMLModel,
-	    LatexView: LatexView,
-	    LatexModel: LatexModel,
-	    TextareaView: TextareaView,
-	    TextareaModel: TextareaModel,
-	    TextView: TextView,
-	    TextModel: TextModel
-	};
+	function __export(m) {
+	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+	}
+	__export(__webpack_require__(23));
+	__export(__webpack_require__(44));
+	__webpack_require__(55);
 
 
 /***/ },
 /* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
-	// Copyright (c) Jupyter Development Team.
-	// Distributed under the terms of the Modified BSD License.
-	'use strict';
-
-	var widget = __webpack_require__(9);
-	var utils= __webpack_require__(8);
-	var _ = __webpack_require__(5);
-
-	var ControllerButtonModel = widget.DOMWidgetModel.extend({
-	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        _model_name: 'ControllerButtonModel',
-	        _view_name: 'ControllerButtonView',
-	        value: 0.0,
-	        pressed: false
-	    }),
-	});
-
-	var ControllerButtonView = widget.DOMWidgetView.extend({
-	    /* Very simple view for a gamepad button. */
-
-	    render: function() {
-	        this.el.classList.add('jupyter-widgets');
-	        this.el.classList.add('widget-controller-button');
-
-	        this.support = document.createElement('div');
-	        this.support.style.position = 'relative';
-	        this.support.style.margin = '1px';
-	        this.support.style.width = '16px';
-	        this.support.style.height = '16px';
-	        this.support.style.border = '1px solid black';
-	        this.support.style.background = 'lightgray';
-	        this.el.appendChild(this.support);
-
-	        this.bar = document.createElement('div');
-	        this.bar.style.position = 'absolute';
-	        this.bar.style.width = '100%';
-	        this.bar.style.bottom = 0;
-	        this.bar.style.background = 'gray';
-	        this.support.appendChild(this.bar);
-
-	        this.update();
-	        this.label = document.createElement('div');
-	        this.label.textContent = this.model.get('description');
-	        this.label.style.textAlign = 'center';
-	        this.el.appendChild(this.label);
-	    },
-
-	    update: function() {
-	        this.bar.style.height = 100 * this.model.get('value') + '%';
-	    }
-	});
-
-	var ControllerAxisModel = widget.DOMWidgetModel.extend({
-	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        _model_name: 'ControllerAxisModel',
-	        _view_name: 'ControllerAxisView',
-	        value: 0.0
-	    }),
-	});
-
-	var ControllerAxisView = widget.DOMWidgetView.extend({
-	    /* Very simple view for a gamepad axis. */
-	    render: function() {
-	        this.el.classList.add('jupyter-widgets');
-	        this.el.classList.add('widget-controller-axis');
-	        this.el.style.width = '16px';
-	        this.el.style.padding = '4px';
-
-	        this.support = document.createElement('div');
-	        this.support.style.position = 'relative';
-	        this.support.style.margin = '1px';
-	        this.support.style.width = '4px';
-	        this.support.style.height = '64px';
-	        this.support.style.border = '1px solid black';
-	        this.support.style.background = 'lightgray';
-	        this.el.appendChild(this.support);
-
-	        this.bullet = document.createElement('div');
-	        this.bullet.style.position = 'absolute';
-	        this.bullet.style.margin = '-4px';
-	        this.bullet.style.width = '10px';
-	        this.bullet.style.height = '10px';
-	        this.bullet.style.background = 'gray';
-	        this.el.appendChild(this.support);
-
-	        this.label = document.createElement('div');
-	        this.label.textContent = this.model.get('description');
-	        this.label.style.textAlign = 'center';
-	        this.el.appendChild(this.label);
-
-	        this.update();
-	    },
-
-	    update: function() {
-	        this.bullet.style.top = 50 * (this.model.get('value') + 1) + '%';
-	    },
-
-	});
-
-	var ControllerModel = widget.DOMWidgetModel.extend({
-	    /* The Controller model. */
-	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
-	        _model_name: 'ControllerModel',
-	        _view_name: 'ControllerView',
-	        index: 0,
-	        name: '',
-	        mapping: '',
-	        connected: false,
-	        timestamp: 0,
-	        buttons: [],
-	        axes: []
-	    }),
-
-	    initialize: function() {
-	        if (navigator.getGamepads === void 0) {
-	            // Checks if the browser supports the gamepad API
-	            this.readout = 'This browser does not support gamepads.';
-	            console.error(this.readout);
-	        } else {
-	            // Start the wait loop, and listen to updates of the only
-	            // user-provided attribute, the gamepad index.
-	            this.readout = 'Connect gamepad and press any button.';
-	            if (this.get('connected')) {
-	                // No need to re-create Button and Axis widgets, re-use
-	                // the models provided by the backend which may already
-	                // be wired to other things.
-	                this.update_loop();
-	            } else {
-	                 // Wait for a gamepad to be connected.
-	                this.wait_loop();
-	            }
-	        }
-	    },
-
-	    wait_loop: function() {
-	        /* Waits for a gamepad to be connected at the provided index.
-	         * Once one is connected, it will start the update loop, which
-	         * populates the update of axes and button values.
-	         */
-	        var index = this.get('index');
-	        var pad = navigator.getGamepads()[index];
-	        if (pad) {
-	            var that = this;
-	            this.setup(pad).then(function(controls) {
-	                that.set(controls);
-	                that.save_changes();
-	                window.requestAnimationFrame(that.update_loop.bind(that));
-	            });
-	        } else {
-	            window.requestAnimationFrame(this.wait_loop.bind(this));
-	        }
-	    },
-
-	    setup: function(pad) {
-	        /* Given a native gamepad object, returns a promise for a dictionary of
-	         * controls, of the form
-	         * {
-	         *     buttons: list of Button models,
-	         *     axes: list of Axis models,
-	         * }
-	         */
-	        // Set up the main gamepad attributes
-	        this.set({
-	            name: pad.id,
-	            mapping: pad.mapping,
-	            connected: pad.connected,
-	            timestamp: pad.timestamp
-	        });
-	        // Create buttons and axes. When done, start the update loop
-	        var that = this;
-	        return utils.resolvePromisesDict({
-	            buttons: Promise.all(pad.buttons.map(function(btn, index) {
-	                return that._create_button_model(index);
-	            })),
-	            axes: Promise.all(pad.axes.map(function(axis, index) {
-	                return that._create_axis_model(index);
-	            })),
-	        });
-	    },
-
-	    update_loop: function() {
-	        /* Update axes and buttons values, until the gamepad is disconnected.
-	         * When the gamepad is disconnected, this.reset_gamepad is called.
-	         */
-	        var index = this.get('index');
-	        var id = this.get('name');
-	        var pad = navigator.getGamepads()[index];
-	        if (pad && index === pad.index && id === pad.id) {
-	            this.set({
-	                timestamp: pad.timestamp,
-	                connected: pad.connected
-	            });
-	            this.save_changes();
-	            this.get('buttons').forEach(function(model, index) {
-	                model.set({
-	                    value: pad.buttons[index].value,
-	                    pressed: pad.buttons[index].pressed
-	                });
-	                model.save_changes();
-	            });
-	            this.get('axes').forEach(function(model, index) {
-	                model.set('value', pad.axes[index]);
-	                model.save_changes();
-	            });
-	            window.requestAnimationFrame(this.update_loop.bind(this));
-	        } else {
-	            this.reset_gamepad();
-	        }
-	    },
-
-	    reset_gamepad: function() {
-	        /* Resets the gamepad attributes, and start the wait_loop.
-	         */
-	        this.get('buttons').forEach(function(button) {
-	            button.close();
-	        });
-	        this.get('axes').forEach(function(axis) {
-	            axis.close();
-	        });
-	        this.set({
-	            name: '',
-	            mapping: '',
-	            connected: false,
-	            timestamp: 0.0,
-	            buttons: [],
-	            axes: []
-	        });
-	        this.save_changes();
-	        window.requestAnimationFrame(this.wait_loop.bind(this));
-	    },
-
-	    _create_button_model: function(index) {
-	        /* Creates a gamepad button widget.
-	         */
-	        return this.widget_manager.new_widget({
-	             model_name: 'ControllerButtonModel',
-	             widget_class: 'Jupyter.ControllerButton'
-	        }).then(function(model) {
-	             model.set('description', index);
-	             return model;
-	        });
-	    },
-
-	    _create_axis_model: function(index) {
-	        /* Creates a gamepad axis widget.
-	         */
-	        return this.widget_manager.new_widget({
-	             model_name: 'ControllerAxisModel',
-	             widget_class: 'Jupyter.ControllerAxis'
-	        }).then(function(model) {
-	             model.set('description', index);
-	             return model;
-	        });
-	    },
-
-	}, {
-	    serializers: _.extend({
-	        buttons: {deserialize: widget.unpack_models},
-	        axes: {deserialize: widget.unpack_models}
-	    }, widget.DOMWidgetModel.serializers)
-	});
-
-	var ControllerView = widget.DOMWidgetView.extend({
-	    /* A simple view for a gamepad. */
-
-	    initialize: function() {
-	        ControllerView.__super__.initialize.apply(this, arguments);
-
-	        this.button_views = new widget.ViewList(this.add_button, null, this);
-	        this.listenTo(this.model, 'change:buttons', function(model, value) {
-	            this.button_views.update(value);
-	        }, this);
-
-	        this.axis_views = new widget.ViewList(this.add_axis, null, this);
-	        this.listenTo(this.model, 'change:axes', function(model, value) {
-	            this.axis_views.update(value);
-	        }, this);
-
-	        this.listenTo(this.model, 'change:name', this.update_label, this);
-	    },
-
-	    render: function(){
-	        this.el.classList.add('jupyter-widgets');
-	        this.el.classList.add('widget-controller');
-	        this.box = this.el;
-	        this.label = document.createElement('div');
-	        this.box.appendChild(this.label);
-	        this.axis_box = document.createElement('div');
-	        this.axis_box.style.display = 'flex';
-	        this.box.appendChild(this.axis_box);
-
-	        this.button_box = document.createElement('div');
-	        this.button_box.style.display = 'flex';
-	        this.box.appendChild(this.button_box);
-
-	        this.button_views.update(this.model.get('buttons'));
-	        this.axis_views.update(this.model.get('axes'));
-
-	        this.update_label();
-	    },
-
-	    update_label: function() {
-	        this.label.textContent = this.model.get('name') || this.model.readout;
-	    },
-
-	    add_button: function(model) {
-	        var that = this;
-	        var dummy = document.createElement('div');
-
-	        that.button_box.appendChild(dummy);
-	        return this.create_child_view(model).then(function(view) {
-	            dummy.replaceWith(view.el);
-	            that.displayed.then(function() {
-	                view.trigger('displayed', that);
-	            });
-	            return view;
-	        }).catch(utils.reject('Could not add button view', true));
-	    },
-
-	    add_axis: function(model) {
-	        var that = this;
-	        var dummy = document.createElement('div');
-
-	        that.axis_box.appendChild(dummy);
-	        return this.create_child_view(model).then(function(view) {
-	            dummy.replaceWith(view.el);
-	            that.displayed.then(function() {
-	                view.trigger('displayed', that);
-	            });
-	            return view;
-	        }).catch(utils.reject('Could not add axis view', true));
-	    },
-
-	    remove: function() {
-	        ControllerView.__super__.remove.apply(this, arguments);
-	        this.button_views.remove();
-	        this.axis_views.remove();
-	    },
-
-	});
-
-	module.exports = {
-	    ControllerButtonView: ControllerButtonView,
-	    ControllerButtonModel: ControllerButtonModel,
-	    ControllerAxisView: ControllerAxisView,
-	    ControllerAxisModel: ControllerAxisModel,
-	    ControllerModel: ControllerModel,
-	    ControllerView: ControllerView
-	};
-
-
-/***/ },
-/* 24 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// Copyright (c) Jupyter Development Team.
-	// Distributed under the terms of the Modified BSD License.
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
 	'use strict';
 	var __extends = (this && this.__extends) || function (d, b) {
 	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_widget_1 = __webpack_require__(25);
+	var arrays = __webpack_require__(24);
+	var phosphor_domutil_1 = __webpack_require__(25);
+	var phosphor_signaling_1 = __webpack_require__(31);
+	var phosphor_widget_1 = __webpack_require__(32);
 	/**
-	 * The class name added to an BBWidget widget.
+	 * The class name added to TabBar instances.
 	 */
-	var BBWIDGET_CLASS = 'jp-BBWidget';
+	var TAB_BAR_CLASS = 'p-TabBar';
 	/**
-	 * A phosphor widget which wraps a `Backbone` view instance.
+	 * The class name added to a tab bar body node.
 	 */
-	var BBWidget = (function (_super) {
-	    __extends(BBWidget, _super);
+	var BODY_CLASS = 'p-TabBar-body';
+	/**
+	 * The class name added to a tab bar header node.
+	 */
+	var HEADER_CLASS = 'p-TabBar-header';
+	/**
+	 * The class name added to a tab bar content node.
+	 */
+	var CONTENT_CLASS = 'p-TabBar-content';
+	/**
+	 * The class name added to a tab bar footer node.
+	 */
+	var FOOTER_CLASS = 'p-TabBar-footer';
+	/**
+	 * The class name added to a tab bar tab.
+	 */
+	var TAB_CLASS = 'p-TabBar-tab';
+	/**
+	 * The class name added to a tab text node.
+	 */
+	var TEXT_CLASS = 'p-TabBar-tabText';
+	/**
+	 * The class name added to a tab icon node.
+	 */
+	var ICON_CLASS = 'p-TabBar-tabIcon';
+	/**
+	 * The class name added to a tab close icon node.
+	 */
+	var CLOSE_CLASS = 'p-TabBar-tabCloseIcon';
+	/**
+	 * The class name added to a tab bar and tab when dragging.
+	 */
+	var DRAGGING_CLASS = 'p-mod-dragging';
+	/**
+	 * The class name added to the current tab.
+	 */
+	var CURRENT_CLASS = 'p-mod-current';
+	/**
+	 * The class name added to a closable tab.
+	 */
+	var CLOSABLE_CLASS = 'p-mod-closable';
+	/**
+	 * The start drag distance threshold.
+	 */
+	var DRAG_THRESHOLD = 5;
+	/**
+	 * The detach distance threshold.
+	 */
+	var DETACH_THRESHOLD = 20;
+	/**
+	 * The tab transition duration.
+	 */
+	var TRANSITION_DURATION = 150; // Keep in sync with CSS.
+	/**
+	 * A widget which displays tab items as a row of tabs.
+	 */
+	var TabBar = (function (_super) {
+	    __extends(TabBar, _super);
 	    /**
-	     * Construct a new `Backbone` wrapper widget.
-	     *
-	     * @param view - The `Backbone.View` instance being wrapped.
+	     * Construct a new tab bar.
 	     */
-	    function BBWidget(view) {
+	    function TabBar() {
 	        _super.call(this);
-	        this.addClass(BBWIDGET_CLASS);
-	        this._view = view;
-	        this._view.render();
-	        this.node.appendChild(this._view.el);
+	        this._tabsMovable = false;
+	        this._items = [];
+	        this._tabs = [];
+	        this._dirtySet = new Set();
+	        this._currentItem = null;
+	        this._dragData = null;
+	        this.addClass(TAB_BAR_CLASS);
 	    }
+	    /**
+	     * Create the DOM node for a tab bar.
+	     */
+	    TabBar.createNode = function () {
+	        var node = document.createElement('div');
+	        var header = document.createElement('div');
+	        var body = document.createElement('div');
+	        var footer = document.createElement('div');
+	        var content = document.createElement('ul');
+	        header.className = HEADER_CLASS;
+	        body.className = BODY_CLASS;
+	        footer.className = FOOTER_CLASS;
+	        content.className = CONTENT_CLASS;
+	        body.appendChild(content);
+	        node.appendChild(header);
+	        node.appendChild(body);
+	        node.appendChild(footer);
+	        return node;
+	    };
+	    /**
+	     * Create and initialize a tab node for a tab bar.
+	     *
+	     * @param title - The title to use for the initial tab state.
+	     *
+	     * @returns A new DOM node to use as a tab in a tab bar.
+	     *
+	     * #### Notes
+	     * It is not necessary to subscribe to the `changed` signal of the
+	     * title. The tab bar subscribes to that signal and will call the
+	     * [[updateTab]] static method automatically as needed.
+	     *
+	     * This method may be reimplemented to create custom tabs.
+	     */
+	    TabBar.createTab = function (title) {
+	        var node = document.createElement('li');
+	        var icon = document.createElement('span');
+	        var text = document.createElement('span');
+	        var close = document.createElement('span');
+	        node.className = TAB_CLASS;
+	        icon.className = ICON_CLASS;
+	        text.className = TEXT_CLASS;
+	        close.className = CLOSE_CLASS;
+	        node.appendChild(icon);
+	        node.appendChild(text);
+	        node.appendChild(close);
+	        this.updateTab(node, title);
+	        return node;
+	    };
+	    /**
+	     * Update a tab node to reflect the current state of a title.
+	     *
+	     * @param tab - A tab node created by a call to [[createTab]].
+	     *
+	     * @param title - The title object to use for the tab state.
+	     *
+	     * #### Notes
+	     * This is called automatically when the title state changes.
+	     *
+	     * If the [[createTab]] method is reimplemented, this method should
+	     * also be reimplemented so that the tab state is properly updated.
+	     */
+	    TabBar.updateTab = function (tab, title) {
+	        var tabInfix = title.className ? ' ' + title.className : '';
+	        var tabSuffix = title.closable ? ' ' + CLOSABLE_CLASS : '';
+	        var iconSuffix = title.icon ? ' ' + title.icon : '';
+	        var icon = tab.firstChild;
+	        var text = icon.nextSibling;
+	        tab.className = TAB_CLASS + tabInfix + tabSuffix;
+	        icon.className = ICON_CLASS + iconSuffix;
+	        text.textContent = title.text;
+	    };
+	    /**
+	     * Get the close icon node for a given tab node.
+	     *
+	     * @param tab - A tab node created by a call to [[createTab]].
+	     *
+	     * @returns The close icon node for the tab node.
+	     *
+	     * #### Notes
+	     * The close icon node is used to correctly process click events.
+	     *
+	     * If the [[createTab]] method is reimplemented, this method should
+	     * also be reimplemented so that the correct icon node is returned.
+	     */
+	    TabBar.tabCloseIcon = function (tab) {
+	        return tab.lastChild;
+	    };
 	    /**
 	     * Dispose of the resources held by the widget.
 	     */
-	    BBWidget.prototype.dispose = function () {
-	        this._view.undelegateEvents();
-	        this._view.remove();
+	    TabBar.prototype.dispose = function () {
+	        this._releaseMouse();
+	        this._tabs.length = 0;
+	        this._items.length = 0;
+	        this._dirtySet.clear();
+	        this._currentItem = null;
 	        _super.prototype.dispose.call(this);
 	    };
-	    return BBWidget;
+	    Object.defineProperty(TabBar.prototype, "currentChanged", {
+	        /**
+	         * A signal emitted when the current tab is changed.
+	         */
+	        get: function () {
+	            return TabBarPrivate.currentChangedSignal.bind(this);
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabBar.prototype, "tabMoved", {
+	        /**
+	         * A signal emitted when a tab is moved by the user.
+	         */
+	        get: function () {
+	            return TabBarPrivate.tabMovedSignal.bind(this);
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabBar.prototype, "tabCloseRequested", {
+	        /**
+	         * A signal emitted when the user clicks a tab's close icon.
+	         */
+	        get: function () {
+	            return TabBarPrivate.tabCloseRequestedSignal.bind(this);
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabBar.prototype, "tabDetachRequested", {
+	        /**
+	         * A signal emitted when a tab is dragged beyond the detach threshold.
+	         */
+	        get: function () {
+	            return TabBarPrivate.tabDetachRequestedSignal.bind(this);
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabBar.prototype, "currentItem", {
+	        /**
+	         * Get the currently selected tab item.
+	         */
+	        get: function () {
+	            return this._currentItem;
+	        },
+	        /**
+	         * Set the currently selected tab item.
+	         */
+	        set: function (value) {
+	            var item = value || null;
+	            if (this._currentItem === item) {
+	                return;
+	            }
+	            var index = item ? this._items.indexOf(item) : -1;
+	            if (item && index === -1) {
+	                console.warn('Tab item not contained in tab bar.');
+	                return;
+	            }
+	            this._currentItem = item;
+	            this.currentChanged.emit({ index: index, item: item });
+	            this.update();
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabBar.prototype, "tabsMovable", {
+	        /**
+	         * Get whether the tabs are movable by the user.
+	         */
+	        get: function () {
+	            return this._tabsMovable;
+	        },
+	        /**
+	         * Set whether the tabs are movable by the user.
+	         */
+	        set: function (value) {
+	            this._tabsMovable = value;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabBar.prototype, "headerNode", {
+	        /**
+	         * Get the tab bar header node.
+	         *
+	         * #### Notes
+	         * This node can be used to add extra content to the tab bar header.
+	         *
+	         * This is a read-only property.
+	         */
+	        get: function () {
+	            return this.node.getElementsByClassName(HEADER_CLASS)[0];
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabBar.prototype, "bodyNode", {
+	        /**
+	         * Get the tab bar body node.
+	         *
+	         * #### Notes
+	         * This node can be used to add extra content to the tab bar.
+	         *
+	         * This is a read-only property.
+	         */
+	        get: function () {
+	            return this.node.getElementsByClassName(BODY_CLASS)[0];
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabBar.prototype, "footerNode", {
+	        /**
+	         * Get the tab bar footer node.
+	         *
+	         * #### Notes
+	         * This node can be used to add extra content to the tab bar footer.
+	         *
+	         * This is a read-only property.
+	         */
+	        get: function () {
+	            return this.node.getElementsByClassName(FOOTER_CLASS)[0];
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabBar.prototype, "contentNode", {
+	        /**
+	         * Get the tab bar content node.
+	         *
+	         * #### Notes
+	         * This is the node which holds the tab nodes.
+	         *
+	         * Modifying this node directly can lead to undefined behavior.
+	         *
+	         * This is a read-only property.
+	         */
+	        get: function () {
+	            return this.node.getElementsByClassName(CONTENT_CLASS)[0];
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    /**
+	     * Get the number of tab items in the tab bar.
+	     *
+	     * @returns The number of tab items in the tab bar.
+	     */
+	    TabBar.prototype.itemCount = function () {
+	        return this._items.length;
+	    };
+	    /**
+	     * Get the tab item at the specified index.
+	     *
+	     * @param index - The index of the tab item of interest.
+	     *
+	     * @returns The tab item at the specified index, or `undefined`.
+	     */
+	    TabBar.prototype.itemAt = function (index) {
+	        return this._items[index];
+	    };
+	    /**
+	     * Get the index of the specified tab item.
+	     *
+	     * @param item - The tab item of interest.
+	     *
+	     * @returns The index of the specified item, or `-1`.
+	     */
+	    TabBar.prototype.itemIndex = function (item) {
+	        return this._items.indexOf(item);
+	    };
+	    /**
+	     * Add a tab item to the end of the tab bar.
+	     *
+	     * @param item - The tab item to add to the tab bar.
+	     *
+	     * #### Notes
+	     * If the item is already added to the tab bar, it will be moved.
+	     */
+	    TabBar.prototype.addItem = function (item) {
+	        this.insertItem(this.itemCount(), item);
+	    };
+	    /**
+	     * Insert a tab item at the specified index.
+	     *
+	     * @param index - The index at which to insert the item.
+	     *
+	     * @param item - The tab item to insert into the tab bar.
+	     *
+	     * #### Notes
+	     * If the item is already added to the tab bar, it will be moved.
+	     */
+	    TabBar.prototype.insertItem = function (index, item) {
+	        this._releaseMouse();
+	        var n = this._items.length;
+	        var i = this._items.indexOf(item);
+	        var j = Math.max(0, Math.min(index | 0, n));
+	        if (i !== -1) {
+	            if (j === n)
+	                j--;
+	            if (i === j)
+	                return;
+	            arrays.move(this._tabs, i, j);
+	            arrays.move(this._items, i, j);
+	            this.contentNode.insertBefore(this._tabs[j], this._tabs[j + 1]);
+	        }
+	        else {
+	            var tab = this.constructor.createTab(item.title);
+	            arrays.insert(this._tabs, j, tab);
+	            arrays.insert(this._items, j, item);
+	            this.contentNode.insertBefore(tab, this._tabs[j + 1]);
+	            item.title.changed.connect(this._onTitleChanged, this);
+	            if (!this.currentItem)
+	                this.currentItem = item;
+	        }
+	        this.update();
+	    };
+	    /**
+	     * Remove a tab item from the tab bar.
+	     *
+	     * @param item - The tab item to remove from the tab bar.
+	     *
+	     * #### Notes
+	     * If the item is not in the tab bar, this is a no-op.
+	     */
+	    TabBar.prototype.removeItem = function (item) {
+	        this._releaseMouse();
+	        var i = arrays.remove(this._items, item);
+	        if (i === -1) {
+	            return;
+	        }
+	        this._dirtySet.delete(item.title);
+	        item.title.changed.disconnect(this._onTitleChanged, this);
+	        this.contentNode.removeChild(arrays.removeAt(this._tabs, i));
+	        if (this.currentItem === item) {
+	            var next = this._items[i];
+	            var prev = this._items[i - 1];
+	            this.currentItem = next || prev;
+	        }
+	        this.update();
+	    };
+	    /**
+	     * Get the tab node for the item at the given index.
+	     *
+	     * @param index - The index of the tab item of interest.
+	     *
+	     * @returns The tab node for the item, or `undefined`.
+	     */
+	    TabBar.prototype.tabAt = function (index) {
+	        return this._tabs[index];
+	    };
+	    /**
+	     * Release the mouse and restore the non-dragged tab positions.
+	     *
+	     * #### Notes
+	     * This will cause the tab bar to stop handling mouse events and to
+	     * restore the tabs to their non-dragged positions.
+	     */
+	    TabBar.prototype.releaseMouse = function () {
+	        this._releaseMouse();
+	    };
+	    /**
+	     * Handle the DOM events for the tab bar.
+	     *
+	     * @param event - The DOM event sent to the tab bar.
+	     *
+	     * #### Notes
+	     * This method implements the DOM `EventListener` interface and is
+	     * called in response to events on the tab bar's DOM node. It should
+	     * not be called directly by user code.
+	     */
+	    TabBar.prototype.handleEvent = function (event) {
+	        switch (event.type) {
+	            case 'click':
+	                this._evtClick(event);
+	                break;
+	            case 'mousedown':
+	                this._evtMouseDown(event);
+	                break;
+	            case 'mousemove':
+	                this._evtMouseMove(event);
+	                break;
+	            case 'mouseup':
+	                this._evtMouseUp(event);
+	                break;
+	            case 'keydown':
+	                this._evtKeyDown(event);
+	                break;
+	            case 'contextmenu':
+	                event.preventDefault();
+	                event.stopPropagation();
+	                break;
+	        }
+	    };
+	    /**
+	     * A message handler invoked on an `'after-attach'` message.
+	     */
+	    TabBar.prototype.onAfterAttach = function (msg) {
+	        this.node.addEventListener('click', this);
+	        this.node.addEventListener('mousedown', this);
+	    };
+	    /**
+	     * A message handler invoked on a `'before-detach'` message.
+	     */
+	    TabBar.prototype.onBeforeDetach = function (msg) {
+	        this.node.removeEventListener('click', this);
+	        this.node.removeEventListener('mousedown', this);
+	        this._releaseMouse();
+	    };
+	    /**
+	     * A message handler invoked on an `'update-request'` message.
+	     */
+	    TabBar.prototype.onUpdateRequest = function (msg) {
+	        var tabs = this._tabs;
+	        var items = this._items;
+	        var dirty = this._dirtySet;
+	        var current = this._currentItem;
+	        var constructor = this.constructor;
+	        for (var i = 0, n = tabs.length; i < n; ++i) {
+	            var tab = tabs[i];
+	            var item = items[i];
+	            if (dirty.has(item.title)) {
+	                constructor.updateTab(tab, item.title);
+	            }
+	            if (item === current) {
+	                tab.classList.add(CURRENT_CLASS);
+	                tab.style.zIndex = "" + n;
+	            }
+	            else {
+	                tab.classList.remove(CURRENT_CLASS);
+	                tab.style.zIndex = "" + (n - i - 1);
+	            }
+	        }
+	        dirty.clear();
+	    };
+	    /**
+	     * Handle the `'keydown'` event for the tab bar.
+	     */
+	    TabBar.prototype._evtKeyDown = function (event) {
+	        // Stop all input events during drag.
+	        event.preventDefault();
+	        event.stopPropagation();
+	        // Release the mouse if `Escape` is pressed.
+	        if (event.keyCode === 27)
+	            this._releaseMouse();
+	    };
+	    /**
+	     * Handle the `'click'` event for the tab bar.
+	     */
+	    TabBar.prototype._evtClick = function (event) {
+	        // Do nothing if it's not a left click.
+	        if (event.button !== 0) {
+	            return;
+	        }
+	        // Do nothing if a drag is in progress.
+	        if (this._dragData) {
+	            return;
+	        }
+	        // Do nothing if the click is not on a tab.
+	        var x = event.clientX;
+	        var y = event.clientY;
+	        var i = arrays.findIndex(this._tabs, function (tab) { return phosphor_domutil_1.hitTest(tab, x, y); });
+	        if (i < 0) {
+	            return;
+	        }
+	        // Clicking on a tab stops the event propagation.
+	        event.preventDefault();
+	        event.stopPropagation();
+	        // Ignore the click if the title is not closable.
+	        var item = this._items[i];
+	        if (!item.title.closable) {
+	            return;
+	        }
+	        // Ignore the click if it was not on a close icon.
+	        var constructor = this.constructor;
+	        var icon = constructor.tabCloseIcon(this._tabs[i]);
+	        if (!icon.contains(event.target)) {
+	            return;
+	        }
+	        // Emit the tab close requested signal.
+	        this.tabCloseRequested.emit({ index: i, item: item });
+	    };
+	    /**
+	     * Handle the `'mousedown'` event for the tab bar.
+	     */
+	    TabBar.prototype._evtMouseDown = function (event) {
+	        // Do nothing if it's not a left mouse press.
+	        if (event.button !== 0) {
+	            return;
+	        }
+	        // Do nothing if a drag is in progress.
+	        if (this._dragData) {
+	            return;
+	        }
+	        // Do nothing if the press is not on a tab.
+	        var x = event.clientX;
+	        var y = event.clientY;
+	        var i = arrays.findIndex(this._tabs, function (tab) { return phosphor_domutil_1.hitTest(tab, x, y); });
+	        if (i < 0) {
+	            return;
+	        }
+	        // Pressing on a tab stops the event propagation.
+	        event.preventDefault();
+	        event.stopPropagation();
+	        // Ignore the press if it was on a close icon.
+	        var constructor = this.constructor;
+	        var icon = constructor.tabCloseIcon(this._tabs[i]);
+	        if (icon.contains(event.target)) {
+	            return;
+	        }
+	        // Setup the drag data if the tabs are movable.
+	        if (this._tabsMovable) {
+	            this._dragData = new TabBarPrivate.DragData();
+	            this._dragData.index = i;
+	            this._dragData.tab = this._tabs[i];
+	            this._dragData.pressX = event.clientX;
+	            this._dragData.pressY = event.clientY;
+	            document.addEventListener('mousemove', this, true);
+	            document.addEventListener('mouseup', this, true);
+	            document.addEventListener('keydown', this, true);
+	            document.addEventListener('contextmenu', this, true);
+	        }
+	        // Update the current item to the pressed item.
+	        this.currentItem = this._items[i];
+	    };
+	    /**
+	     * Handle the `'mousemove'` event for the tab bar.
+	     */
+	    TabBar.prototype._evtMouseMove = function (event) {
+	        // Do nothing if no drag is in progress.
+	        if (!this._dragData) {
+	            return;
+	        }
+	        // Suppress the event during a drag.
+	        event.preventDefault();
+	        event.stopPropagation();
+	        // Ensure the drag threshold is exceeded before moving the tab.
+	        var data = this._dragData;
+	        if (!data.dragActive) {
+	            var dx = Math.abs(event.clientX - data.pressX);
+	            var dy = Math.abs(event.clientY - data.pressY);
+	            if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
+	                return;
+	            }
+	            // Fill in the rest of the drag data measurements.
+	            var tabRect = data.tab.getBoundingClientRect();
+	            data.tabLeft = data.tab.offsetLeft;
+	            data.tabWidth = tabRect.width;
+	            data.tabPressX = data.pressX - tabRect.left;
+	            data.tabLayout = TabBarPrivate.snapTabLayout(this._tabs);
+	            data.contentRect = this.contentNode.getBoundingClientRect();
+	            data.override = phosphor_domutil_1.overrideCursor('default');
+	            // Add the dragging classes and mark the drag as active.
+	            data.tab.classList.add(DRAGGING_CLASS);
+	            this.addClass(DRAGGING_CLASS);
+	            data.dragActive = true;
+	        }
+	        // Emit the detach request signal if the threshold is exceeded.
+	        if (!data.detachRequested && TabBarPrivate.detachExceeded(data, event)) {
+	            data.detachRequested = true;
+	            var index = data.index;
+	            var item = this._items[index];
+	            var clientX = event.clientX;
+	            var clientY = event.clientY;
+	            this.tabDetachRequested.emit({ index: index, item: item, clientX: clientX, clientY: clientY });
+	            if (data.dragAborted) {
+	                return;
+	            }
+	        }
+	        // Update the tab layout and computed target index.
+	        TabBarPrivate.layoutTabs(this._tabs, data, event);
+	    };
+	    /**
+	     * Handle the `'mouseup'` event for the tab bar.
+	     */
+	    TabBar.prototype._evtMouseUp = function (event) {
+	        var _this = this;
+	        // Do nothing if it's not a left mouse release.
+	        if (event.button !== 0) {
+	            return;
+	        }
+	        // Do nothing if no drag is in progress.
+	        if (!this._dragData) {
+	            return;
+	        }
+	        // Suppress the event during a drag operation.
+	        event.preventDefault();
+	        event.stopPropagation();
+	        // Remove the extra mouse event listeners.
+	        document.removeEventListener('mousemove', this, true);
+	        document.removeEventListener('mouseup', this, true);
+	        document.removeEventListener('keydown', this, true);
+	        document.removeEventListener('contextmenu', this, true);
+	        // Bail early if the drag is not active.
+	        var data = this._dragData;
+	        if (!data.dragActive) {
+	            this._dragData = null;
+	            return;
+	        }
+	        // Position the tab at its final resting position.
+	        TabBarPrivate.finalizeTabPosition(data);
+	        // Remove the dragging class from the tab so it can be transitioned.
+	        data.tab.classList.remove(DRAGGING_CLASS);
+	        // Complete the release on a timer to allow the tab to transition.
+	        setTimeout(function () {
+	            // Do nothing if the drag has been aborted.
+	            if (data.dragAborted) {
+	                return;
+	            }
+	            // Clear the drag data reference.
+	            _this._dragData = null;
+	            // Reset the positions of the tabs.
+	            TabBarPrivate.resetTabPositions(_this._tabs);
+	            // Clear the cursor grab and drag styles.
+	            data.override.dispose();
+	            _this.removeClass(DRAGGING_CLASS);
+	            // If the tab was not moved, there is nothing else to do.
+	            var i = data.index;
+	            var j = data.targetIndex;
+	            if (j === -1 || i === j) {
+	                return;
+	            }
+	            // Move the tab and related tab item to the new location.
+	            arrays.move(_this._tabs, i, j);
+	            arrays.move(_this._items, i, j);
+	            _this.contentNode.insertBefore(_this._tabs[j], _this._tabs[j + 1]);
+	            // Emit the tab moved signal and schedule a render update.
+	            _this.tabMoved.emit({ fromIndex: i, toIndex: j, item: _this._items[j] });
+	            _this.update();
+	        }, TRANSITION_DURATION);
+	    };
+	    /**
+	     * Release the mouse and restore the non-dragged tab positions.
+	     */
+	    TabBar.prototype._releaseMouse = function () {
+	        // Do nothing if no drag is in progress.
+	        if (!this._dragData) {
+	            return;
+	        }
+	        // Remove the extra mouse listeners.
+	        document.removeEventListener('mousemove', this, true);
+	        document.removeEventListener('mouseup', this, true);
+	        document.removeEventListener('keydown', this, true);
+	        document.removeEventListener('contextmenu', this, true);
+	        // Clear the drag data reference.
+	        var data = this._dragData;
+	        this._dragData = null;
+	        // Indicate the drag has been aborted. This allows the mouse
+	        // event handlers to return early when the drag is canceled.
+	        data.dragAborted = true;
+	        // If the drag is not active, there's nothing more to do.
+	        if (!data.dragActive) {
+	            return;
+	        }
+	        // Reset the tabs to their non-dragged positions.
+	        TabBarPrivate.resetTabPositions(this._tabs);
+	        // Clear the cursor override and extra styling classes.
+	        data.override.dispose();
+	        data.tab.classList.remove(DRAGGING_CLASS);
+	        this.removeClass(DRAGGING_CLASS);
+	    };
+	    /**
+	     * Handle the `changed` signal of a title object.
+	     */
+	    TabBar.prototype._onTitleChanged = function (sender) {
+	        this._dirtySet.add(sender);
+	        this.update();
+	    };
+	    return TabBar;
 	})(phosphor_widget_1.Widget);
-	exports.BBWidget = BBWidget;
+	exports.TabBar = TabBar;
+	/**
+	 * The namespace for the `TabBar` class private data.
+	 */
+	var TabBarPrivate;
+	(function (TabBarPrivate) {
+	    /**
+	     * A signal emitted when the current tab item is changed.
+	     */
+	    TabBarPrivate.currentChangedSignal = new phosphor_signaling_1.Signal();
+	    /**
+	     * A signal emitted when a tab is moved by the user.
+	     */
+	    TabBarPrivate.tabMovedSignal = new phosphor_signaling_1.Signal();
+	    /**
+	     * A signal emitted when the user clicks a tab's close icon.
+	     */
+	    TabBarPrivate.tabCloseRequestedSignal = new phosphor_signaling_1.Signal();
+	    /**
+	     * A signal emitted when a tab is dragged beyond the detach threshold.
+	     */
+	    TabBarPrivate.tabDetachRequestedSignal = new phosphor_signaling_1.Signal();
+	    /**
+	     * A struct which holds the drag data for a tab bar.
+	     */
+	    var DragData = (function () {
+	        function DragData() {
+	            /**
+	             * The tab node being dragged.
+	             */
+	            this.tab = null;
+	            /**
+	             * The index of the tab being dragged.
+	             */
+	            this.index = -1;
+	            /**
+	             * The offset left of the tab being dragged.
+	             */
+	            this.tabLeft = -1;
+	            /**
+	             * The offset width of the tab being dragged.
+	             */
+	            this.tabWidth = -1;
+	            /**
+	             * The original mouse X position in tab coordinates.
+	             */
+	            this.tabPressX = -1;
+	            /**
+	             * The tab target index upon mouse release.
+	             */
+	            this.targetIndex = -1;
+	            /**
+	             * The array of tab layout objects snapped at drag start.
+	             */
+	            this.tabLayout = null;
+	            /**
+	             * The mouse press client X position.
+	             */
+	            this.pressX = -1;
+	            /**
+	             * The mouse press client Y position.
+	             */
+	            this.pressY = -1;
+	            /**
+	             * The bounding client rect of the tab bar content node.
+	             */
+	            this.contentRect = null;
+	            /**
+	             * The disposable to clean up the cursor override.
+	             */
+	            this.override = null;
+	            /**
+	             * Whether the drag is currently active.
+	             */
+	            this.dragActive = false;
+	            /**
+	             * Whether the drag has been aborted.
+	             */
+	            this.dragAborted = false;
+	            /**
+	             * Whether a detach request as been made.
+	             */
+	            this.detachRequested = false;
+	        }
+	        return DragData;
+	    })();
+	    TabBarPrivate.DragData = DragData;
+	    /**
+	     * Get a snapshot of the current tab layout values.
+	     */
+	    function snapTabLayout(tabs) {
+	        var layout = new Array(tabs.length);
+	        for (var i = 0, n = tabs.length; i < n; ++i) {
+	            var node = tabs[i];
+	            var left = node.offsetLeft;
+	            var width = node.offsetWidth;
+	            var cstyle = window.getComputedStyle(node);
+	            var margin = parseInt(cstyle.marginLeft, 10) || 0;
+	            layout[i] = { margin: margin, left: left, width: width };
+	        }
+	        return layout;
+	    }
+	    TabBarPrivate.snapTabLayout = snapTabLayout;
+	    /**
+	     * Test if the event exceeds the drag detach threshold.
+	     */
+	    function detachExceeded(data, event) {
+	        var rect = data.contentRect;
+	        return ((event.clientX < rect.left - DETACH_THRESHOLD) ||
+	            (event.clientX >= rect.right + DETACH_THRESHOLD) ||
+	            (event.clientY < rect.top - DETACH_THRESHOLD) ||
+	            (event.clientY >= rect.bottom + DETACH_THRESHOLD));
+	    }
+	    TabBarPrivate.detachExceeded = detachExceeded;
+	    /**
+	     * Update the relative tab positions and computed target index.
+	     */
+	    function layoutTabs(tabs, data, event) {
+	        var targetIndex = data.index;
+	        var targetLeft = event.clientX - data.contentRect.left - data.tabPressX;
+	        var targetRight = targetLeft + data.tabWidth;
+	        for (var i = 0, n = tabs.length; i < n; ++i) {
+	            var style = tabs[i].style;
+	            var layout = data.tabLayout[i];
+	            var threshold = layout.left + (layout.width >> 1);
+	            if (i < data.index && targetLeft < threshold) {
+	                style.left = data.tabWidth + data.tabLayout[i + 1].margin + 'px';
+	                targetIndex = Math.min(targetIndex, i);
+	            }
+	            else if (i > data.index && targetRight > threshold) {
+	                style.left = -data.tabWidth - layout.margin + 'px';
+	                targetIndex = Math.max(targetIndex, i);
+	            }
+	            else if (i === data.index) {
+	                var ideal = event.clientX - data.pressX;
+	                var limit = data.contentRect.width - (data.tabLeft + data.tabWidth);
+	                style.left = Math.max(-data.tabLeft, Math.min(ideal, limit)) + 'px';
+	            }
+	            else {
+	                style.left = '';
+	            }
+	        }
+	        data.targetIndex = targetIndex;
+	    }
+	    TabBarPrivate.layoutTabs = layoutTabs;
+	    /**
+	     * Position the drag tab at its final resting relative position.
+	     */
+	    function finalizeTabPosition(data) {
+	        var ideal;
+	        if (data.targetIndex === data.index) {
+	            ideal = 0;
+	        }
+	        else if (data.targetIndex > data.index) {
+	            var tgt = data.tabLayout[data.targetIndex];
+	            ideal = tgt.left + tgt.width - data.tabWidth - data.tabLeft;
+	        }
+	        else {
+	            var tgt = data.tabLayout[data.targetIndex];
+	            ideal = tgt.left - data.tabLeft;
+	        }
+	        var style = data.tab.style;
+	        var limit = data.contentRect.width - (data.tabLeft + data.tabWidth);
+	        style.left = Math.max(-data.tabLeft, Math.min(ideal, limit)) + 'px';
+	    }
+	    TabBarPrivate.finalizeTabPosition = finalizeTabPosition;
+	    /**
+	     * Reset the relative positions of the given tabs.
+	     */
+	    function resetTabPositions(tabs) {
+	        for (var i = 0, n = tabs.length; i < n; ++i) {
+	            tabs[i].style.left = '';
+	        }
+	    }
+	    TabBarPrivate.resetTabPositions = resetTabPositions;
+	})(TabBarPrivate || (TabBarPrivate = {}));
 
+
+/***/ },
+/* 24 */
+/***/ function(module, exports) {
+
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	/**
+	 * Execute a callback for each element in an array.
+	 *
+	 * @param array - The array of values to iterate.
+	 *
+	 * @param callback - The callback to invoke for the array elements.
+	 *
+	 * @param fromIndex - The starting index for iteration.
+	 *
+	 * @param wrap - Whether iteration wraps around at the end of the array.
+	 *
+	 * @returns The first value returned by `callback` which is not
+	 *   equal to `undefined`, or `undefined` if the callback does
+	 *   not return a value or if the start index is out of range.
+	 *
+	 * #### Notes
+	 * It is not safe to modify the size of the array while iterating.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * function logger(value: number): void {
+	 *   console.log(value);
+	 * }
+	 *
+	 * let data = [1, 2, 3, 4];
+	 * arrays.forEach(data, logger);           // logs 1, 2, 3, 4
+	 * arrays.forEach(data, logger, 2);        // logs 3, 4
+	 * arrays.forEach(data, logger, 2, true);  // logs 3, 4, 1, 2
+	 * arrays.forEach(data, (v, i) => {        // 2
+	 *   if (v === 3) return i;
+	 * });
+	 * ```
+	 *
+	 * **See also** [[rforEach]]
+	 */
+	function forEach(array, callback, fromIndex, wrap) {
+	    if (fromIndex === void 0) { fromIndex = 0; }
+	    if (wrap === void 0) { wrap = false; }
+	    var start = fromIndex | 0;
+	    if (start < 0 || start >= array.length) {
+	        return void 0;
+	    }
+	    if (wrap) {
+	        for (var i = 0, n = array.length; i < n; ++i) {
+	            var j = (start + i) % n;
+	            var result = callback(array[j], j);
+	            if (result !== void 0)
+	                return result;
+	        }
+	    }
+	    else {
+	        for (var i = start, n = array.length; i < n; ++i) {
+	            var result = callback(array[i], i);
+	            if (result !== void 0)
+	                return result;
+	        }
+	    }
+	    return void 0;
+	}
+	exports.forEach = forEach;
+	/**
+	 * Execute a callback for each element in an array, in reverse.
+	 *
+	 * @param array - The array of values to iterate.
+	 *
+	 * @param callback - The callback to invoke for the array elements.
+	 *
+	 * @param fromIndex - The starting index for iteration.
+	 *
+	 * @param wrap - Whether iteration wraps around at the end of the array.
+	 *
+	 * @returns The first value returned by `callback` which is not
+	 *   equal to `undefined`, or `undefined` if the callback does
+	 *   not return a value or if the start index is out of range.
+	 *
+	 * #### Notes
+	 * It is not safe to modify the size of the array while iterating.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * function logger(value: number): void {
+	 *   console.log(value);
+	 * }
+	 *
+	 * let data = [1, 2, 3, 4];
+	 * arrays.rforEach(data, logger);           // logs 4, 3, 2, 1
+	 * arrays.rforEach(data, logger, 2);        // logs 3, 2, 1
+	 * arrays.rforEach(data, logger, 2, true);  // logs 3, 2, 1, 4
+	 * arrays.rforEach(data, (v, i) => {        // 2
+	 *   if (v === 3) return i;
+	 * });
+	 * ```
+	 * **See also** [[forEach]]
+	 */
+	function rforEach(array, callback, fromIndex, wrap) {
+	    if (fromIndex === void 0) { fromIndex = array.length - 1; }
+	    if (wrap === void 0) { wrap = false; }
+	    var start = fromIndex | 0;
+	    if (start < 0 || start >= array.length) {
+	        return void 0;
+	    }
+	    if (wrap) {
+	        for (var i = 0, n = array.length; i < n; ++i) {
+	            var j = (start - i + n) % n;
+	            var result = callback(array[j], j);
+	            if (result !== void 0)
+	                return result;
+	        }
+	    }
+	    else {
+	        for (var i = start; i >= 0; --i) {
+	            var result = callback(array[i], i);
+	            if (result !== void 0)
+	                return result;
+	        }
+	    }
+	    return void 0;
+	}
+	exports.rforEach = rforEach;
+	/**
+	 * Find the index of the first value which matches a predicate.
+	 *
+	 * @param array - The array of values to be searched.
+	 *
+	 * @param pred - The predicate function to apply to the values.
+	 *
+	 * @param fromIndex - The starting index of the search.
+	 *
+	 * @param wrap - Whether the search wraps around at the end of the array.
+	 *
+	 * @returns The index of the first matching value, or `-1` if no value
+	 *   matches the predicate or if the start index is out of range.
+	 *
+	 * #### Notes
+	 * It is not safe to modify the size of the array while iterating.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * function isEven(value: number): boolean {
+	 *   return value % 2 === 0;
+	 * }
+	 *
+	 * let data = [1, 2, 3, 4, 3, 2, 1];
+	 * arrays.findIndex(data, isEven);           // 1
+	 * arrays.findIndex(data, isEven, 4);        // 5
+	 * arrays.findIndex(data, isEven, 6);        // -1
+	 * arrays.findIndex(data, isEven, 6, true);  // 1
+	 * ```
+	 *
+	 * **See also** [[rfindIndex]].
+	 */
+	function findIndex(array, pred, fromIndex, wrap) {
+	    if (fromIndex === void 0) { fromIndex = 0; }
+	    if (wrap === void 0) { wrap = false; }
+	    var start = fromIndex | 0;
+	    if (start < 0 || start >= array.length) {
+	        return -1;
+	    }
+	    if (wrap) {
+	        for (var i = 0, n = array.length; i < n; ++i) {
+	            var j = (start + i) % n;
+	            if (pred(array[j], j))
+	                return j;
+	        }
+	    }
+	    else {
+	        for (var i = start, n = array.length; i < n; ++i) {
+	            if (pred(array[i], i))
+	                return i;
+	        }
+	    }
+	    return -1;
+	}
+	exports.findIndex = findIndex;
+	/**
+	 * Find the index of the last value which matches a predicate.
+	 *
+	 * @param array - The array of values to be searched.
+	 *
+	 * @param pred - The predicate function to apply to the values.
+	 *
+	 * @param fromIndex - The starting index of the search.
+	 *
+	 * @param wrap - Whether the search wraps around at the front of the array.
+	 *
+	 * @returns The index of the last matching value, or `-1` if no value
+	 *   matches the predicate or if the start index is out of range.
+	 *
+	 * #### Notes
+	 * It is not safe to modify the size of the array while iterating.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * function isEven(value: number): boolean {
+	 *   return value % 2 === 0;
+	 * }
+	 *
+	 * let data = [1, 2, 3, 4, 3, 2, 1];
+	 * arrays.rfindIndex(data, isEven);           // 5
+	 * arrays.rfindIndex(data, isEven, 4);        // 3
+	 * arrays.rfindIndex(data, isEven, 0);        // -1
+	 * arrays.rfindIndex(data, isEven, 0, true);  // 5
+	 * ```
+	 *
+	 * **See also** [[findIndex]].
+	 */
+	function rfindIndex(array, pred, fromIndex, wrap) {
+	    if (fromIndex === void 0) { fromIndex = array.length - 1; }
+	    if (wrap === void 0) { wrap = false; }
+	    var start = fromIndex | 0;
+	    if (start < 0 || start >= array.length) {
+	        return -1;
+	    }
+	    if (wrap) {
+	        for (var i = 0, n = array.length; i < n; ++i) {
+	            var j = (start - i + n) % n;
+	            if (pred(array[j], j))
+	                return j;
+	        }
+	    }
+	    else {
+	        for (var i = start; i >= 0; --i) {
+	            if (pred(array[i], i))
+	                return i;
+	        }
+	    }
+	    return -1;
+	}
+	exports.rfindIndex = rfindIndex;
+	/**
+	 * Find the first value which matches a predicate.
+	 *
+	 * @param array - The array of values to be searched.
+	 *
+	 * @param pred - The predicate function to apply to the values.
+	 *
+	 * @param fromIndex - The starting index of the search.
+	 *
+	 * @param wrap - Whether the search wraps around at the end of the array.
+	 *
+	 * @returns The first matching value, or `undefined` if no value matches
+	 *   the predicate or if the start index is out of range.
+	 *
+	 * #### Notes
+	 * It is not safe to modify the size of the array while iterating.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * function isEven(value: number): boolean {
+	 *   return value % 2 === 0;
+	 * }
+	 *
+	 * let data = [1, 2, 3, 4, 3, 2, 1];
+	 * arrays.find(data, isEven);           // 2
+	 * arrays.find(data, isEven, 4);        // 2
+	 * arrays.find(data, isEven, 6);        // undefined
+	 * arrays.find(data, isEven, 6, true);  // 2
+	 * ```
+	 *
+	 * **See also** [[rfind]].
+	 */
+	function find(array, pred, fromIndex, wrap) {
+	    var i = findIndex(array, pred, fromIndex, wrap);
+	    return i !== -1 ? array[i] : void 0;
+	}
+	exports.find = find;
+	/**
+	 * Find the last value which matches a predicate.
+	 *
+	 * @param array - The array of values to be searched.
+	 *
+	 * @param pred - The predicate function to apply to the values.
+	 *
+	 * @param fromIndex - The starting index of the search.
+	 *
+	 * @param wrap - Whether the search wraps around at the front of the array.
+	 *
+	 * @returns The last matching value, or `undefined` if no value matches
+	 *   the predicate or if the start index is out of range.
+	 *
+	 * #### Notes
+	 * The range of visited indices is set before the first invocation of
+	 * `pred`. It is not safe for `pred` to change the length of `array`.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * function isEven(value: number): boolean {
+	 *   return value % 2 === 0;
+	 * }
+	 *
+	 * let data = [1, 2, 3, 4, 3, 2, 1];
+	 * arrays.rfind(data, isEven);           // 2
+	 * arrays.rfind(data, isEven, 4);        // 4
+	 * arrays.rfind(data, isEven, 0);        // undefined
+	 * arrays.rfind(data, isEven, 0, true);  // 2
+	 * ```
+	 *
+	 * **See also** [[find]].
+	 */
+	function rfind(array, pred, fromIndex, wrap) {
+	    var i = rfindIndex(array, pred, fromIndex, wrap);
+	    return i !== -1 ? array[i] : void 0;
+	}
+	exports.rfind = rfind;
+	/**
+	 * Insert an element into an array at a specified index.
+	 *
+	 * @param array - The array of values to modify.
+	 *
+	 * @param index - The index at which to insert the value. This value
+	 *   is clamped to the bounds of the array.
+	 *
+	 * @param value - The value to insert into the array.
+	 *
+	 * @returns The index at which the value was inserted.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * let data = [0, 1, 2, 3, 4];
+	 * arrays.insert(data, 0, 12);  // 0
+	 * arrays.insert(data, 3, 42);  // 3
+	 * arrays.insert(data, -9, 9);  // 0
+	 * arrays.insert(data, 12, 8);  // 8
+	 * console.log(data);           // [9, 12, 0, 1, 42, 2, 3, 4, 8]
+	 * ```
+	 *
+	 * **See also** [[removeAt]] and [[remove]]
+	 */
+	function insert(array, index, value) {
+	    var j = Math.max(0, Math.min(index | 0, array.length));
+	    for (var i = array.length; i > j; --i) {
+	        array[i] = array[i - 1];
+	    }
+	    array[j] = value;
+	    return j;
+	}
+	exports.insert = insert;
+	/**
+	 * Move an element in an array from one index to another.
+	 *
+	 * @param array - The array of values to modify.
+	 *
+	 * @param fromIndex - The index of the element to move.
+	 *
+	 * @param toIndex - The target index of the element.
+	 *
+	 * @returns `true` if the element was moved, or `false` if either
+	 *   index is out of range.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * let data = [0, 1, 2, 3, 4];
+	 * arrays.move(data, 1, 2);   // true
+	 * arrays.move(data, -1, 0);  // false
+	 * arrays.move(data, 4, 2);   // true
+	 * arrays.move(data, 10, 0);  // false
+	 * console.log(data);         // [0, 2, 4, 1, 3]
+	 * ```
+	 */
+	function move(array, fromIndex, toIndex) {
+	    var j = fromIndex | 0;
+	    if (j < 0 || j >= array.length) {
+	        return false;
+	    }
+	    var k = toIndex | 0;
+	    if (k < 0 || k >= array.length) {
+	        return false;
+	    }
+	    var value = array[j];
+	    if (j > k) {
+	        for (var i = j; i > k; --i) {
+	            array[i] = array[i - 1];
+	        }
+	    }
+	    else if (j < k) {
+	        for (var i = j; i < k; ++i) {
+	            array[i] = array[i + 1];
+	        }
+	    }
+	    array[k] = value;
+	    return true;
+	}
+	exports.move = move;
+	/**
+	 * Remove an element from an array at a specified index.
+	 *
+	 * @param array - The array of values to modify.
+	 *
+	 * @param index - The index of the element to remove.
+	 *
+	 * @returns The removed value, or `undefined` if the index is out
+	 *   of range.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * let data = [0, 1, 2, 3, 4];
+	 * arrays.removeAt(data, 1);   // 1
+	 * arrays.removeAt(data, 3);   // 4
+	 * arrays.removeAt(data, 10);  // undefined
+	 * console.log(data);          // [0, 2, 3]
+	 * ```
+	 *
+	 * **See also** [[remove]] and [[insert]]
+	 */
+	function removeAt(array, index) {
+	    var j = index | 0;
+	    if (j < 0 || j >= array.length) {
+	        return void 0;
+	    }
+	    var value = array[j];
+	    for (var i = j + 1, n = array.length; i < n; ++i) {
+	        array[i - 1] = array[i];
+	    }
+	    array.length -= 1;
+	    return value;
+	}
+	exports.removeAt = removeAt;
+	/**
+	 * Remove the first occurrence of a value from an array.
+	 *
+	 * @param array - The array of values to modify.
+	 *
+	 * @param value - The value to remove from the array.
+	 *
+	 * @returns The index where the value was located, or `-1` if the
+	 *   value is not the array.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * let data = [0, 1, 2, 3, 4];
+	 * arrays.remove(data, 1);  // 1
+	 * arrays.remove(data, 3);  // 2
+	 * arrays.remove(data, 7);  // -1
+	 * console.log(data);       // [0, 2, 4]
+	 * ```
+	 *
+	 * **See also** [[removeAt]] and [[insert]]
+	 */
+	function remove(array, value) {
+	    var j = -1;
+	    for (var i = 0, n = array.length; i < n; ++i) {
+	        if (array[i] === value) {
+	            j = i;
+	            break;
+	        }
+	    }
+	    if (j === -1) {
+	        return -1;
+	    }
+	    for (var i = j + 1, n = array.length; i < n; ++i) {
+	        array[i - 1] = array[i];
+	    }
+	    array.length -= 1;
+	    return j;
+	}
+	exports.remove = remove;
+	/**
+	 * Reverse an array in-place subject to an optional range.
+	 *
+	 * @param array - The array to reverse.
+	 *
+	 * @param fromIndex - The index of the first element of the range.
+	 *   This value will be clamped to the array bounds.
+	 *
+	 * @param toIndex - The index of the last element of the range.
+	 *   This value will be clamped to the array bounds.
+	 *
+	 * @returns A reference to the original array.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * let data = [0, 1, 2, 3, 4];
+	 * arrays.reverse(data, 1, 3);    // [0, 3, 2, 1, 4]
+	 * arrays.reverse(data, 3);       // [0, 3, 2, 4, 1]
+	 * arrays.reverse(data);          // [1, 4, 2, 3, 0]
+	 * ```
+	 *
+	 * **See also** [[rotate]]
+	 */
+	function reverse(array, fromIndex, toIndex) {
+	    if (fromIndex === void 0) { fromIndex = 0; }
+	    if (toIndex === void 0) { toIndex = array.length; }
+	    var i = Math.max(0, Math.min(fromIndex | 0, array.length - 1));
+	    var j = Math.max(0, Math.min(toIndex | 0, array.length - 1));
+	    if (j < i)
+	        i = j + (j = i, 0);
+	    while (i < j) {
+	        var tmpval = array[i];
+	        array[i++] = array[j];
+	        array[j--] = tmpval;
+	    }
+	    return array;
+	}
+	exports.reverse = reverse;
+	/**
+	 * Rotate the elements of an array by a positive or negative delta.
+	 *
+	 * @param array - The array to rotate.
+	 *
+	 * @param delta - The amount of rotation to apply to the elements. A
+	 *   positive delta will shift the elements to the left. A negative
+	 *   delta will shift the elements to the right.
+	 *
+	 * @returns A reference to the original array.
+	 *
+	 * #### Notes
+	 * This executes in `O(n)` time and `O(1)` space.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * let data = [0, 1, 2, 3, 4];
+	 * arrays.rotate(data, 2);    // [2, 3, 4, 0, 1]
+	 * arrays.rotate(data, -2);   // [0, 1, 2, 3, 4]
+	 * arrays.rotate(data, 10);   // [0, 1, 2, 3, 4]
+	 * arrays.rotate(data, 9);    // [4, 0, 1, 2, 3]
+	 * ```
+	 *
+	 * **See also** [[reverse]]
+	 */
+	function rotate(array, delta) {
+	    var n = array.length;
+	    if (n <= 1) {
+	        return array;
+	    }
+	    var d = delta | 0;
+	    if (d > 0) {
+	        d = d % n;
+	    }
+	    else if (d < 0) {
+	        d = ((d % n) + n) % n;
+	    }
+	    if (d === 0) {
+	        return array;
+	    }
+	    reverse(array, 0, d - 1);
+	    reverse(array, d, n - 1);
+	    reverse(array, 0, n - 1);
+	    return array;
+	}
+	exports.rotate = rotate;
+	/**
+	 * Using a binary search, find the index of the first element in an
+	 * array which compares `>=` to a value.
+	 *
+	 * @param array - The array of values to be searched. It must be sorted
+	 *   in ascending order.
+	 *
+	 * @param value - The value to locate in the array.
+	 *
+	 * @param cmp - The comparison function which returns `true` if an
+	 *   array element is less than the given value.
+	 *
+	 * @returns The index of the first element in `array` which compares
+	 *   `>=` to `value`, or `array.length` if there is no such element.
+	 *
+	 * #### Notes
+	 * It is not safe for the comparison function to modify the array.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * function numberCmp(a: number, b: number): boolean {
+	 *   return a < b;
+	 * }
+	 *
+	 * let data = [0, 3, 4, 7, 7, 9];
+	 * arrays.lowerBound(data, 0, numberCmp);   // 0
+	 * arrays.lowerBound(data, 6, numberCmp);   // 3
+	 * arrays.lowerBound(data, 7, numberCmp);   // 3
+	 * arrays.lowerBound(data, -1, numberCmp);  // 0
+	 * arrays.lowerBound(data, 10, numberCmp);  // 6
+	 * ```
+	 *
+	 * **See also** [[upperBound]]
+	 */
+	function lowerBound(array, value, cmp) {
+	    var begin = 0;
+	    var half;
+	    var middle;
+	    var n = array.length;
+	    while (n > 0) {
+	        half = n >> 1;
+	        middle = begin + half;
+	        if (cmp(array[middle], value)) {
+	            begin = middle + 1;
+	            n -= half + 1;
+	        }
+	        else {
+	            n = half;
+	        }
+	    }
+	    return begin;
+	}
+	exports.lowerBound = lowerBound;
+	/**
+	 * Using a binary search, find the index of the first element in an
+	 * array which compares `>` than a value.
+	 *
+	 * @param array - The array of values to be searched. It must be sorted
+	 *   in ascending order.
+	 *
+	 * @param value - The value to locate in the array.
+	 *
+	 * @param cmp - The comparison function which returns `true` if the
+	 *   the given value is less than an array element.
+	 *
+	 * @returns The index of the first element in `array` which compares
+	 *   `>` than `value`, or `array.length` if there is no such element.
+	 *
+	 * #### Notes
+	 * It is not safe for the comparison function to modify the array.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import * as arrays from 'phosphor-arrays';
+	 *
+	 * function numberCmp(a: number, b: number): number {
+	 *   return a < b;
+	 * }
+	 *
+	 * let data = [0, 3, 4, 7, 7, 9];
+	 * arrays.upperBound(data, 0, numberCmp);   // 1
+	 * arrays.upperBound(data, 6, numberCmp);   // 3
+	 * arrays.upperBound(data, 7, numberCmp);   // 5
+	 * arrays.upperBound(data, -1, numberCmp);  // 0
+	 * arrays.upperBound(data, 10, numberCmp);  // 6
+	 * ```
+	 *
+	 * **See also** [[lowerBound]]
+	 */
+	function upperBound(array, value, cmp) {
+	    var begin = 0;
+	    var half;
+	    var middle;
+	    var n = array.length;
+	    while (n > 0) {
+	        half = n >> 1;
+	        middle = begin + half;
+	        if (cmp(value, array[middle])) {
+	            n = half;
+	        }
+	        else {
+	            begin = middle + 1;
+	            n -= half + 1;
+	        }
+	    }
+	    return begin;
+	}
+	exports.upperBound = upperBound;
+	//# sourceMappingURL=index.js.map
 
 /***/ },
 /* 25 */
@@ -34148,18 +35210,169 @@
 	| The full license is in the file LICENSE, distributed with this software.
 	|----------------------------------------------------------------------------*/
 	'use strict';
-	function __export(m) {
-	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+	var phosphor_disposable_1 = __webpack_require__(26);
+	__webpack_require__(27);
+	/**
+	 * The class name added to the document body during cursor override.
+	 */
+	var OVERRIDE_CURSOR_CLASS = 'p-mod-override-cursor';
+	/**
+	 * The id for the active cursor override.
+	 */
+	var overrideID = 0;
+	/**
+	 * Override the cursor for the entire document.
+	 *
+	 * @param cursor - The string representing the cursor style.
+	 *
+	 * @returns A disposable which will clear the override when disposed.
+	 *
+	 * #### Notes
+	 * The most recent call to `overrideCursor` takes precedence. Disposing
+	 * an old override is a no-op and will not effect the current override.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import { overrideCursor } from 'phosphor-domutil';
+	 *
+	 * // force the cursor to be 'wait' for the entire document
+	 * let override = overrideCursor('wait');
+	 *
+	 * // clear the override by disposing the return value
+	 * override.dispose();
+	 * ```
+	 */
+	function overrideCursor(cursor) {
+	    var id = ++overrideID;
+	    var body = document.body;
+	    body.style.cursor = cursor;
+	    body.classList.add(OVERRIDE_CURSOR_CLASS);
+	    return new phosphor_disposable_1.DisposableDelegate(function () {
+	        if (id === overrideID) {
+	            body.style.cursor = '';
+	            body.classList.remove(OVERRIDE_CURSOR_CLASS);
+	        }
+	    });
 	}
-	__export(__webpack_require__(26));
-	__export(__webpack_require__(35));
-	__export(__webpack_require__(33));
-	__webpack_require__(36);
-
+	exports.overrideCursor = overrideCursor;
+	/**
+	 * Test whether a client position lies within a node.
+	 *
+	 * @param node - The DOM node of interest.
+	 *
+	 * @param clientX - The client X coordinate of interest.
+	 *
+	 * @param clientY - The client Y coordinate of interest.
+	 *
+	 * @returns `true` if the node covers the position, `false` otherwise.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import { hitTest } from 'phosphor-domutil';
+	 *
+	 * let div = document.createElement('div');
+	 * div.style.position = 'absolute';
+	 * div.style.left = '0px';
+	 * div.style.top = '0px';
+	 * div.style.width = '100px';
+	 * div.style.height = '100px';
+	 * document.body.appendChild(div);
+	 *
+	 * hitTest(div, 50, 50);   // true
+	 * hitTest(div, 150, 150); // false
+	 * ```
+	 */
+	function hitTest(node, clientX, clientY) {
+	    var rect = node.getBoundingClientRect();
+	    return (clientX >= rect.left &&
+	        clientX < rect.right &&
+	        clientY >= rect.top &&
+	        clientY < rect.bottom);
+	}
+	exports.hitTest = hitTest;
+	/**
+	 * Compute the box sizing for a DOM node.
+	 *
+	 * @param node - The DOM node for which to compute the box sizing.
+	 *
+	 * @returns The box sizing data for the specified DOM node.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import { boxSizing } from 'phosphor-domutil';
+	 *
+	 * let div = document.createElement('div');
+	 * div.style.borderTop = 'solid 10px black';
+	 * document.body.appendChild(div);
+	 *
+	 * let sizing = boxSizing(div);
+	 * sizing.borderTop;    // 10
+	 * sizing.paddingLeft;  // 0
+	 * // etc...
+	 * ```
+	 */
+	function boxSizing(node) {
+	    var cstyle = window.getComputedStyle(node);
+	    var bt = parseInt(cstyle.borderTopWidth, 10) || 0;
+	    var bl = parseInt(cstyle.borderLeftWidth, 10) || 0;
+	    var br = parseInt(cstyle.borderRightWidth, 10) || 0;
+	    var bb = parseInt(cstyle.borderBottomWidth, 10) || 0;
+	    var pt = parseInt(cstyle.paddingTop, 10) || 0;
+	    var pl = parseInt(cstyle.paddingLeft, 10) || 0;
+	    var pr = parseInt(cstyle.paddingRight, 10) || 0;
+	    var pb = parseInt(cstyle.paddingBottom, 10) || 0;
+	    var hs = bl + pl + pr + br;
+	    var vs = bt + pt + pb + bb;
+	    return {
+	        borderTop: bt,
+	        borderLeft: bl,
+	        borderRight: br,
+	        borderBottom: bb,
+	        paddingTop: pt,
+	        paddingLeft: pl,
+	        paddingRight: pr,
+	        paddingBottom: pb,
+	        horizontalSum: hs,
+	        verticalSum: vs,
+	    };
+	}
+	exports.boxSizing = boxSizing;
+	/**
+	 * Compute the size limits for a DOM node.
+	 *
+	 * @param node - The node for which to compute the size limits.
+	 *
+	 * @returns The size limit data for the specified DOM node.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * import { sizeLimits } from 'phosphor-domutil';
+	 *
+	 * let div = document.createElement('div');
+	 * div.style.minWidth = '90px';
+	 * document.body.appendChild(div);
+	 *
+	 * let limits = sizeLimits(div);
+	 * limits.minWidth;   // 90
+	 * limits.maxHeight;  // Infinity
+	 * // etc...
+	 * ```
+	 */
+	function sizeLimits(node) {
+	    var cstyle = window.getComputedStyle(node);
+	    return {
+	        minWidth: parseInt(cstyle.minWidth, 10) || 0,
+	        minHeight: parseInt(cstyle.minHeight, 10) || 0,
+	        maxWidth: parseInt(cstyle.maxWidth, 10) || Infinity,
+	        maxHeight: parseInt(cstyle.maxHeight, 10) || Infinity,
+	    };
+	}
+	exports.sizeLimits = sizeLimits;
+	//# sourceMappingURL=index.js.map
 
 /***/ },
 /* 26 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
 	| Copyright (c) 2014-2015, PhosphorJS Contributors
@@ -34169,1445 +35382,493 @@
 	| The full license is in the file LICENSE, distributed with this software.
 	|----------------------------------------------------------------------------*/
 	'use strict';
-	var __extends = (this && this.__extends) || function (d, b) {
-	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-	    function __() { this.constructor = d; }
-	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-	};
-	var phosphor_messaging_1 = __webpack_require__(27);
-	var phosphor_properties_1 = __webpack_require__(31);
-	var phosphor_signaling_1 = __webpack_require__(32);
-	var widget_1 = __webpack_require__(33);
 	/**
-	 * The abstract base class of all Phosphor layouts.
-	 *
-	 * #### Notes
-	 * A layout is used to add child widgets to a parent and to arrange
-	 * those children within the parent's node.
-	 *
-	 * This class must be subclassed to make a fully functioning layout.
+	 * A disposable object which delegates to a callback.
 	 */
-	var Layout = (function () {
-	    function Layout() {
-	        this._disposed = false;
-	        this._parent = null;
+	var DisposableDelegate = (function () {
+	    /**
+	     * Construct a new disposable delegate.
+	     *
+	     * @param callback - The function to invoke when the delegate is
+	     *   disposed.
+	     */
+	    function DisposableDelegate(callback) {
+	        this._callback = callback || null;
 	    }
-	    /**
-	     * Dispose of the resources held by the layout.
-	     *
-	     * #### Notes
-	     * This method should be reimplemented by subclasses to dispose their
-	     * children. All reimplementations should call the superclass method.
-	     */
-	    Layout.prototype.dispose = function () {
-	        this._disposed = true;
-	        this._parent = null;
-	        phosphor_signaling_1.clearSignalData(this);
-	        phosphor_properties_1.clearPropertyData(this);
-	    };
-	    Object.defineProperty(Layout.prototype, "isDisposed", {
+	    Object.defineProperty(DisposableDelegate.prototype, "isDisposed", {
 	        /**
-	         * Test whether the layout is disposed.
+	         * Test whether the delegate has been disposed.
 	         *
 	         * #### Notes
-	         * This is a read-only property.
+	         * This is a read-only property which is always safe to access.
 	         */
 	        get: function () {
-	            return this._disposed;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    Object.defineProperty(Layout.prototype, "parent", {
-	        /**
-	         * Get the parent widget of the layout.
-	         */
-	        get: function () {
-	            return this._parent;
-	        },
-	        /**
-	         * Set the parent widget of the layout.
-	         *
-	         * #### Notes
-	         * This is set automatically when installing the layout on the parent
-	         * widget. The layout parent should not be set directly by user code.
-	         */
-	        set: function (value) {
-	            if (!value) {
-	                throw new Error('Cannot set layout parent to null.');
-	            }
-	            if (this._parent === value) {
-	                return;
-	            }
-	            if (this._parent) {
-	                throw new Error('Cannot change layout parent.');
-	            }
-	            if (value.layout !== this) {
-	                throw new Error('Invalid layout parent.');
-	            }
-	            this._parent = value;
-	            this.initialize();
+	            return this._callback === null;
 	        },
 	        enumerable: true,
 	        configurable: true
 	    });
 	    /**
-	     * Process a message sent to the parent widget.
-	     *
-	     * @param msg - The message sent to the parent widget.
+	     * Dispose of the delegate and invoke its callback.
 	     *
 	     * #### Notes
-	     * This method is called by the parent to process a message.
-	     *
-	     * Subclasses may reimplement this method as needed.
+	     * If this method is called more than once, all calls made after the
+	     * first will be a no-op.
 	     */
-	    Layout.prototype.processParentMessage = function (msg) {
-	        switch (msg.type) {
-	            case 'resize':
-	                this.onResize(msg);
-	                break;
-	            case 'update-request':
-	                this.onUpdateRequest(msg);
-	                break;
-	            case 'fit-request':
-	                this.onFitRequest(msg);
-	                break;
-	            case 'after-attach':
-	                this.onAfterAttach(msg);
-	                break;
-	            case 'before-detach':
-	                this.onBeforeDetach(msg);
-	                break;
-	            case 'after-show':
-	                this.onAfterShow(msg);
-	                break;
-	            case 'before-hide':
-	                this.onBeforeHide(msg);
-	                break;
-	            case 'child-removed':
-	                this.onChildRemoved(msg);
-	                break;
-	            case 'child-shown':
-	                this.onChildShown(msg);
-	                break;
-	            case 'child-hidden':
-	                this.onChildHidden(msg);
-	                break;
+	    DisposableDelegate.prototype.dispose = function () {
+	        if (this._callback === null) {
+	            return;
 	        }
+	        var callback = this._callback;
+	        this._callback = null;
+	        callback();
 	    };
-	    /**
-	     * A message handler invoked on a `'fit-request'` message.
-	     *
-	     * The default implementation of this handler is a no-op.
-	     */
-	    Layout.prototype.onFitRequest = function (msg) { };
-	    /**
-	     * A message handler invoked on a `'child-shown'` message.
-	     *
-	     * The default implementation of this handler is a no-op.
-	     */
-	    Layout.prototype.onChildShown = function (msg) { };
-	    /**
-	     * A message handler invoked on a `'child-hidden'` message.
-	     *
-	     * The default implementation of this handler is a no-op.
-	     */
-	    Layout.prototype.onChildHidden = function (msg) { };
-	    return Layout;
+	    return DisposableDelegate;
 	})();
-	exports.Layout = Layout;
+	exports.DisposableDelegate = DisposableDelegate;
 	/**
-	 * An abstract base class for creating index-based layouts.
-	 *
-	 * #### Notes
-	 * This class implements core functionality which is required by nearly
-	 * all layouts. It is a good starting point for creating custom layouts
-	 * which control the types of children that may be added to the layout.
-	 *
-	 * This class must be subclassed to make a fully functioning layout.
+	 * An object which manages a collection of disposable items.
 	 */
-	var AbstractLayout = (function (_super) {
-	    __extends(AbstractLayout, _super);
-	    function AbstractLayout() {
-	        _super.apply(this, arguments);
+	var DisposableSet = (function () {
+	    /**
+	     * Construct a new disposable set.
+	     *
+	     * @param items - The initial disposable items for the set.
+	     */
+	    function DisposableSet(items) {
+	        var _this = this;
+	        this._set = new Set();
+	        if (items)
+	            items.forEach(function (item) { _this._set.add(item); });
 	    }
+	    Object.defineProperty(DisposableSet.prototype, "isDisposed", {
+	        /**
+	         * Test whether the set has been disposed.
+	         *
+	         * #### Notes
+	         * This is a read-only property which is always safe to access.
+	         */
+	        get: function () {
+	            return this._set === null;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
 	    /**
-	     * Get the index of the specified child widget.
-	     *
-	     * @param child - The child widget of interest.
-	     *
-	     * @returns The index of the specified child, or `-1`.
-	     */
-	    AbstractLayout.prototype.childIndex = function (child) {
-	        for (var i = 0; i < this.childCount(); ++i) {
-	            if (this.childAt(i) === child)
-	                return i;
-	        }
-	        return -1;
-	    };
-	    /**
-	     * A message handler invoked on a `'resize'` message.
+	     * Dispose of the set and dispose the items it contains.
 	     *
 	     * #### Notes
-	     * The default implementation of this method sends an `UnknownSize`
-	     * resize message to all children.
+	     * Items are disposed in the order they are added to the set.
 	     *
-	     * This may be reimplemented by subclasses as needed.
+	     * It is unsafe to use the set after it has been disposed.
+	     *
+	     * If this method is called more than once, all calls made after the
+	     * first will be a no-op.
 	     */
-	    AbstractLayout.prototype.onResize = function (msg) {
-	        for (var i = 0; i < this.childCount(); ++i) {
-	            phosphor_messaging_1.sendMessage(this.childAt(i), widget_1.ResizeMessage.UnknownSize);
+	    DisposableSet.prototype.dispose = function () {
+	        if (this._set === null) {
+	            return;
 	        }
+	        var set = this._set;
+	        this._set = null;
+	        set.forEach(function (item) { item.dispose(); });
 	    };
 	    /**
-	     * A message handler invoked on an `'update-request'` message.
+	     * Add a disposable item to the set.
 	     *
-	     * #### Notes
-	     * The default implementation of this method sends an `UnknownSize`
-	     * resize message to all children.
+	     * @param item - The disposable item to add to the set. If the item
+	     *   is already contained in the set, this is a no-op.
 	     *
-	     * This may be reimplemented by subclasses as needed.
+	     * @throws Will throw an error if the set has been disposed.
 	     */
-	    AbstractLayout.prototype.onUpdateRequest = function (msg) {
-	        for (var i = 0; i < this.childCount(); ++i) {
-	            phosphor_messaging_1.sendMessage(this.childAt(i), widget_1.ResizeMessage.UnknownSize);
+	    DisposableSet.prototype.add = function (item) {
+	        if (this._set === null) {
+	            throw new Error('object is disposed');
 	        }
+	        this._set.add(item);
 	    };
 	    /**
-	     * A message handler invoked on an `'after-attach'` message.
+	     * Remove a disposable item from the set.
 	     *
-	     * #### Notes
-	     * The default implementation of this method forwards the message
-	     * to all children.
+	     * @param item - The disposable item to remove from the set. If the
+	     *   item does not exist in the set, this is a no-op.
 	     *
-	     * This may be reimplemented by subclasses as needed.
+	     * @throws Will throw an error if the set has been disposed.
 	     */
-	    AbstractLayout.prototype.onAfterAttach = function (msg) {
-	        for (var i = 0; i < this.childCount(); ++i) {
-	            phosphor_messaging_1.sendMessage(this.childAt(i), msg);
+	    DisposableSet.prototype.remove = function (item) {
+	        if (this._set === null) {
+	            throw new Error('object is disposed');
 	        }
+	        this._set.delete(item);
 	    };
 	    /**
-	     * A message handler invoked on a `'before-detach'` message.
+	     * Clear all disposable items from the set.
 	     *
-	     * #### Notes
-	     * The default implementation of this method forwards the message
-	     * to all children.
-	     *
-	     * This may be reimplemented by subclasses as needed.
+	     * @throws Will throw an error if the set has been disposed.
 	     */
-	    AbstractLayout.prototype.onBeforeDetach = function (msg) {
-	        for (var i = 0; i < this.childCount(); ++i) {
-	            phosphor_messaging_1.sendMessage(this.childAt(i), msg);
+	    DisposableSet.prototype.clear = function () {
+	        if (this._set === null) {
+	            throw new Error('object is disposed');
 	        }
+	        this._set.clear();
 	    };
-	    /**
-	     * A message handler invoked on an `'after-show'` message.
-	     *
-	     * #### Notes
-	     * The default implementation of this method forwards the message
-	     * to all non-hidden children.
-	     *
-	     * This may be reimplemented by subclasses as needed.
-	     */
-	    AbstractLayout.prototype.onAfterShow = function (msg) {
-	        for (var i = 0; i < this.childCount(); ++i) {
-	            var child = this.childAt(i);
-	            if (!child.isHidden)
-	                phosphor_messaging_1.sendMessage(child, msg);
-	        }
-	    };
-	    /**
-	     * A message handler invoked on a `'before-hide'` message.
-	     *
-	     * #### Notes
-	     * The default implementation of this method forwards the message
-	     * to all non-hidden children.
-	     *
-	     * This may be reimplemented by subclasses as needed.
-	     */
-	    AbstractLayout.prototype.onBeforeHide = function (msg) {
-	        for (var i = 0; i < this.childCount(); ++i) {
-	            var child = this.childAt(i);
-	            if (!child.isHidden)
-	                phosphor_messaging_1.sendMessage(child, msg);
-	        }
-	    };
-	    return AbstractLayout;
-	})(Layout);
-	exports.AbstractLayout = AbstractLayout;
-
+	    return DisposableSet;
+	})();
+	exports.DisposableSet = DisposableSet;
+	//# sourceMappingURL=index.js.map
 
 /***/ },
 /* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(setImmediate) {/*-----------------------------------------------------------------------------
-	| Copyright (c) 2014-2015, PhosphorJS Contributors
-	|
-	| Distributed under the terms of the BSD 3-Clause License.
-	|
-	| The full license is in the file LICENSE, distributed with this software.
-	|----------------------------------------------------------------------------*/
-	'use strict';
-	var phosphor_queue_1 = __webpack_require__(30);
-	/**
-	 * A message which can be sent or posted to a message handler.
-	 *
-	 * #### Notes
-	 * This class may be subclassed to create complex message types.
-	 *
-	 * **See Also** [[postMessage]] and [[sendMessage]].
-	 */
-	var Message = (function () {
-	    /**
-	     * Construct a new message.
-	     *
-	     * @param type - The type of the message. Consumers of a message will
-	     *   use this value to cast the message to the appropriately derived
-	     *   message type.
-	     */
-	    function Message(type) {
-	        this._type = type;
-	    }
-	    Object.defineProperty(Message.prototype, "type", {
-	        /**
-	         * Get the type of the message.
-	         */
-	        get: function () {
-	            return this._type;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    return Message;
-	})();
-	exports.Message = Message;
-	/**
-	 * Send a message to the message handler to process immediately.
-	 *
-	 * @param handler - The handler which should process the message.
-	 *
-	 * @param msg - The message to send to the handler.
-	 *
-	 * #### Notes
-	 * Unlike [[postMessage]], [[sendMessage]] delivers the message to
-	 * the handler immediately. The handler will not have the opportunity
-	 * to compress the message, however the message will still be sent
-	 * through any installed message filters.
-	 *
-	 * **See Also** [[postMessage]].
-	 */
-	function sendMessage(handler, msg) {
-	    getDispatcher(handler).sendMessage(handler, msg);
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(28);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(30)(content, {});
+	if(content.locals) module.exports = content.locals;
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		if(!content.locals) {
+			module.hot.accept("!!./../../../../node_modules/css-loader/index.js!./index.css", function() {
+				var newContent = require("!!./../../../../node_modules/css-loader/index.js!./index.css");
+				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+				update(newContent);
+			});
+		}
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
 	}
-	exports.sendMessage = sendMessage;
-	/**
-	 * Post a message to the message handler to process in the future.
-	 *
-	 * @param handler - The handler which should process the message.
-	 *
-	 * @param msg - The message to post to the handler.
-	 *
-	 * #### Notes
-	 * Unlike [[sendMessage]], [[postMessage]] will schedule the deliver of
-	 * the message for the next cycle of the event loop. The handler will
-	 * have the opportunity to compress the message in order to optimize
-	 * its handling of similar messages. The message will be sent through
-	 * any installed message filters before being delivered to the handler.
-	 *
-	 * **See Also** [[sendMessage]].
-	 */
-	function postMessage(handler, msg) {
-	    getDispatcher(handler).postMessage(handler, msg);
-	}
-	exports.postMessage = postMessage;
-	/**
-	 * Test whether a message handler has posted messages pending delivery.
-	 *
-	 * @param handler - The message handler of interest.
-	 *
-	 * @returns `true` if the handler has pending posted messages, `false`
-	 *   otherwise.
-	 *
-	 * **See Also** [[sendPendingMessage]].
-	 */
-	function hasPendingMessages(handler) {
-	    return getDispatcher(handler).hasPendingMessages();
-	}
-	exports.hasPendingMessages = hasPendingMessages;
-	/**
-	 * Send the first pending posted message to the message handler.
-	 *
-	 * @param handler - The message handler of interest.
-	 *
-	 * #### Notes
-	 * If the handler has no pending messages, this is a no-op.
-	 *
-	 * **See Also** [[hasPendingMessages]].
-	 */
-	function sendPendingMessage(handler) {
-	    getDispatcher(handler).sendPendingMessage(handler);
-	}
-	exports.sendPendingMessage = sendPendingMessage;
-	/**
-	 * Install a message filter for a message handler.
-	 *
-	 * A message filter is invoked before the message handler processes a
-	 * message. If the filter returns `true` from its [[filterMessage]] method,
-	 * no other filters will be invoked, and the message will not be delivered.
-	 *
-	 * The most recently installed message filter is executed first.
-	 *
-	 * @param handler - The handler whose messages should be filtered.
-	 *
-	 * @param filter - The filter to install for the handler.
-	 *
-	 * #### Notes
-	 * It is possible to install the same filter multiple times. If the
-	 * filter should be unique, call [[removeMessageFilter]] first.
-	 *
-	 * **See Also** [[removeMessageFilter]].
-	 */
-	function installMessageFilter(handler, filter) {
-	    getDispatcher(handler).installMessageFilter(filter);
-	}
-	exports.installMessageFilter = installMessageFilter;
-	/**
-	 * Remove a previously installed message filter for a message handler.
-	 *
-	 * @param handler - The handler for which the filter is installed.
-	 *
-	 * @param filter - The filter to remove.
-	 *
-	 * #### Notes
-	 * This will remove **all** occurrences of the filter. If the filter is
-	 * not installed, this is a no-op.
-	 *
-	 * It is safe to call this function while the filter is executing.
-	 *
-	 * **See Also** [[installMessageFilter]].
-	 */
-	function removeMessageFilter(handler, filter) {
-	    getDispatcher(handler).removeMessageFilter(filter);
-	}
-	exports.removeMessageFilter = removeMessageFilter;
-	/**
-	 * Clear all message data associated with the message handler.
-	 *
-	 * @param handler - The message handler for which to clear the data.
-	 *
-	 * #### Notes
-	 * This will remove all pending messages and filters for the handler.
-	 */
-	function clearMessageData(handler) {
-	    var dispatcher = dispatcherMap.get(handler);
-	    if (dispatcher)
-	        dispatcher.clear();
-	    dispatchQueue.removeAll(handler);
-	}
-	exports.clearMessageData = clearMessageData;
-	/**
-	 * The internal mapping of message handler to message dispatcher
-	 */
-	var dispatcherMap = new WeakMap();
-	/**
-	 * The internal queue of pending message handlers.
-	 */
-	var dispatchQueue = new phosphor_queue_1.Queue();
-	/**
-	 * The internal animation frame id for the message loop wake up call.
-	 */
-	var frameId = void 0;
-	/**
-	 * A local reference to an event loop hook.
-	 */
-	var raf;
-	if (typeof requestAnimationFrame === 'function') {
-	    raf = requestAnimationFrame;
-	}
-	else {
-	    raf = setImmediate;
-	}
-	/**
-	 * Get or create the message dispatcher for a message handler.
-	 */
-	function getDispatcher(handler) {
-	    var dispatcher = dispatcherMap.get(handler);
-	    if (dispatcher)
-	        return dispatcher;
-	    dispatcher = new MessageDispatcher();
-	    dispatcherMap.set(handler, dispatcher);
-	    return dispatcher;
-	}
-	/**
-	 * Wake up the message loop to process any pending dispatchers.
-	 *
-	 * This is a no-op if a wake up is not needed or is already pending.
-	 */
-	function wakeUpMessageLoop() {
-	    if (frameId === void 0 && !dispatchQueue.empty) {
-	        frameId = raf(runMessageLoop);
-	    }
-	}
-	/**
-	 * Run an iteration of the message loop.
-	 *
-	 * This will process all pending dispatchers in the queue. Dispatchers
-	 * which are added to the queue while the message loop is running will
-	 * be processed on the next message loop cycle.
-	 */
-	function runMessageLoop() {
-	    // Clear the frame id so the next wake up call can be scheduled.
-	    frameId = void 0;
-	    // If the queue is empty, there is nothing else to do.
-	    if (dispatchQueue.empty) {
-	        return;
-	    }
-	    // Add a null sentinel value to the end of the queue. The queue
-	    // will only be processed up to the first null value. This means
-	    // that messages posted during this cycle will execute on the next
-	    // cycle of the loop.
-	    dispatchQueue.push(null);
-	    // The message dispatch loop. If the dispatcher is the null sentinel,
-	    // the processing of the current block of messages is complete and
-	    // another loop is scheduled. Otherwise, the pending message is
-	    // dispatched to the message handler.
-	    while (!dispatchQueue.empty) {
-	        var handler = dispatchQueue.pop();
-	        if (handler === null) {
-	            wakeUpMessageLoop();
-	            return;
-	        }
-	        getDispatcher(handler).sendPendingMessage(handler);
-	    }
-	}
-	/**
-	 * Safely process a message for a message handler.
-	 *
-	 * If the handler throws an exception, it will be caught and logged.
-	 */
-	function safeProcess(handler, msg) {
-	    try {
-	        handler.processMessage(msg);
-	    }
-	    catch (err) {
-	        console.error(err);
-	    }
-	}
-	/**
-	 * Safely compress a message for a message handler.
-	 *
-	 * If the handler throws an exception, it will be caught and logged.
-	 */
-	function safeCompress(handler, msg, queue) {
-	    var result = false;
-	    try {
-	        result = handler.compressMessage(msg, queue);
-	    }
-	    catch (err) {
-	        console.error(err);
-	    }
-	    return result;
-	}
-	/**
-	 * Safely filter a message for a message handler.
-	 *
-	 * If the filter throws an exception, it will be caught and logged.
-	 */
-	function safeFilter(filter, handler, msg) {
-	    var result = false;
-	    try {
-	        result = filter.filterMessage(handler, msg);
-	    }
-	    catch (err) {
-	        console.error(err);
-	    }
-	    return result;
-	}
-	/**
-	 * An internal class which manages message dispatching for a handler.
-	 */
-	var MessageDispatcher = (function () {
-	    function MessageDispatcher() {
-	        this._filters = null;
-	        this._messages = null;
-	    }
-	    /**
-	     * Send a message to the handler immediately.
-	     *
-	     * The message will first be sent through installed filters.
-	     */
-	    MessageDispatcher.prototype.sendMessage = function (handler, msg) {
-	        if (!this._filterMessage(handler, msg)) {
-	            safeProcess(handler, msg);
-	        }
-	    };
-	    /**
-	     * Post a message for delivery in the future.
-	     *
-	     * The message will first be compressed if possible.
-	     */
-	    MessageDispatcher.prototype.postMessage = function (handler, msg) {
-	        if (!this._compressMessage(handler, msg)) {
-	            this._enqueueMessage(handler, msg);
-	        }
-	    };
-	    /**
-	     * Test whether the dispatcher has messages pending delivery.
-	     */
-	    MessageDispatcher.prototype.hasPendingMessages = function () {
-	        return !!(this._messages && !this._messages.empty);
-	    };
-	    /**
-	     * Send the first pending message to the message handler.
-	     */
-	    MessageDispatcher.prototype.sendPendingMessage = function (handler) {
-	        if (this._messages && !this._messages.empty) {
-	            this.sendMessage(handler, this._messages.pop());
-	        }
-	    };
-	    /**
-	     * Install a message filter for the dispatcher.
-	     */
-	    MessageDispatcher.prototype.installMessageFilter = function (filter) {
-	        this._filters = { next: this._filters, filter: filter };
-	    };
-	    /**
-	     * Remove all occurrences of a message filter from the dispatcher.
-	     */
-	    MessageDispatcher.prototype.removeMessageFilter = function (filter) {
-	        var link = this._filters;
-	        var prev = null;
-	        while (link !== null) {
-	            if (link.filter === filter) {
-	                link.filter = null;
-	            }
-	            else if (prev === null) {
-	                this._filters = link;
-	                prev = link;
-	            }
-	            else {
-	                prev.next = link;
-	                prev = link;
-	            }
-	            link = link.next;
-	        }
-	        if (!prev) {
-	            this._filters = null;
-	        }
-	        else {
-	            prev.next = null;
-	        }
-	    };
-	    /**
-	     * Clear all messages and filters from the dispatcher.
-	     */
-	    MessageDispatcher.prototype.clear = function () {
-	        if (this._messages) {
-	            this._messages.clear();
-	        }
-	        for (var link = this._filters; link !== null; link = link.next) {
-	            link.filter = null;
-	        }
-	        this._filters = null;
-	    };
-	    /**
-	     * Run the installed message filters for the handler.
-	     *
-	     * Returns `true` if the message was filtered, `false` otherwise.
-	     */
-	    MessageDispatcher.prototype._filterMessage = function (handler, msg) {
-	        for (var link = this._filters; link !== null; link = link.next) {
-	            if (link.filter && safeFilter(link.filter, handler, msg)) {
-	                return true;
-	            }
-	        }
-	        return false;
-	    };
-	    /**
-	     * Compress the mssage for the given handler.
-	     *
-	     * Returns `true` if the message was compressed, `false` otherwise.
-	     */
-	    MessageDispatcher.prototype._compressMessage = function (handler, msg) {
-	        if (!handler.compressMessage) {
-	            return false;
-	        }
-	        if (!this._messages || this._messages.empty) {
-	            return false;
-	        }
-	        return safeCompress(handler, msg, this._messages);
-	    };
-	    /**
-	     * Enqueue the message for future delivery to the handler.
-	     */
-	    MessageDispatcher.prototype._enqueueMessage = function (handler, msg) {
-	        this._ensureMessages().push(msg);
-	        dispatchQueue.push(handler);
-	        wakeUpMessageLoop();
-	    };
-	    /**
-	     * Get the internal message queue, creating it if needed.
-	     */
-	    MessageDispatcher.prototype._ensureMessages = function () {
-	        return this._messages || (this._messages = new phosphor_queue_1.Queue());
-	    };
-	    return MessageDispatcher;
-	})();
-	//# sourceMappingURL=index.js.map
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(28).setImmediate))
 
 /***/ },
 /* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {var nextTick = __webpack_require__(29).nextTick;
-	var apply = Function.prototype.apply;
-	var slice = Array.prototype.slice;
-	var immediateIds = {};
-	var nextImmediateId = 0;
+	exports = module.exports = __webpack_require__(29)();
+	// imports
 
-	// DOM APIs, for completeness
 
-	exports.setTimeout = function() {
-	  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
-	};
-	exports.setInterval = function() {
-	  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
-	};
-	exports.clearTimeout =
-	exports.clearInterval = function(timeout) { timeout.close(); };
+	// module
+	exports.push([module.id, "/*-----------------------------------------------------------------------------\r\n| Copyright (c) 2014-2015, PhosphorJS Contributors\r\n|\r\n| Distributed under the terms of the BSD 3-Clause License.\r\n|\r\n| The full license is in the file LICENSE, distributed with this software.\r\n|----------------------------------------------------------------------------*/\r\nbody.p-mod-override-cursor * {\r\n  cursor: inherit !important;\r\n}\r\n", ""]);
 
-	function Timeout(id, clearFn) {
-	  this._id = id;
-	  this._clearFn = clearFn;
-	}
-	Timeout.prototype.unref = Timeout.prototype.ref = function() {};
-	Timeout.prototype.close = function() {
-	  this._clearFn.call(window, this._id);
-	};
+	// exports
 
-	// Does not start the time, just sets up the members needed.
-	exports.enroll = function(item, msecs) {
-	  clearTimeout(item._idleTimeoutId);
-	  item._idleTimeout = msecs;
-	};
-
-	exports.unenroll = function(item) {
-	  clearTimeout(item._idleTimeoutId);
-	  item._idleTimeout = -1;
-	};
-
-	exports._unrefActive = exports.active = function(item) {
-	  clearTimeout(item._idleTimeoutId);
-
-	  var msecs = item._idleTimeout;
-	  if (msecs >= 0) {
-	    item._idleTimeoutId = setTimeout(function onTimeout() {
-	      if (item._onTimeout)
-	        item._onTimeout();
-	    }, msecs);
-	  }
-	};
-
-	// That's not how node.js implements it but the exposed api is the same.
-	exports.setImmediate = typeof setImmediate === "function" ? setImmediate : function(fn) {
-	  var id = nextImmediateId++;
-	  var args = arguments.length < 2 ? false : slice.call(arguments, 1);
-
-	  immediateIds[id] = true;
-
-	  nextTick(function onNextTick() {
-	    if (immediateIds[id]) {
-	      // fn.call() is faster so we optimize for the common use-case
-	      // @see http://jsperf.com/call-apply-segu
-	      if (args) {
-	        fn.apply(null, args);
-	      } else {
-	        fn.call(null);
-	      }
-	      // Prevent ids from leaking
-	      exports.clearImmediate(id);
-	    }
-	  });
-
-	  return id;
-	};
-
-	exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
-	  delete immediateIds[id];
-	};
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(28).setImmediate, __webpack_require__(28).clearImmediate))
 
 /***/ },
 /* 29 */
 /***/ function(module, exports) {
 
-	// shim for using process in browser
+	/*
+		MIT License http://www.opensource.org/licenses/mit-license.php
+		Author Tobias Koppers @sokra
+	*/
+	// css base code, injected by the css-loader
+	module.exports = function() {
+		var list = [];
 
-	var process = module.exports = {};
-	var queue = [];
-	var draining = false;
-	var currentQueue;
-	var queueIndex = -1;
+		// return the list of modules as css string
+		list.toString = function toString() {
+			var result = [];
+			for(var i = 0; i < this.length; i++) {
+				var item = this[i];
+				if(item[2]) {
+					result.push("@media " + item[2] + "{" + item[1] + "}");
+				} else {
+					result.push(item[1]);
+				}
+			}
+			return result.join("");
+		};
 
-	function cleanUpNextTick() {
-	    draining = false;
-	    if (currentQueue.length) {
-	        queue = currentQueue.concat(queue);
-	    } else {
-	        queueIndex = -1;
-	    }
-	    if (queue.length) {
-	        drainQueue();
-	    }
-	}
-
-	function drainQueue() {
-	    if (draining) {
-	        return;
-	    }
-	    var timeout = setTimeout(cleanUpNextTick);
-	    draining = true;
-
-	    var len = queue.length;
-	    while(len) {
-	        currentQueue = queue;
-	        queue = [];
-	        while (++queueIndex < len) {
-	            if (currentQueue) {
-	                currentQueue[queueIndex].run();
-	            }
-	        }
-	        queueIndex = -1;
-	        len = queue.length;
-	    }
-	    currentQueue = null;
-	    draining = false;
-	    clearTimeout(timeout);
-	}
-
-	process.nextTick = function (fun) {
-	    var args = new Array(arguments.length - 1);
-	    if (arguments.length > 1) {
-	        for (var i = 1; i < arguments.length; i++) {
-	            args[i - 1] = arguments[i];
-	        }
-	    }
-	    queue.push(new Item(fun, args));
-	    if (queue.length === 1 && !draining) {
-	        setTimeout(drainQueue, 0);
-	    }
+		// import a list of modules into the list
+		list.i = function(modules, mediaQuery) {
+			if(typeof modules === "string")
+				modules = [[null, modules, ""]];
+			var alreadyImportedModules = {};
+			for(var i = 0; i < this.length; i++) {
+				var id = this[i][0];
+				if(typeof id === "number")
+					alreadyImportedModules[id] = true;
+			}
+			for(i = 0; i < modules.length; i++) {
+				var item = modules[i];
+				// skip already imported module
+				// this implementation is not 100% perfect for weird media query combinations
+				//  when a module is imported multiple times with different media queries.
+				//  I hope this will never occur (Hey this way we have smaller bundles)
+				if(typeof item[0] !== "number" || !alreadyImportedModules[item[0]]) {
+					if(mediaQuery && !item[2]) {
+						item[2] = mediaQuery;
+					} else if(mediaQuery) {
+						item[2] = "(" + item[2] + ") and (" + mediaQuery + ")";
+					}
+					list.push(item);
+				}
+			}
+		};
+		return list;
 	};
-
-	// v8 likes predictible objects
-	function Item(fun, array) {
-	    this.fun = fun;
-	    this.array = array;
-	}
-	Item.prototype.run = function () {
-	    this.fun.apply(null, this.array);
-	};
-	process.title = 'browser';
-	process.browser = true;
-	process.env = {};
-	process.argv = [];
-	process.version = ''; // empty string to avoid regexp issues
-	process.versions = {};
-
-	function noop() {}
-
-	process.on = noop;
-	process.addListener = noop;
-	process.once = noop;
-	process.off = noop;
-	process.removeListener = noop;
-	process.removeAllListeners = noop;
-	process.emit = noop;
-
-	process.binding = function (name) {
-	    throw new Error('process.binding is not supported');
-	};
-
-	process.cwd = function () { return '/' };
-	process.chdir = function (dir) {
-	    throw new Error('process.chdir is not supported');
-	};
-	process.umask = function() { return 0; };
 
 
 /***/ },
 /* 30 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	/*-----------------------------------------------------------------------------
-	| Copyright (c) 2014-2015, PhosphorJS Contributors
-	|
-	| Distributed under the terms of the BSD 3-Clause License.
-	|
-	| The full license is in the file LICENSE, distributed with this software.
-	|----------------------------------------------------------------------------*/
-	'use strict';
-	/**
-	 * A generic FIFO queue data structure.
-	 *
-	 * #### Notes
-	 * This queue is implemented internally using a singly linked list and
-	 * can grow to arbitrary size.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * let q = new Queue<number>([0, 1, 2]);
-	 * q.size;      // 3
-	 * q.empty;     // false
-	 * q.pop();     // 0
-	 * q.pop();     // 1
-	 * q.push(42);  // undefined
-	 * q.size;      // 2
-	 * q.pop();     // 2
-	 * q.pop();     // 42
-	 * q.pop();     // undefined
-	 * q.size;      // 0
-	 * q.empty;     // true
-	 * ```
-	 */
-	var Queue = (function () {
-	    /**
-	     * Construct a new queue.
-	     *
-	     * @param items - The initial items for the queue.
-	     */
-	    function Queue(items) {
-	        var _this = this;
-	        this._size = 0;
-	        this._front = null;
-	        this._back = null;
-	        if (items)
-	            items.forEach(function (item) { return _this.push(item); });
-	    }
-	    Object.defineProperty(Queue.prototype, "size", {
-	        /**
-	         * Get the number of elements in the queue.
-	         *
-	         * #### Notes
-	         * This has `O(1)` complexity.
-	         */
-	        get: function () {
-	            return this._size;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    Object.defineProperty(Queue.prototype, "empty", {
-	        /**
-	         * Test whether the queue is empty.
-	         *
-	         * #### Notes
-	         * This has `O(1)` complexity.
-	         */
-	        get: function () {
-	            return this._size === 0;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    Object.defineProperty(Queue.prototype, "front", {
-	        /**
-	         * Get the value at the front of the queue.
-	         *
-	         * #### Notes
-	         * This has `O(1)` complexity.
-	         *
-	         * If the queue is empty, this value will be `undefined`.
-	         */
-	        get: function () {
-	            return this._front !== null ? this._front.value : void 0;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    Object.defineProperty(Queue.prototype, "back", {
-	        /**
-	         * Get the value at the back of the queue.
-	         *
-	         * #### Notes
-	         * This has `O(1)` complexity.
-	         *
-	         * If the queue is empty, this value will be `undefined`.
-	         */
-	        get: function () {
-	            return this._back !== null ? this._back.value : void 0;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    /**
-	     * Push a value onto the back of the queue.
-	     *
-	     * @param value - The value to add to the queue.
-	     *
-	     * #### Notes
-	     * This has `O(1)` complexity.
-	     */
-	    Queue.prototype.push = function (value) {
-	        var link = { next: null, value: value };
-	        if (this._back === null) {
-	            this._front = link;
-	            this._back = link;
-	        }
-	        else {
-	            this._back.next = link;
-	            this._back = link;
-	        }
-	        this._size++;
-	    };
-	    /**
-	     * Pop and return the value at the front of the queue.
-	     *
-	     * @returns The value at the front of the queue.
-	     *
-	     * #### Notes
-	     * This has `O(1)` complexity.
-	     *
-	     * If the queue is empty, the return value will be `undefined`.
-	     */
-	    Queue.prototype.pop = function () {
-	        var link = this._front;
-	        if (link === null) {
-	            return void 0;
-	        }
-	        if (link.next === null) {
-	            this._front = null;
-	            this._back = null;
-	        }
-	        else {
-	            this._front = link.next;
-	        }
-	        this._size--;
-	        return link.value;
-	    };
-	    /**
-	     * Remove the first occurrence of a value from the queue.
-	     *
-	     * @param value - The value to remove from the queue.
-	     *
-	     * @returns `true` on success, `false` otherwise.
-	     *
-	     * #### Notes
-	     * This has `O(N)` complexity.
-	     */
-	    Queue.prototype.remove = function (value) {
-	        var link = this._front;
-	        var prev = null;
-	        while (link !== null) {
-	            if (link.value === value) {
-	                if (prev === null) {
-	                    this._front = link.next;
-	                }
-	                else {
-	                    prev.next = link.next;
-	                }
-	                if (link.next === null) {
-	                    this._back = prev;
-	                }
-	                this._size--;
-	                return true;
-	            }
-	            prev = link;
-	            link = link.next;
-	        }
-	        return false;
-	    };
-	    /**
-	     * Remove all occurrences of a value from the queue.
-	     *
-	     * @param value - The value to remove from the queue.
-	     *
-	     * @returns The number of occurrences removed.
-	     *
-	     * #### Notes
-	     * This has `O(N)` complexity.
-	     */
-	    Queue.prototype.removeAll = function (value) {
-	        var count = 0;
-	        var link = this._front;
-	        var prev = null;
-	        while (link !== null) {
-	            if (link.value === value) {
-	                count++;
-	                this._size--;
-	            }
-	            else if (prev === null) {
-	                this._front = link;
-	                prev = link;
-	            }
-	            else {
-	                prev.next = link;
-	                prev = link;
-	            }
-	            link = link.next;
-	        }
-	        if (!prev) {
-	            this._front = null;
-	            this._back = null;
-	        }
-	        else {
-	            prev.next = null;
-	            this._back = prev;
-	        }
-	        return count;
-	    };
-	    /**
-	     * Remove all values from the queue.
-	     *
-	     * #### Notes
-	     * This has `O(1)` complexity.
-	     */
-	    Queue.prototype.clear = function () {
-	        this._size = 0;
-	        this._front = null;
-	        this._back = null;
-	    };
-	    /**
-	     * Create an array from the values in the queue.
-	     *
-	     * @returns An array of all values in the queue.
-	     *
-	     * #### Notes
-	     * This has `O(N)` complexity.
-	     */
-	    Queue.prototype.toArray = function () {
-	        var result = new Array(this._size);
-	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
-	            result[i] = link.value;
-	        }
-	        return result;
-	    };
-	    /**
-	     * Test whether any value in the queue passes a predicate function.
-	     *
-	     * @param pred - The predicate to apply to the values.
-	     *
-	     * @returns `true` if any value in the queue passes the predicate,
-	     *   or `false` otherwise.
-	     *
-	     * #### Notes
-	     * This has `O(N)` complexity.
-	     *
-	     * It is **not** safe for the predicate to modify the queue while
-	     * iterating.
-	     */
-	    Queue.prototype.some = function (pred) {
-	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
-	            if (pred(link.value, i))
-	                return true;
-	        }
-	        return false;
-	    };
-	    /**
-	     * Test whether all values in the queue pass a predicate function.
-	     *
-	     * @param pred - The predicate to apply to the values.
-	     *
-	     * @returns `true` if all values in the queue pass the predicate,
-	     *   or `false` otherwise.
-	     *
-	     * #### Notes
-	     * This has `O(N)` complexity.
-	     *
-	     * It is **not** safe for the predicate to modify the queue while
-	     * iterating.
-	     */
-	    Queue.prototype.every = function (pred) {
-	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
-	            if (!pred(link.value, i))
-	                return false;
-	        }
-	        return true;
-	    };
-	    /**
-	     * Create an array of the values which pass a predicate function.
-	     *
-	     * @param pred - The predicate to apply to the values.
-	     *
-	     * @returns The array of values which pass the predicate.
-	     *
-	     * #### Notes
-	     * This has `O(N)` complexity.
-	     *
-	     * It is **not** safe for the predicate to modify the queue while
-	     * iterating.
-	     */
-	    Queue.prototype.filter = function (pred) {
-	        var result = [];
-	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
-	            if (pred(link.value, i))
-	                result.push(link.value);
-	        }
-	        return result;
-	    };
-	    /**
-	     * Create an array of mapped values for the values in the queue.
-	     *
-	     * @param callback - The map function to apply to the values.
-	     *
-	     * @returns The array of values returned by the map function.
-	     *
-	     * #### Notes
-	     * This has `O(N)` complexity.
-	     *
-	     * It is **not** safe for the callback to modify the queue while
-	     * iterating.
-	     */
-	    Queue.prototype.map = function (callback) {
-	        var result = new Array(this._size);
-	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
-	            result[i] = callback(link.value, i);
-	        }
-	        return result;
-	    };
-	    /**
-	     * Execute a callback for each value in the queue.
-	     *
-	     * @param callback - The function to apply to the values.
-	     *
-	     * @returns The first value returned by the callback which is not
-	     *   `undefined`.
-	     *
-	     * #### Notes
-	     * This has `O(N)` complexity.
-	     *
-	     * Iteration will terminate immediately if the callback returns any
-	     * value other than `undefined`.
-	     *
-	     * It is **not** safe for the callback to modify the queue while
-	     * iterating.
-	     */
-	    Queue.prototype.forEach = function (callback) {
-	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
-	            var result = callback(link.value, i);
-	            if (result !== void 0)
-	                return result;
-	        }
-	        return void 0;
-	    };
-	    return Queue;
+	/*
+		MIT License http://www.opensource.org/licenses/mit-license.php
+		Author Tobias Koppers @sokra
+	*/
+	var stylesInDom = {},
+		memoize = function(fn) {
+			var memo;
+			return function () {
+				if (typeof memo === "undefined") memo = fn.apply(this, arguments);
+				return memo;
+			};
+		},
+		isOldIE = memoize(function() {
+			return /msie [6-9]\b/.test(window.navigator.userAgent.toLowerCase());
+		}),
+		getHeadElement = memoize(function () {
+			return document.head || document.getElementsByTagName("head")[0];
+		}),
+		singletonElement = null,
+		singletonCounter = 0,
+		styleElementsInsertedAtTop = [];
+
+	module.exports = function(list, options) {
+		if(true) {
+			if(typeof document !== "object") throw new Error("The style-loader cannot be used in a non-browser environment");
+		}
+
+		options = options || {};
+		// Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
+		// tags it will allow on a page
+		if (typeof options.singleton === "undefined") options.singleton = isOldIE();
+
+		// By default, add <style> tags to the bottom of <head>.
+		if (typeof options.insertAt === "undefined") options.insertAt = "bottom";
+
+		var styles = listToStyles(list);
+		addStylesToDom(styles, options);
+
+		return function update(newList) {
+			var mayRemove = [];
+			for(var i = 0; i < styles.length; i++) {
+				var item = styles[i];
+				var domStyle = stylesInDom[item.id];
+				domStyle.refs--;
+				mayRemove.push(domStyle);
+			}
+			if(newList) {
+				var newStyles = listToStyles(newList);
+				addStylesToDom(newStyles, options);
+			}
+			for(var i = 0; i < mayRemove.length; i++) {
+				var domStyle = mayRemove[i];
+				if(domStyle.refs === 0) {
+					for(var j = 0; j < domStyle.parts.length; j++)
+						domStyle.parts[j]();
+					delete stylesInDom[domStyle.id];
+				}
+			}
+		};
+	}
+
+	function addStylesToDom(styles, options) {
+		for(var i = 0; i < styles.length; i++) {
+			var item = styles[i];
+			var domStyle = stylesInDom[item.id];
+			if(domStyle) {
+				domStyle.refs++;
+				for(var j = 0; j < domStyle.parts.length; j++) {
+					domStyle.parts[j](item.parts[j]);
+				}
+				for(; j < item.parts.length; j++) {
+					domStyle.parts.push(addStyle(item.parts[j], options));
+				}
+			} else {
+				var parts = [];
+				for(var j = 0; j < item.parts.length; j++) {
+					parts.push(addStyle(item.parts[j], options));
+				}
+				stylesInDom[item.id] = {id: item.id, refs: 1, parts: parts};
+			}
+		}
+	}
+
+	function listToStyles(list) {
+		var styles = [];
+		var newStyles = {};
+		for(var i = 0; i < list.length; i++) {
+			var item = list[i];
+			var id = item[0];
+			var css = item[1];
+			var media = item[2];
+			var sourceMap = item[3];
+			var part = {css: css, media: media, sourceMap: sourceMap};
+			if(!newStyles[id])
+				styles.push(newStyles[id] = {id: id, parts: [part]});
+			else
+				newStyles[id].parts.push(part);
+		}
+		return styles;
+	}
+
+	function insertStyleElement(options, styleElement) {
+		var head = getHeadElement();
+		var lastStyleElementInsertedAtTop = styleElementsInsertedAtTop[styleElementsInsertedAtTop.length - 1];
+		if (options.insertAt === "top") {
+			if(!lastStyleElementInsertedAtTop) {
+				head.insertBefore(styleElement, head.firstChild);
+			} else if(lastStyleElementInsertedAtTop.nextSibling) {
+				head.insertBefore(styleElement, lastStyleElementInsertedAtTop.nextSibling);
+			} else {
+				head.appendChild(styleElement);
+			}
+			styleElementsInsertedAtTop.push(styleElement);
+		} else if (options.insertAt === "bottom") {
+			head.appendChild(styleElement);
+		} else {
+			throw new Error("Invalid value for parameter 'insertAt'. Must be 'top' or 'bottom'.");
+		}
+	}
+
+	function removeStyleElement(styleElement) {
+		styleElement.parentNode.removeChild(styleElement);
+		var idx = styleElementsInsertedAtTop.indexOf(styleElement);
+		if(idx >= 0) {
+			styleElementsInsertedAtTop.splice(idx, 1);
+		}
+	}
+
+	function createStyleElement(options) {
+		var styleElement = document.createElement("style");
+		styleElement.type = "text/css";
+		insertStyleElement(options, styleElement);
+		return styleElement;
+	}
+
+	function createLinkElement(options) {
+		var linkElement = document.createElement("link");
+		linkElement.rel = "stylesheet";
+		insertStyleElement(options, linkElement);
+		return linkElement;
+	}
+
+	function addStyle(obj, options) {
+		var styleElement, update, remove;
+
+		if (options.singleton) {
+			var styleIndex = singletonCounter++;
+			styleElement = singletonElement || (singletonElement = createStyleElement(options));
+			update = applyToSingletonTag.bind(null, styleElement, styleIndex, false);
+			remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true);
+		} else if(obj.sourceMap &&
+			typeof URL === "function" &&
+			typeof URL.createObjectURL === "function" &&
+			typeof URL.revokeObjectURL === "function" &&
+			typeof Blob === "function" &&
+			typeof btoa === "function") {
+			styleElement = createLinkElement(options);
+			update = updateLink.bind(null, styleElement);
+			remove = function() {
+				removeStyleElement(styleElement);
+				if(styleElement.href)
+					URL.revokeObjectURL(styleElement.href);
+			};
+		} else {
+			styleElement = createStyleElement(options);
+			update = applyToTag.bind(null, styleElement);
+			remove = function() {
+				removeStyleElement(styleElement);
+			};
+		}
+
+		update(obj);
+
+		return function updateStyle(newObj) {
+			if(newObj) {
+				if(newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap)
+					return;
+				update(obj = newObj);
+			} else {
+				remove();
+			}
+		};
+	}
+
+	var replaceText = (function () {
+		var textStore = [];
+
+		return function (index, replacement) {
+			textStore[index] = replacement;
+			return textStore.filter(Boolean).join('\n');
+		};
 	})();
-	exports.Queue = Queue;
-	//# sourceMappingURL=index.js.map
+
+	function applyToSingletonTag(styleElement, index, remove, obj) {
+		var css = remove ? "" : obj.css;
+
+		if (styleElement.styleSheet) {
+			styleElement.styleSheet.cssText = replaceText(index, css);
+		} else {
+			var cssNode = document.createTextNode(css);
+			var childNodes = styleElement.childNodes;
+			if (childNodes[index]) styleElement.removeChild(childNodes[index]);
+			if (childNodes.length) {
+				styleElement.insertBefore(cssNode, childNodes[index]);
+			} else {
+				styleElement.appendChild(cssNode);
+			}
+		}
+	}
+
+	function applyToTag(styleElement, obj) {
+		var css = obj.css;
+		var media = obj.media;
+		var sourceMap = obj.sourceMap;
+
+		if(media) {
+			styleElement.setAttribute("media", media)
+		}
+
+		if(styleElement.styleSheet) {
+			styleElement.styleSheet.cssText = css;
+		} else {
+			while(styleElement.firstChild) {
+				styleElement.removeChild(styleElement.firstChild);
+			}
+			styleElement.appendChild(document.createTextNode(css));
+		}
+	}
+
+	function updateLink(linkElement, obj) {
+		var css = obj.css;
+		var media = obj.media;
+		var sourceMap = obj.sourceMap;
+
+		if(sourceMap) {
+			// http://stackoverflow.com/a/26603875
+			css += "\n/*# sourceMappingURL=data:application/json;base64," + btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))) + " */";
+		}
+
+		var blob = new Blob([css], { type: "text/css" });
+
+		var oldSrc = linkElement.href;
+
+		linkElement.href = URL.createObjectURL(blob);
+
+		if(oldSrc)
+			URL.revokeObjectURL(oldSrc);
+	}
+
 
 /***/ },
 /* 31 */
-/***/ function(module, exports) {
-
-	/*-----------------------------------------------------------------------------
-	| Copyright (c) 2014-2015, PhosphorJS Contributors
-	|
-	| Distributed under the terms of the BSD 3-Clause License.
-	|
-	| The full license is in the file LICENSE, distributed with this software.
-	|----------------------------------------------------------------------------*/
-	'use strict';
-	/**
-	 * A property descriptor for a datum belonging to an object.
-	 *
-	 * Property descriptors can be used to expose a rich interface for an
-	 * object which encapsulates value creation, coercion, and notification.
-	 * They can also be used to extend the state of an object with semantic
-	 * data from an unrelated class.
-	 */
-	var Property = (function () {
-	    /**
-	     * Construct a new property descriptor.
-	     *
-	     * @param options - The options for initializing the property.
-	     */
-	    function Property(options) {
-	        this._pid = nextPID();
-	        this._name = options.name;
-	        this._value = options.value;
-	        this._create = options.create;
-	        this._coerce = options.coerce;
-	        this._compare = options.compare;
-	        this._changed = options.changed;
-	        this._notify = options.notify;
-	    }
-	    Object.defineProperty(Property.prototype, "name", {
-	        /**
-	         * Get the human readable name for the property.
-	         *
-	         * #### Notes
-	         * This is a read-only property.
-	         */
-	        get: function () {
-	            return this._name;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    Object.defineProperty(Property.prototype, "notify", {
-	        /**
-	         * Get the notify signal for the property.
-	         *
-	         * #### Notes
-	         * This will be `undefined` if no notify signal was provided.
-	         *
-	         * This is a read-only property.
-	         */
-	        get: function () {
-	            return this._notify;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    /**
-	     * Get the current value of the property for a given owner.
-	     *
-	     * @param owner - The property owner of interest.
-	     *
-	     * @returns The current value of the property.
-	     *
-	     * #### Notes
-	     * If the value has not yet been set, the default value will be
-	     * computed and assigned as the current value of the property.
-	     */
-	    Property.prototype.get = function (owner) {
-	        var value;
-	        var hash = lookupHash(owner);
-	        if (this._pid in hash) {
-	            value = hash[this._pid];
-	        }
-	        else {
-	            value = hash[this._pid] = this._createValue(owner);
-	        }
-	        return value;
-	    };
-	    /**
-	     * Set the current value of the property for a given owner.
-	     *
-	     * @param owner - The property owner of interest.
-	     *
-	     * @param value - The value for the property.
-	     *
-	     * #### Notes
-	     * If the value has not yet been set, the default value will be
-	     * computed and used as the previous value for the comparison.
-	     */
-	    Property.prototype.set = function (owner, value) {
-	        var oldValue;
-	        var hash = lookupHash(owner);
-	        if (this._pid in hash) {
-	            oldValue = hash[this._pid];
-	        }
-	        else {
-	            oldValue = hash[this._pid] = this._createValue(owner);
-	        }
-	        var newValue = this._coerceValue(owner, value);
-	        this._maybeNotify(owner, oldValue, hash[this._pid] = newValue);
-	    };
-	    /**
-	     * Explicitly coerce the current property value for a given owner.
-	     *
-	     * @param owner - The property owner of interest.
-	     *
-	     * #### Notes
-	     * If the value has not yet been set, the default value will be
-	     * computed and used as the previous value for the comparison.
-	     */
-	    Property.prototype.coerce = function (owner) {
-	        var oldValue;
-	        var hash = lookupHash(owner);
-	        if (this._pid in hash) {
-	            oldValue = hash[this._pid];
-	        }
-	        else {
-	            oldValue = hash[this._pid] = this._createValue(owner);
-	        }
-	        var newValue = this._coerceValue(owner, oldValue);
-	        this._maybeNotify(owner, oldValue, hash[this._pid] = newValue);
-	    };
-	    /**
-	     * Get or create the default value for the given owner.
-	     */
-	    Property.prototype._createValue = function (owner) {
-	        var create = this._create;
-	        return create ? create(owner) : this._value;
-	    };
-	    /**
-	     * Coerce the value for the given owner.
-	     */
-	    Property.prototype._coerceValue = function (owner, value) {
-	        var coerce = this._coerce;
-	        return coerce ? coerce(owner, value) : value;
-	    };
-	    /**
-	     * Compare the old value and new value for equality.
-	     */
-	    Property.prototype._compareValue = function (oldValue, newValue) {
-	        var compare = this._compare;
-	        return compare ? compare(oldValue, newValue) : oldValue === newValue;
-	    };
-	    /**
-	     * Run the change notification if the given values are different.
-	     */
-	    Property.prototype._maybeNotify = function (owner, oldValue, newValue) {
-	        var changed = this._changed;
-	        var notify = this._notify;
-	        if (!changed && !notify) {
-	            return;
-	        }
-	        if (this._compareValue(oldValue, newValue)) {
-	            return;
-	        }
-	        if (changed) {
-	            changed(owner, oldValue, newValue);
-	        }
-	        if (notify) {
-	            notify.bind(owner).emit({ name: this._name, oldValue: oldValue, newValue: newValue });
-	        }
-	    };
-	    return Property;
-	})();
-	exports.Property = Property;
-	/**
-	 * Clear the stored property data for the given property owner.
-	 *
-	 * @param owner - The property owner of interest.
-	 *
-	 * #### Notes
-	 * This will clear all property values for the owner, but it will
-	 * **not** run the change notification for any of the properties.
-	 */
-	function clearPropertyData(owner) {
-	    ownerData.delete(owner);
-	}
-	exports.clearPropertyData = clearPropertyData;
-	/**
-	 * A weak mapping of property owner to property hash.
-	 */
-	var ownerData = new WeakMap();
-	/**
-	 * A function which computes successive unique property ids.
-	 */
-	var nextPID = (function () { var id = 0; return function () { return 'pid-' + id++; }; })();
-	/**
-	 * Lookup the data hash for the property owner.
-	 *
-	 * This will create the hash if one does not already exist.
-	 */
-	function lookupHash(owner) {
-	    var hash = ownerData.get(owner);
-	    if (hash !== void 0)
-	        return hash;
-	    hash = Object.create(null);
-	    ownerData.set(owner, hash);
-	    return hash;
-	}
-	//# sourceMappingURL=index.js.map
-
-/***/ },
-/* 32 */
 /***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
@@ -36061,6 +36322,27 @@
 	//# sourceMappingURL=index.js.map
 
 /***/ },
+/* 32 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	function __export(m) {
+	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+	}
+	__export(__webpack_require__(33));
+	__export(__webpack_require__(41));
+	__export(__webpack_require__(39));
+	__webpack_require__(42);
+
+
+/***/ },
 /* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -36077,11 +36359,1460 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_messaging_1 = __webpack_require__(27);
-	var phosphor_nodewrapper_1 = __webpack_require__(34);
-	var phosphor_properties_1 = __webpack_require__(31);
-	var phosphor_signaling_1 = __webpack_require__(32);
-	var title_1 = __webpack_require__(35);
+	var phosphor_messaging_1 = __webpack_require__(34);
+	var phosphor_properties_1 = __webpack_require__(38);
+	var phosphor_signaling_1 = __webpack_require__(31);
+	var widget_1 = __webpack_require__(39);
+	/**
+	 * The abstract base class of all Phosphor layouts.
+	 *
+	 * #### Notes
+	 * A layout is used to add child widgets to a parent and to arrange
+	 * those children within the parent's node.
+	 *
+	 * This class must be subclassed to make a fully functioning layout.
+	 */
+	var Layout = (function () {
+	    function Layout() {
+	        this._disposed = false;
+	        this._parent = null;
+	    }
+	    /**
+	     * Dispose of the resources held by the layout.
+	     *
+	     * #### Notes
+	     * This method should be reimplemented by subclasses to dispose their
+	     * children. All reimplementations should call the superclass method.
+	     */
+	    Layout.prototype.dispose = function () {
+	        this._disposed = true;
+	        this._parent = null;
+	        phosphor_signaling_1.clearSignalData(this);
+	        phosphor_properties_1.clearPropertyData(this);
+	    };
+	    Object.defineProperty(Layout.prototype, "isDisposed", {
+	        /**
+	         * Test whether the layout is disposed.
+	         *
+	         * #### Notes
+	         * This is a read-only property.
+	         */
+	        get: function () {
+	            return this._disposed;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(Layout.prototype, "parent", {
+	        /**
+	         * Get the parent widget of the layout.
+	         */
+	        get: function () {
+	            return this._parent;
+	        },
+	        /**
+	         * Set the parent widget of the layout.
+	         *
+	         * #### Notes
+	         * This is set automatically when installing the layout on the parent
+	         * widget. The layout parent should not be set directly by user code.
+	         */
+	        set: function (value) {
+	            if (!value) {
+	                throw new Error('Cannot set layout parent to null.');
+	            }
+	            if (this._parent === value) {
+	                return;
+	            }
+	            if (this._parent) {
+	                throw new Error('Cannot change layout parent.');
+	            }
+	            if (value.layout !== this) {
+	                throw new Error('Invalid layout parent.');
+	            }
+	            this._parent = value;
+	            this.initialize();
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    /**
+	     * Process a message sent to the parent widget.
+	     *
+	     * @param msg - The message sent to the parent widget.
+	     *
+	     * #### Notes
+	     * This method is called by the parent to process a message.
+	     *
+	     * Subclasses may reimplement this method as needed.
+	     */
+	    Layout.prototype.processParentMessage = function (msg) {
+	        switch (msg.type) {
+	            case 'resize':
+	                this.onResize(msg);
+	                break;
+	            case 'update-request':
+	                this.onUpdateRequest(msg);
+	                break;
+	            case 'fit-request':
+	                this.onFitRequest(msg);
+	                break;
+	            case 'after-attach':
+	                this.onAfterAttach(msg);
+	                break;
+	            case 'before-detach':
+	                this.onBeforeDetach(msg);
+	                break;
+	            case 'after-show':
+	                this.onAfterShow(msg);
+	                break;
+	            case 'before-hide':
+	                this.onBeforeHide(msg);
+	                break;
+	            case 'child-removed':
+	                this.onChildRemoved(msg);
+	                break;
+	            case 'child-shown':
+	                this.onChildShown(msg);
+	                break;
+	            case 'child-hidden':
+	                this.onChildHidden(msg);
+	                break;
+	        }
+	    };
+	    /**
+	     * A message handler invoked on a `'fit-request'` message.
+	     *
+	     * The default implementation of this handler is a no-op.
+	     */
+	    Layout.prototype.onFitRequest = function (msg) { };
+	    /**
+	     * A message handler invoked on a `'child-shown'` message.
+	     *
+	     * The default implementation of this handler is a no-op.
+	     */
+	    Layout.prototype.onChildShown = function (msg) { };
+	    /**
+	     * A message handler invoked on a `'child-hidden'` message.
+	     *
+	     * The default implementation of this handler is a no-op.
+	     */
+	    Layout.prototype.onChildHidden = function (msg) { };
+	    return Layout;
+	})();
+	exports.Layout = Layout;
+	/**
+	 * An abstract base class for creating index-based layouts.
+	 *
+	 * #### Notes
+	 * This class implements core functionality which is required by nearly
+	 * all layouts. It is a good starting point for creating custom layouts
+	 * which control the types of children that may be added to the layout.
+	 *
+	 * This class must be subclassed to make a fully functioning layout.
+	 */
+	var AbstractLayout = (function (_super) {
+	    __extends(AbstractLayout, _super);
+	    function AbstractLayout() {
+	        _super.apply(this, arguments);
+	    }
+	    /**
+	     * Get the index of the specified child widget.
+	     *
+	     * @param child - The child widget of interest.
+	     *
+	     * @returns The index of the specified child, or `-1`.
+	     */
+	    AbstractLayout.prototype.childIndex = function (child) {
+	        for (var i = 0; i < this.childCount(); ++i) {
+	            if (this.childAt(i) === child)
+	                return i;
+	        }
+	        return -1;
+	    };
+	    /**
+	     * A message handler invoked on a `'resize'` message.
+	     *
+	     * #### Notes
+	     * The default implementation of this method sends an `UnknownSize`
+	     * resize message to all children.
+	     *
+	     * This may be reimplemented by subclasses as needed.
+	     */
+	    AbstractLayout.prototype.onResize = function (msg) {
+	        for (var i = 0; i < this.childCount(); ++i) {
+	            phosphor_messaging_1.sendMessage(this.childAt(i), widget_1.ResizeMessage.UnknownSize);
+	        }
+	    };
+	    /**
+	     * A message handler invoked on an `'update-request'` message.
+	     *
+	     * #### Notes
+	     * The default implementation of this method sends an `UnknownSize`
+	     * resize message to all children.
+	     *
+	     * This may be reimplemented by subclasses as needed.
+	     */
+	    AbstractLayout.prototype.onUpdateRequest = function (msg) {
+	        for (var i = 0; i < this.childCount(); ++i) {
+	            phosphor_messaging_1.sendMessage(this.childAt(i), widget_1.ResizeMessage.UnknownSize);
+	        }
+	    };
+	    /**
+	     * A message handler invoked on an `'after-attach'` message.
+	     *
+	     * #### Notes
+	     * The default implementation of this method forwards the message
+	     * to all children.
+	     *
+	     * This may be reimplemented by subclasses as needed.
+	     */
+	    AbstractLayout.prototype.onAfterAttach = function (msg) {
+	        for (var i = 0; i < this.childCount(); ++i) {
+	            phosphor_messaging_1.sendMessage(this.childAt(i), msg);
+	        }
+	    };
+	    /**
+	     * A message handler invoked on a `'before-detach'` message.
+	     *
+	     * #### Notes
+	     * The default implementation of this method forwards the message
+	     * to all children.
+	     *
+	     * This may be reimplemented by subclasses as needed.
+	     */
+	    AbstractLayout.prototype.onBeforeDetach = function (msg) {
+	        for (var i = 0; i < this.childCount(); ++i) {
+	            phosphor_messaging_1.sendMessage(this.childAt(i), msg);
+	        }
+	    };
+	    /**
+	     * A message handler invoked on an `'after-show'` message.
+	     *
+	     * #### Notes
+	     * The default implementation of this method forwards the message
+	     * to all non-hidden children.
+	     *
+	     * This may be reimplemented by subclasses as needed.
+	     */
+	    AbstractLayout.prototype.onAfterShow = function (msg) {
+	        for (var i = 0; i < this.childCount(); ++i) {
+	            var child = this.childAt(i);
+	            if (!child.isHidden)
+	                phosphor_messaging_1.sendMessage(child, msg);
+	        }
+	    };
+	    /**
+	     * A message handler invoked on a `'before-hide'` message.
+	     *
+	     * #### Notes
+	     * The default implementation of this method forwards the message
+	     * to all non-hidden children.
+	     *
+	     * This may be reimplemented by subclasses as needed.
+	     */
+	    AbstractLayout.prototype.onBeforeHide = function (msg) {
+	        for (var i = 0; i < this.childCount(); ++i) {
+	            var child = this.childAt(i);
+	            if (!child.isHidden)
+	                phosphor_messaging_1.sendMessage(child, msg);
+	        }
+	    };
+	    return AbstractLayout;
+	})(Layout);
+	exports.AbstractLayout = AbstractLayout;
+
+
+/***/ },
+/* 34 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(setImmediate) {/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	var phosphor_queue_1 = __webpack_require__(37);
+	/**
+	 * A message which can be sent or posted to a message handler.
+	 *
+	 * #### Notes
+	 * This class may be subclassed to create complex message types.
+	 *
+	 * **See Also** [[postMessage]] and [[sendMessage]].
+	 */
+	var Message = (function () {
+	    /**
+	     * Construct a new message.
+	     *
+	     * @param type - The type of the message. Consumers of a message will
+	     *   use this value to cast the message to the appropriately derived
+	     *   message type.
+	     */
+	    function Message(type) {
+	        this._type = type;
+	    }
+	    Object.defineProperty(Message.prototype, "type", {
+	        /**
+	         * Get the type of the message.
+	         */
+	        get: function () {
+	            return this._type;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    return Message;
+	})();
+	exports.Message = Message;
+	/**
+	 * Send a message to the message handler to process immediately.
+	 *
+	 * @param handler - The handler which should process the message.
+	 *
+	 * @param msg - The message to send to the handler.
+	 *
+	 * #### Notes
+	 * Unlike [[postMessage]], [[sendMessage]] delivers the message to
+	 * the handler immediately. The handler will not have the opportunity
+	 * to compress the message, however the message will still be sent
+	 * through any installed message filters.
+	 *
+	 * **See Also** [[postMessage]].
+	 */
+	function sendMessage(handler, msg) {
+	    getDispatcher(handler).sendMessage(handler, msg);
+	}
+	exports.sendMessage = sendMessage;
+	/**
+	 * Post a message to the message handler to process in the future.
+	 *
+	 * @param handler - The handler which should process the message.
+	 *
+	 * @param msg - The message to post to the handler.
+	 *
+	 * #### Notes
+	 * Unlike [[sendMessage]], [[postMessage]] will schedule the deliver of
+	 * the message for the next cycle of the event loop. The handler will
+	 * have the opportunity to compress the message in order to optimize
+	 * its handling of similar messages. The message will be sent through
+	 * any installed message filters before being delivered to the handler.
+	 *
+	 * **See Also** [[sendMessage]].
+	 */
+	function postMessage(handler, msg) {
+	    getDispatcher(handler).postMessage(handler, msg);
+	}
+	exports.postMessage = postMessage;
+	/**
+	 * Test whether a message handler has posted messages pending delivery.
+	 *
+	 * @param handler - The message handler of interest.
+	 *
+	 * @returns `true` if the handler has pending posted messages, `false`
+	 *   otherwise.
+	 *
+	 * **See Also** [[sendPendingMessage]].
+	 */
+	function hasPendingMessages(handler) {
+	    return getDispatcher(handler).hasPendingMessages();
+	}
+	exports.hasPendingMessages = hasPendingMessages;
+	/**
+	 * Send the first pending posted message to the message handler.
+	 *
+	 * @param handler - The message handler of interest.
+	 *
+	 * #### Notes
+	 * If the handler has no pending messages, this is a no-op.
+	 *
+	 * **See Also** [[hasPendingMessages]].
+	 */
+	function sendPendingMessage(handler) {
+	    getDispatcher(handler).sendPendingMessage(handler);
+	}
+	exports.sendPendingMessage = sendPendingMessage;
+	/**
+	 * Install a message filter for a message handler.
+	 *
+	 * A message filter is invoked before the message handler processes a
+	 * message. If the filter returns `true` from its [[filterMessage]] method,
+	 * no other filters will be invoked, and the message will not be delivered.
+	 *
+	 * The most recently installed message filter is executed first.
+	 *
+	 * @param handler - The handler whose messages should be filtered.
+	 *
+	 * @param filter - The filter to install for the handler.
+	 *
+	 * #### Notes
+	 * It is possible to install the same filter multiple times. If the
+	 * filter should be unique, call [[removeMessageFilter]] first.
+	 *
+	 * **See Also** [[removeMessageFilter]].
+	 */
+	function installMessageFilter(handler, filter) {
+	    getDispatcher(handler).installMessageFilter(filter);
+	}
+	exports.installMessageFilter = installMessageFilter;
+	/**
+	 * Remove a previously installed message filter for a message handler.
+	 *
+	 * @param handler - The handler for which the filter is installed.
+	 *
+	 * @param filter - The filter to remove.
+	 *
+	 * #### Notes
+	 * This will remove **all** occurrences of the filter. If the filter is
+	 * not installed, this is a no-op.
+	 *
+	 * It is safe to call this function while the filter is executing.
+	 *
+	 * **See Also** [[installMessageFilter]].
+	 */
+	function removeMessageFilter(handler, filter) {
+	    getDispatcher(handler).removeMessageFilter(filter);
+	}
+	exports.removeMessageFilter = removeMessageFilter;
+	/**
+	 * Clear all message data associated with the message handler.
+	 *
+	 * @param handler - The message handler for which to clear the data.
+	 *
+	 * #### Notes
+	 * This will remove all pending messages and filters for the handler.
+	 */
+	function clearMessageData(handler) {
+	    var dispatcher = dispatcherMap.get(handler);
+	    if (dispatcher)
+	        dispatcher.clear();
+	    dispatchQueue.removeAll(handler);
+	}
+	exports.clearMessageData = clearMessageData;
+	/**
+	 * The internal mapping of message handler to message dispatcher
+	 */
+	var dispatcherMap = new WeakMap();
+	/**
+	 * The internal queue of pending message handlers.
+	 */
+	var dispatchQueue = new phosphor_queue_1.Queue();
+	/**
+	 * The internal animation frame id for the message loop wake up call.
+	 */
+	var frameId = void 0;
+	/**
+	 * A local reference to an event loop hook.
+	 */
+	var raf;
+	if (typeof requestAnimationFrame === 'function') {
+	    raf = requestAnimationFrame;
+	}
+	else {
+	    raf = setImmediate;
+	}
+	/**
+	 * Get or create the message dispatcher for a message handler.
+	 */
+	function getDispatcher(handler) {
+	    var dispatcher = dispatcherMap.get(handler);
+	    if (dispatcher)
+	        return dispatcher;
+	    dispatcher = new MessageDispatcher();
+	    dispatcherMap.set(handler, dispatcher);
+	    return dispatcher;
+	}
+	/**
+	 * Wake up the message loop to process any pending dispatchers.
+	 *
+	 * This is a no-op if a wake up is not needed or is already pending.
+	 */
+	function wakeUpMessageLoop() {
+	    if (frameId === void 0 && !dispatchQueue.empty) {
+	        frameId = raf(runMessageLoop);
+	    }
+	}
+	/**
+	 * Run an iteration of the message loop.
+	 *
+	 * This will process all pending dispatchers in the queue. Dispatchers
+	 * which are added to the queue while the message loop is running will
+	 * be processed on the next message loop cycle.
+	 */
+	function runMessageLoop() {
+	    // Clear the frame id so the next wake up call can be scheduled.
+	    frameId = void 0;
+	    // If the queue is empty, there is nothing else to do.
+	    if (dispatchQueue.empty) {
+	        return;
+	    }
+	    // Add a null sentinel value to the end of the queue. The queue
+	    // will only be processed up to the first null value. This means
+	    // that messages posted during this cycle will execute on the next
+	    // cycle of the loop.
+	    dispatchQueue.push(null);
+	    // The message dispatch loop. If the dispatcher is the null sentinel,
+	    // the processing of the current block of messages is complete and
+	    // another loop is scheduled. Otherwise, the pending message is
+	    // dispatched to the message handler.
+	    while (!dispatchQueue.empty) {
+	        var handler = dispatchQueue.pop();
+	        if (handler === null) {
+	            wakeUpMessageLoop();
+	            return;
+	        }
+	        getDispatcher(handler).sendPendingMessage(handler);
+	    }
+	}
+	/**
+	 * Safely process a message for a message handler.
+	 *
+	 * If the handler throws an exception, it will be caught and logged.
+	 */
+	function safeProcess(handler, msg) {
+	    try {
+	        handler.processMessage(msg);
+	    }
+	    catch (err) {
+	        console.error(err);
+	    }
+	}
+	/**
+	 * Safely compress a message for a message handler.
+	 *
+	 * If the handler throws an exception, it will be caught and logged.
+	 */
+	function safeCompress(handler, msg, queue) {
+	    var result = false;
+	    try {
+	        result = handler.compressMessage(msg, queue);
+	    }
+	    catch (err) {
+	        console.error(err);
+	    }
+	    return result;
+	}
+	/**
+	 * Safely filter a message for a message handler.
+	 *
+	 * If the filter throws an exception, it will be caught and logged.
+	 */
+	function safeFilter(filter, handler, msg) {
+	    var result = false;
+	    try {
+	        result = filter.filterMessage(handler, msg);
+	    }
+	    catch (err) {
+	        console.error(err);
+	    }
+	    return result;
+	}
+	/**
+	 * An internal class which manages message dispatching for a handler.
+	 */
+	var MessageDispatcher = (function () {
+	    function MessageDispatcher() {
+	        this._filters = null;
+	        this._messages = null;
+	    }
+	    /**
+	     * Send a message to the handler immediately.
+	     *
+	     * The message will first be sent through installed filters.
+	     */
+	    MessageDispatcher.prototype.sendMessage = function (handler, msg) {
+	        if (!this._filterMessage(handler, msg)) {
+	            safeProcess(handler, msg);
+	        }
+	    };
+	    /**
+	     * Post a message for delivery in the future.
+	     *
+	     * The message will first be compressed if possible.
+	     */
+	    MessageDispatcher.prototype.postMessage = function (handler, msg) {
+	        if (!this._compressMessage(handler, msg)) {
+	            this._enqueueMessage(handler, msg);
+	        }
+	    };
+	    /**
+	     * Test whether the dispatcher has messages pending delivery.
+	     */
+	    MessageDispatcher.prototype.hasPendingMessages = function () {
+	        return !!(this._messages && !this._messages.empty);
+	    };
+	    /**
+	     * Send the first pending message to the message handler.
+	     */
+	    MessageDispatcher.prototype.sendPendingMessage = function (handler) {
+	        if (this._messages && !this._messages.empty) {
+	            this.sendMessage(handler, this._messages.pop());
+	        }
+	    };
+	    /**
+	     * Install a message filter for the dispatcher.
+	     */
+	    MessageDispatcher.prototype.installMessageFilter = function (filter) {
+	        this._filters = { next: this._filters, filter: filter };
+	    };
+	    /**
+	     * Remove all occurrences of a message filter from the dispatcher.
+	     */
+	    MessageDispatcher.prototype.removeMessageFilter = function (filter) {
+	        var link = this._filters;
+	        var prev = null;
+	        while (link !== null) {
+	            if (link.filter === filter) {
+	                link.filter = null;
+	            }
+	            else if (prev === null) {
+	                this._filters = link;
+	                prev = link;
+	            }
+	            else {
+	                prev.next = link;
+	                prev = link;
+	            }
+	            link = link.next;
+	        }
+	        if (!prev) {
+	            this._filters = null;
+	        }
+	        else {
+	            prev.next = null;
+	        }
+	    };
+	    /**
+	     * Clear all messages and filters from the dispatcher.
+	     */
+	    MessageDispatcher.prototype.clear = function () {
+	        if (this._messages) {
+	            this._messages.clear();
+	        }
+	        for (var link = this._filters; link !== null; link = link.next) {
+	            link.filter = null;
+	        }
+	        this._filters = null;
+	    };
+	    /**
+	     * Run the installed message filters for the handler.
+	     *
+	     * Returns `true` if the message was filtered, `false` otherwise.
+	     */
+	    MessageDispatcher.prototype._filterMessage = function (handler, msg) {
+	        for (var link = this._filters; link !== null; link = link.next) {
+	            if (link.filter && safeFilter(link.filter, handler, msg)) {
+	                return true;
+	            }
+	        }
+	        return false;
+	    };
+	    /**
+	     * Compress the mssage for the given handler.
+	     *
+	     * Returns `true` if the message was compressed, `false` otherwise.
+	     */
+	    MessageDispatcher.prototype._compressMessage = function (handler, msg) {
+	        if (!handler.compressMessage) {
+	            return false;
+	        }
+	        if (!this._messages || this._messages.empty) {
+	            return false;
+	        }
+	        return safeCompress(handler, msg, this._messages);
+	    };
+	    /**
+	     * Enqueue the message for future delivery to the handler.
+	     */
+	    MessageDispatcher.prototype._enqueueMessage = function (handler, msg) {
+	        this._ensureMessages().push(msg);
+	        dispatchQueue.push(handler);
+	        wakeUpMessageLoop();
+	    };
+	    /**
+	     * Get the internal message queue, creating it if needed.
+	     */
+	    MessageDispatcher.prototype._ensureMessages = function () {
+	        return this._messages || (this._messages = new phosphor_queue_1.Queue());
+	    };
+	    return MessageDispatcher;
+	})();
+	//# sourceMappingURL=index.js.map
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(35).setImmediate))
+
+/***/ },
+/* 35 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {var nextTick = __webpack_require__(36).nextTick;
+	var apply = Function.prototype.apply;
+	var slice = Array.prototype.slice;
+	var immediateIds = {};
+	var nextImmediateId = 0;
+
+	// DOM APIs, for completeness
+
+	exports.setTimeout = function() {
+	  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
+	};
+	exports.setInterval = function() {
+	  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
+	};
+	exports.clearTimeout =
+	exports.clearInterval = function(timeout) { timeout.close(); };
+
+	function Timeout(id, clearFn) {
+	  this._id = id;
+	  this._clearFn = clearFn;
+	}
+	Timeout.prototype.unref = Timeout.prototype.ref = function() {};
+	Timeout.prototype.close = function() {
+	  this._clearFn.call(window, this._id);
+	};
+
+	// Does not start the time, just sets up the members needed.
+	exports.enroll = function(item, msecs) {
+	  clearTimeout(item._idleTimeoutId);
+	  item._idleTimeout = msecs;
+	};
+
+	exports.unenroll = function(item) {
+	  clearTimeout(item._idleTimeoutId);
+	  item._idleTimeout = -1;
+	};
+
+	exports._unrefActive = exports.active = function(item) {
+	  clearTimeout(item._idleTimeoutId);
+
+	  var msecs = item._idleTimeout;
+	  if (msecs >= 0) {
+	    item._idleTimeoutId = setTimeout(function onTimeout() {
+	      if (item._onTimeout)
+	        item._onTimeout();
+	    }, msecs);
+	  }
+	};
+
+	// That's not how node.js implements it but the exposed api is the same.
+	exports.setImmediate = typeof setImmediate === "function" ? setImmediate : function(fn) {
+	  var id = nextImmediateId++;
+	  var args = arguments.length < 2 ? false : slice.call(arguments, 1);
+
+	  immediateIds[id] = true;
+
+	  nextTick(function onNextTick() {
+	    if (immediateIds[id]) {
+	      // fn.call() is faster so we optimize for the common use-case
+	      // @see http://jsperf.com/call-apply-segu
+	      if (args) {
+	        fn.apply(null, args);
+	      } else {
+	        fn.call(null);
+	      }
+	      // Prevent ids from leaking
+	      exports.clearImmediate(id);
+	    }
+	  });
+
+	  return id;
+	};
+
+	exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
+	  delete immediateIds[id];
+	};
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(35).setImmediate, __webpack_require__(35).clearImmediate))
+
+/***/ },
+/* 36 */
+/***/ function(module, exports) {
+
+	// shim for using process in browser
+
+	var process = module.exports = {};
+	var queue = [];
+	var draining = false;
+	var currentQueue;
+	var queueIndex = -1;
+
+	function cleanUpNextTick() {
+	    draining = false;
+	    if (currentQueue.length) {
+	        queue = currentQueue.concat(queue);
+	    } else {
+	        queueIndex = -1;
+	    }
+	    if (queue.length) {
+	        drainQueue();
+	    }
+	}
+
+	function drainQueue() {
+	    if (draining) {
+	        return;
+	    }
+	    var timeout = setTimeout(cleanUpNextTick);
+	    draining = true;
+
+	    var len = queue.length;
+	    while(len) {
+	        currentQueue = queue;
+	        queue = [];
+	        while (++queueIndex < len) {
+	            if (currentQueue) {
+	                currentQueue[queueIndex].run();
+	            }
+	        }
+	        queueIndex = -1;
+	        len = queue.length;
+	    }
+	    currentQueue = null;
+	    draining = false;
+	    clearTimeout(timeout);
+	}
+
+	process.nextTick = function (fun) {
+	    var args = new Array(arguments.length - 1);
+	    if (arguments.length > 1) {
+	        for (var i = 1; i < arguments.length; i++) {
+	            args[i - 1] = arguments[i];
+	        }
+	    }
+	    queue.push(new Item(fun, args));
+	    if (queue.length === 1 && !draining) {
+	        setTimeout(drainQueue, 0);
+	    }
+	};
+
+	// v8 likes predictible objects
+	function Item(fun, array) {
+	    this.fun = fun;
+	    this.array = array;
+	}
+	Item.prototype.run = function () {
+	    this.fun.apply(null, this.array);
+	};
+	process.title = 'browser';
+	process.browser = true;
+	process.env = {};
+	process.argv = [];
+	process.version = ''; // empty string to avoid regexp issues
+	process.versions = {};
+
+	function noop() {}
+
+	process.on = noop;
+	process.addListener = noop;
+	process.once = noop;
+	process.off = noop;
+	process.removeListener = noop;
+	process.removeAllListeners = noop;
+	process.emit = noop;
+
+	process.binding = function (name) {
+	    throw new Error('process.binding is not supported');
+	};
+
+	process.cwd = function () { return '/' };
+	process.chdir = function (dir) {
+	    throw new Error('process.chdir is not supported');
+	};
+	process.umask = function() { return 0; };
+
+
+/***/ },
+/* 37 */
+/***/ function(module, exports) {
+
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	/**
+	 * A generic FIFO queue data structure.
+	 *
+	 * #### Notes
+	 * This queue is implemented internally using a singly linked list and
+	 * can grow to arbitrary size.
+	 *
+	 * #### Example
+	 * ```typescript
+	 * let q = new Queue<number>([0, 1, 2]);
+	 * q.size;      // 3
+	 * q.empty;     // false
+	 * q.pop();     // 0
+	 * q.pop();     // 1
+	 * q.push(42);  // undefined
+	 * q.size;      // 2
+	 * q.pop();     // 2
+	 * q.pop();     // 42
+	 * q.pop();     // undefined
+	 * q.size;      // 0
+	 * q.empty;     // true
+	 * ```
+	 */
+	var Queue = (function () {
+	    /**
+	     * Construct a new queue.
+	     *
+	     * @param items - The initial items for the queue.
+	     */
+	    function Queue(items) {
+	        var _this = this;
+	        this._size = 0;
+	        this._front = null;
+	        this._back = null;
+	        if (items)
+	            items.forEach(function (item) { return _this.push(item); });
+	    }
+	    Object.defineProperty(Queue.prototype, "size", {
+	        /**
+	         * Get the number of elements in the queue.
+	         *
+	         * #### Notes
+	         * This has `O(1)` complexity.
+	         */
+	        get: function () {
+	            return this._size;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(Queue.prototype, "empty", {
+	        /**
+	         * Test whether the queue is empty.
+	         *
+	         * #### Notes
+	         * This has `O(1)` complexity.
+	         */
+	        get: function () {
+	            return this._size === 0;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(Queue.prototype, "front", {
+	        /**
+	         * Get the value at the front of the queue.
+	         *
+	         * #### Notes
+	         * This has `O(1)` complexity.
+	         *
+	         * If the queue is empty, this value will be `undefined`.
+	         */
+	        get: function () {
+	            return this._front !== null ? this._front.value : void 0;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(Queue.prototype, "back", {
+	        /**
+	         * Get the value at the back of the queue.
+	         *
+	         * #### Notes
+	         * This has `O(1)` complexity.
+	         *
+	         * If the queue is empty, this value will be `undefined`.
+	         */
+	        get: function () {
+	            return this._back !== null ? this._back.value : void 0;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    /**
+	     * Push a value onto the back of the queue.
+	     *
+	     * @param value - The value to add to the queue.
+	     *
+	     * #### Notes
+	     * This has `O(1)` complexity.
+	     */
+	    Queue.prototype.push = function (value) {
+	        var link = { next: null, value: value };
+	        if (this._back === null) {
+	            this._front = link;
+	            this._back = link;
+	        }
+	        else {
+	            this._back.next = link;
+	            this._back = link;
+	        }
+	        this._size++;
+	    };
+	    /**
+	     * Pop and return the value at the front of the queue.
+	     *
+	     * @returns The value at the front of the queue.
+	     *
+	     * #### Notes
+	     * This has `O(1)` complexity.
+	     *
+	     * If the queue is empty, the return value will be `undefined`.
+	     */
+	    Queue.prototype.pop = function () {
+	        var link = this._front;
+	        if (link === null) {
+	            return void 0;
+	        }
+	        if (link.next === null) {
+	            this._front = null;
+	            this._back = null;
+	        }
+	        else {
+	            this._front = link.next;
+	        }
+	        this._size--;
+	        return link.value;
+	    };
+	    /**
+	     * Remove the first occurrence of a value from the queue.
+	     *
+	     * @param value - The value to remove from the queue.
+	     *
+	     * @returns `true` on success, `false` otherwise.
+	     *
+	     * #### Notes
+	     * This has `O(N)` complexity.
+	     */
+	    Queue.prototype.remove = function (value) {
+	        var link = this._front;
+	        var prev = null;
+	        while (link !== null) {
+	            if (link.value === value) {
+	                if (prev === null) {
+	                    this._front = link.next;
+	                }
+	                else {
+	                    prev.next = link.next;
+	                }
+	                if (link.next === null) {
+	                    this._back = prev;
+	                }
+	                this._size--;
+	                return true;
+	            }
+	            prev = link;
+	            link = link.next;
+	        }
+	        return false;
+	    };
+	    /**
+	     * Remove all occurrences of a value from the queue.
+	     *
+	     * @param value - The value to remove from the queue.
+	     *
+	     * @returns The number of occurrences removed.
+	     *
+	     * #### Notes
+	     * This has `O(N)` complexity.
+	     */
+	    Queue.prototype.removeAll = function (value) {
+	        var count = 0;
+	        var link = this._front;
+	        var prev = null;
+	        while (link !== null) {
+	            if (link.value === value) {
+	                count++;
+	                this._size--;
+	            }
+	            else if (prev === null) {
+	                this._front = link;
+	                prev = link;
+	            }
+	            else {
+	                prev.next = link;
+	                prev = link;
+	            }
+	            link = link.next;
+	        }
+	        if (!prev) {
+	            this._front = null;
+	            this._back = null;
+	        }
+	        else {
+	            prev.next = null;
+	            this._back = prev;
+	        }
+	        return count;
+	    };
+	    /**
+	     * Remove all values from the queue.
+	     *
+	     * #### Notes
+	     * This has `O(1)` complexity.
+	     */
+	    Queue.prototype.clear = function () {
+	        this._size = 0;
+	        this._front = null;
+	        this._back = null;
+	    };
+	    /**
+	     * Create an array from the values in the queue.
+	     *
+	     * @returns An array of all values in the queue.
+	     *
+	     * #### Notes
+	     * This has `O(N)` complexity.
+	     */
+	    Queue.prototype.toArray = function () {
+	        var result = new Array(this._size);
+	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
+	            result[i] = link.value;
+	        }
+	        return result;
+	    };
+	    /**
+	     * Test whether any value in the queue passes a predicate function.
+	     *
+	     * @param pred - The predicate to apply to the values.
+	     *
+	     * @returns `true` if any value in the queue passes the predicate,
+	     *   or `false` otherwise.
+	     *
+	     * #### Notes
+	     * This has `O(N)` complexity.
+	     *
+	     * It is **not** safe for the predicate to modify the queue while
+	     * iterating.
+	     */
+	    Queue.prototype.some = function (pred) {
+	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
+	            if (pred(link.value, i))
+	                return true;
+	        }
+	        return false;
+	    };
+	    /**
+	     * Test whether all values in the queue pass a predicate function.
+	     *
+	     * @param pred - The predicate to apply to the values.
+	     *
+	     * @returns `true` if all values in the queue pass the predicate,
+	     *   or `false` otherwise.
+	     *
+	     * #### Notes
+	     * This has `O(N)` complexity.
+	     *
+	     * It is **not** safe for the predicate to modify the queue while
+	     * iterating.
+	     */
+	    Queue.prototype.every = function (pred) {
+	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
+	            if (!pred(link.value, i))
+	                return false;
+	        }
+	        return true;
+	    };
+	    /**
+	     * Create an array of the values which pass a predicate function.
+	     *
+	     * @param pred - The predicate to apply to the values.
+	     *
+	     * @returns The array of values which pass the predicate.
+	     *
+	     * #### Notes
+	     * This has `O(N)` complexity.
+	     *
+	     * It is **not** safe for the predicate to modify the queue while
+	     * iterating.
+	     */
+	    Queue.prototype.filter = function (pred) {
+	        var result = [];
+	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
+	            if (pred(link.value, i))
+	                result.push(link.value);
+	        }
+	        return result;
+	    };
+	    /**
+	     * Create an array of mapped values for the values in the queue.
+	     *
+	     * @param callback - The map function to apply to the values.
+	     *
+	     * @returns The array of values returned by the map function.
+	     *
+	     * #### Notes
+	     * This has `O(N)` complexity.
+	     *
+	     * It is **not** safe for the callback to modify the queue while
+	     * iterating.
+	     */
+	    Queue.prototype.map = function (callback) {
+	        var result = new Array(this._size);
+	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
+	            result[i] = callback(link.value, i);
+	        }
+	        return result;
+	    };
+	    /**
+	     * Execute a callback for each value in the queue.
+	     *
+	     * @param callback - The function to apply to the values.
+	     *
+	     * @returns The first value returned by the callback which is not
+	     *   `undefined`.
+	     *
+	     * #### Notes
+	     * This has `O(N)` complexity.
+	     *
+	     * Iteration will terminate immediately if the callback returns any
+	     * value other than `undefined`.
+	     *
+	     * It is **not** safe for the callback to modify the queue while
+	     * iterating.
+	     */
+	    Queue.prototype.forEach = function (callback) {
+	        for (var i = 0, link = this._front; link !== null; link = link.next, ++i) {
+	            var result = callback(link.value, i);
+	            if (result !== void 0)
+	                return result;
+	        }
+	        return void 0;
+	    };
+	    return Queue;
+	})();
+	exports.Queue = Queue;
+	//# sourceMappingURL=index.js.map
+
+/***/ },
+/* 38 */
+/***/ function(module, exports) {
+
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	/**
+	 * A property descriptor for a datum belonging to an object.
+	 *
+	 * Property descriptors can be used to expose a rich interface for an
+	 * object which encapsulates value creation, coercion, and notification.
+	 * They can also be used to extend the state of an object with semantic
+	 * data from an unrelated class.
+	 */
+	var Property = (function () {
+	    /**
+	     * Construct a new property descriptor.
+	     *
+	     * @param options - The options for initializing the property.
+	     */
+	    function Property(options) {
+	        this._pid = nextPID();
+	        this._name = options.name;
+	        this._value = options.value;
+	        this._create = options.create;
+	        this._coerce = options.coerce;
+	        this._compare = options.compare;
+	        this._changed = options.changed;
+	        this._notify = options.notify;
+	    }
+	    Object.defineProperty(Property.prototype, "name", {
+	        /**
+	         * Get the human readable name for the property.
+	         *
+	         * #### Notes
+	         * This is a read-only property.
+	         */
+	        get: function () {
+	            return this._name;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(Property.prototype, "notify", {
+	        /**
+	         * Get the notify signal for the property.
+	         *
+	         * #### Notes
+	         * This will be `undefined` if no notify signal was provided.
+	         *
+	         * This is a read-only property.
+	         */
+	        get: function () {
+	            return this._notify;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    /**
+	     * Get the current value of the property for a given owner.
+	     *
+	     * @param owner - The property owner of interest.
+	     *
+	     * @returns The current value of the property.
+	     *
+	     * #### Notes
+	     * If the value has not yet been set, the default value will be
+	     * computed and assigned as the current value of the property.
+	     */
+	    Property.prototype.get = function (owner) {
+	        var value;
+	        var hash = lookupHash(owner);
+	        if (this._pid in hash) {
+	            value = hash[this._pid];
+	        }
+	        else {
+	            value = hash[this._pid] = this._createValue(owner);
+	        }
+	        return value;
+	    };
+	    /**
+	     * Set the current value of the property for a given owner.
+	     *
+	     * @param owner - The property owner of interest.
+	     *
+	     * @param value - The value for the property.
+	     *
+	     * #### Notes
+	     * If the value has not yet been set, the default value will be
+	     * computed and used as the previous value for the comparison.
+	     */
+	    Property.prototype.set = function (owner, value) {
+	        var oldValue;
+	        var hash = lookupHash(owner);
+	        if (this._pid in hash) {
+	            oldValue = hash[this._pid];
+	        }
+	        else {
+	            oldValue = hash[this._pid] = this._createValue(owner);
+	        }
+	        var newValue = this._coerceValue(owner, value);
+	        this._maybeNotify(owner, oldValue, hash[this._pid] = newValue);
+	    };
+	    /**
+	     * Explicitly coerce the current property value for a given owner.
+	     *
+	     * @param owner - The property owner of interest.
+	     *
+	     * #### Notes
+	     * If the value has not yet been set, the default value will be
+	     * computed and used as the previous value for the comparison.
+	     */
+	    Property.prototype.coerce = function (owner) {
+	        var oldValue;
+	        var hash = lookupHash(owner);
+	        if (this._pid in hash) {
+	            oldValue = hash[this._pid];
+	        }
+	        else {
+	            oldValue = hash[this._pid] = this._createValue(owner);
+	        }
+	        var newValue = this._coerceValue(owner, oldValue);
+	        this._maybeNotify(owner, oldValue, hash[this._pid] = newValue);
+	    };
+	    /**
+	     * Get or create the default value for the given owner.
+	     */
+	    Property.prototype._createValue = function (owner) {
+	        var create = this._create;
+	        return create ? create(owner) : this._value;
+	    };
+	    /**
+	     * Coerce the value for the given owner.
+	     */
+	    Property.prototype._coerceValue = function (owner, value) {
+	        var coerce = this._coerce;
+	        return coerce ? coerce(owner, value) : value;
+	    };
+	    /**
+	     * Compare the old value and new value for equality.
+	     */
+	    Property.prototype._compareValue = function (oldValue, newValue) {
+	        var compare = this._compare;
+	        return compare ? compare(oldValue, newValue) : oldValue === newValue;
+	    };
+	    /**
+	     * Run the change notification if the given values are different.
+	     */
+	    Property.prototype._maybeNotify = function (owner, oldValue, newValue) {
+	        var changed = this._changed;
+	        var notify = this._notify;
+	        if (!changed && !notify) {
+	            return;
+	        }
+	        if (this._compareValue(oldValue, newValue)) {
+	            return;
+	        }
+	        if (changed) {
+	            changed(owner, oldValue, newValue);
+	        }
+	        if (notify) {
+	            notify.bind(owner).emit({ name: this._name, oldValue: oldValue, newValue: newValue });
+	        }
+	    };
+	    return Property;
+	})();
+	exports.Property = Property;
+	/**
+	 * Clear the stored property data for the given property owner.
+	 *
+	 * @param owner - The property owner of interest.
+	 *
+	 * #### Notes
+	 * This will clear all property values for the owner, but it will
+	 * **not** run the change notification for any of the properties.
+	 */
+	function clearPropertyData(owner) {
+	    ownerData.delete(owner);
+	}
+	exports.clearPropertyData = clearPropertyData;
+	/**
+	 * A weak mapping of property owner to property hash.
+	 */
+	var ownerData = new WeakMap();
+	/**
+	 * A function which computes successive unique property ids.
+	 */
+	var nextPID = (function () { var id = 0; return function () { return 'pid-' + id++; }; })();
+	/**
+	 * Lookup the data hash for the property owner.
+	 *
+	 * This will create the hash if one does not already exist.
+	 */
+	function lookupHash(owner) {
+	    var hash = ownerData.get(owner);
+	    if (hash !== void 0)
+	        return hash;
+	    hash = Object.create(null);
+	    ownerData.set(owner, hash);
+	    return hash;
+	}
+	//# sourceMappingURL=index.js.map
+
+/***/ },
+/* 39 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var phosphor_messaging_1 = __webpack_require__(34);
+	var phosphor_nodewrapper_1 = __webpack_require__(40);
+	var phosphor_properties_1 = __webpack_require__(38);
+	var phosphor_signaling_1 = __webpack_require__(31);
+	var title_1 = __webpack_require__(41);
 	/**
 	 * The class name added to Widget instances.
 	 */
@@ -36870,7 +38601,7 @@
 
 
 /***/ },
-/* 34 */
+/* 40 */
 /***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
@@ -37002,7 +38733,7 @@
 
 
 /***/ },
-/* 35 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -37013,8 +38744,8 @@
 	| The full license is in the file LICENSE, distributed with this software.
 	|----------------------------------------------------------------------------*/
 	'use strict';
-	var phosphor_properties_1 = __webpack_require__(31);
-	var phosphor_signaling_1 = __webpack_require__(32);
+	var phosphor_properties_1 = __webpack_require__(38);
+	var phosphor_signaling_1 = __webpack_require__(31);
 	/**
 	 * An object which holds data related to a widget title.
 	 *
@@ -37194,16 +38925,16 @@
 
 
 /***/ },
-/* 36 */
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(37);
+	var content = __webpack_require__(43);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(39)(content, {});
+	var update = __webpack_require__(30)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -37220,10 +38951,10 @@
 	}
 
 /***/ },
-/* 37 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(38)();
+	exports = module.exports = __webpack_require__(29)();
 	// imports
 
 
@@ -37234,336 +38965,7 @@
 
 
 /***/ },
-/* 38 */
-/***/ function(module, exports) {
-
-	/*
-		MIT License http://www.opensource.org/licenses/mit-license.php
-		Author Tobias Koppers @sokra
-	*/
-	// css base code, injected by the css-loader
-	module.exports = function() {
-		var list = [];
-
-		// return the list of modules as css string
-		list.toString = function toString() {
-			var result = [];
-			for(var i = 0; i < this.length; i++) {
-				var item = this[i];
-				if(item[2]) {
-					result.push("@media " + item[2] + "{" + item[1] + "}");
-				} else {
-					result.push(item[1]);
-				}
-			}
-			return result.join("");
-		};
-
-		// import a list of modules into the list
-		list.i = function(modules, mediaQuery) {
-			if(typeof modules === "string")
-				modules = [[null, modules, ""]];
-			var alreadyImportedModules = {};
-			for(var i = 0; i < this.length; i++) {
-				var id = this[i][0];
-				if(typeof id === "number")
-					alreadyImportedModules[id] = true;
-			}
-			for(i = 0; i < modules.length; i++) {
-				var item = modules[i];
-				// skip already imported module
-				// this implementation is not 100% perfect for weird media query combinations
-				//  when a module is imported multiple times with different media queries.
-				//  I hope this will never occur (Hey this way we have smaller bundles)
-				if(typeof item[0] !== "number" || !alreadyImportedModules[item[0]]) {
-					if(mediaQuery && !item[2]) {
-						item[2] = mediaQuery;
-					} else if(mediaQuery) {
-						item[2] = "(" + item[2] + ") and (" + mediaQuery + ")";
-					}
-					list.push(item);
-				}
-			}
-		};
-		return list;
-	};
-
-
-/***/ },
-/* 39 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/*
-		MIT License http://www.opensource.org/licenses/mit-license.php
-		Author Tobias Koppers @sokra
-	*/
-	var stylesInDom = {},
-		memoize = function(fn) {
-			var memo;
-			return function () {
-				if (typeof memo === "undefined") memo = fn.apply(this, arguments);
-				return memo;
-			};
-		},
-		isOldIE = memoize(function() {
-			return /msie [6-9]\b/.test(window.navigator.userAgent.toLowerCase());
-		}),
-		getHeadElement = memoize(function () {
-			return document.head || document.getElementsByTagName("head")[0];
-		}),
-		singletonElement = null,
-		singletonCounter = 0,
-		styleElementsInsertedAtTop = [];
-
-	module.exports = function(list, options) {
-		if(true) {
-			if(typeof document !== "object") throw new Error("The style-loader cannot be used in a non-browser environment");
-		}
-
-		options = options || {};
-		// Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
-		// tags it will allow on a page
-		if (typeof options.singleton === "undefined") options.singleton = isOldIE();
-
-		// By default, add <style> tags to the bottom of <head>.
-		if (typeof options.insertAt === "undefined") options.insertAt = "bottom";
-
-		var styles = listToStyles(list);
-		addStylesToDom(styles, options);
-
-		return function update(newList) {
-			var mayRemove = [];
-			for(var i = 0; i < styles.length; i++) {
-				var item = styles[i];
-				var domStyle = stylesInDom[item.id];
-				domStyle.refs--;
-				mayRemove.push(domStyle);
-			}
-			if(newList) {
-				var newStyles = listToStyles(newList);
-				addStylesToDom(newStyles, options);
-			}
-			for(var i = 0; i < mayRemove.length; i++) {
-				var domStyle = mayRemove[i];
-				if(domStyle.refs === 0) {
-					for(var j = 0; j < domStyle.parts.length; j++)
-						domStyle.parts[j]();
-					delete stylesInDom[domStyle.id];
-				}
-			}
-		};
-	}
-
-	function addStylesToDom(styles, options) {
-		for(var i = 0; i < styles.length; i++) {
-			var item = styles[i];
-			var domStyle = stylesInDom[item.id];
-			if(domStyle) {
-				domStyle.refs++;
-				for(var j = 0; j < domStyle.parts.length; j++) {
-					domStyle.parts[j](item.parts[j]);
-				}
-				for(; j < item.parts.length; j++) {
-					domStyle.parts.push(addStyle(item.parts[j], options));
-				}
-			} else {
-				var parts = [];
-				for(var j = 0; j < item.parts.length; j++) {
-					parts.push(addStyle(item.parts[j], options));
-				}
-				stylesInDom[item.id] = {id: item.id, refs: 1, parts: parts};
-			}
-		}
-	}
-
-	function listToStyles(list) {
-		var styles = [];
-		var newStyles = {};
-		for(var i = 0; i < list.length; i++) {
-			var item = list[i];
-			var id = item[0];
-			var css = item[1];
-			var media = item[2];
-			var sourceMap = item[3];
-			var part = {css: css, media: media, sourceMap: sourceMap};
-			if(!newStyles[id])
-				styles.push(newStyles[id] = {id: id, parts: [part]});
-			else
-				newStyles[id].parts.push(part);
-		}
-		return styles;
-	}
-
-	function insertStyleElement(options, styleElement) {
-		var head = getHeadElement();
-		var lastStyleElementInsertedAtTop = styleElementsInsertedAtTop[styleElementsInsertedAtTop.length - 1];
-		if (options.insertAt === "top") {
-			if(!lastStyleElementInsertedAtTop) {
-				head.insertBefore(styleElement, head.firstChild);
-			} else if(lastStyleElementInsertedAtTop.nextSibling) {
-				head.insertBefore(styleElement, lastStyleElementInsertedAtTop.nextSibling);
-			} else {
-				head.appendChild(styleElement);
-			}
-			styleElementsInsertedAtTop.push(styleElement);
-		} else if (options.insertAt === "bottom") {
-			head.appendChild(styleElement);
-		} else {
-			throw new Error("Invalid value for parameter 'insertAt'. Must be 'top' or 'bottom'.");
-		}
-	}
-
-	function removeStyleElement(styleElement) {
-		styleElement.parentNode.removeChild(styleElement);
-		var idx = styleElementsInsertedAtTop.indexOf(styleElement);
-		if(idx >= 0) {
-			styleElementsInsertedAtTop.splice(idx, 1);
-		}
-	}
-
-	function createStyleElement(options) {
-		var styleElement = document.createElement("style");
-		styleElement.type = "text/css";
-		insertStyleElement(options, styleElement);
-		return styleElement;
-	}
-
-	function createLinkElement(options) {
-		var linkElement = document.createElement("link");
-		linkElement.rel = "stylesheet";
-		insertStyleElement(options, linkElement);
-		return linkElement;
-	}
-
-	function addStyle(obj, options) {
-		var styleElement, update, remove;
-
-		if (options.singleton) {
-			var styleIndex = singletonCounter++;
-			styleElement = singletonElement || (singletonElement = createStyleElement(options));
-			update = applyToSingletonTag.bind(null, styleElement, styleIndex, false);
-			remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true);
-		} else if(obj.sourceMap &&
-			typeof URL === "function" &&
-			typeof URL.createObjectURL === "function" &&
-			typeof URL.revokeObjectURL === "function" &&
-			typeof Blob === "function" &&
-			typeof btoa === "function") {
-			styleElement = createLinkElement(options);
-			update = updateLink.bind(null, styleElement);
-			remove = function() {
-				removeStyleElement(styleElement);
-				if(styleElement.href)
-					URL.revokeObjectURL(styleElement.href);
-			};
-		} else {
-			styleElement = createStyleElement(options);
-			update = applyToTag.bind(null, styleElement);
-			remove = function() {
-				removeStyleElement(styleElement);
-			};
-		}
-
-		update(obj);
-
-		return function updateStyle(newObj) {
-			if(newObj) {
-				if(newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap)
-					return;
-				update(obj = newObj);
-			} else {
-				remove();
-			}
-		};
-	}
-
-	var replaceText = (function () {
-		var textStore = [];
-
-		return function (index, replacement) {
-			textStore[index] = replacement;
-			return textStore.filter(Boolean).join('\n');
-		};
-	})();
-
-	function applyToSingletonTag(styleElement, index, remove, obj) {
-		var css = remove ? "" : obj.css;
-
-		if (styleElement.styleSheet) {
-			styleElement.styleSheet.cssText = replaceText(index, css);
-		} else {
-			var cssNode = document.createTextNode(css);
-			var childNodes = styleElement.childNodes;
-			if (childNodes[index]) styleElement.removeChild(childNodes[index]);
-			if (childNodes.length) {
-				styleElement.insertBefore(cssNode, childNodes[index]);
-			} else {
-				styleElement.appendChild(cssNode);
-			}
-		}
-	}
-
-	function applyToTag(styleElement, obj) {
-		var css = obj.css;
-		var media = obj.media;
-		var sourceMap = obj.sourceMap;
-
-		if(media) {
-			styleElement.setAttribute("media", media)
-		}
-
-		if(styleElement.styleSheet) {
-			styleElement.styleSheet.cssText = css;
-		} else {
-			while(styleElement.firstChild) {
-				styleElement.removeChild(styleElement.firstChild);
-			}
-			styleElement.appendChild(document.createTextNode(css));
-		}
-	}
-
-	function updateLink(linkElement, obj) {
-		var css = obj.css;
-		var media = obj.media;
-		var sourceMap = obj.sourceMap;
-
-		if(sourceMap) {
-			// http://stackoverflow.com/a/26603875
-			css += "\n/*# sourceMappingURL=data:application/json;base64," + btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))) + " */";
-		}
-
-		var blob = new Blob([css], { type: "text/css" });
-
-		var oldSrc = linkElement.href;
-
-		linkElement.href = URL.createObjectURL(blob);
-
-		if(oldSrc)
-			URL.revokeObjectURL(oldSrc);
-	}
-
-
-/***/ },
-/* 40 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/*-----------------------------------------------------------------------------
-	| Copyright (c) 2014-2015, PhosphorJS Contributors
-	|
-	| Distributed under the terms of the BSD 3-Clause License.
-	|
-	| The full license is in the file LICENSE, distributed with this software.
-	|----------------------------------------------------------------------------*/
-	'use strict';
-	function __export(m) {
-	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-	}
-	__export(__webpack_require__(41));
-	__export(__webpack_require__(51));
-
-
-/***/ },
-/* 41 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -37579,13 +38981,301 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var arrays = __webpack_require__(42);
-	var phosphor_boxengine_1 = __webpack_require__(43);
-	var phosphor_domutil_1 = __webpack_require__(44);
-	var phosphor_messaging_1 = __webpack_require__(27);
-	var phosphor_properties_1 = __webpack_require__(31);
+	var phosphor_boxpanel_1 = __webpack_require__(45);
+	var phosphor_stackedpanel_1 = __webpack_require__(52);
+	var phosphor_widget_1 = __webpack_require__(32);
+	var tabbar_1 = __webpack_require__(23);
+	/**
+	 * The class name added to TabPanel instances.
+	 */
+	var TAB_PANEL_CLASS = 'p-TabPanel';
+	/**
+	 * The class name added to a TabPanel's tab bar.
+	 */
+	var TAB_BAR_CLASS = 'p-TabPanel-tabBar';
+	/**
+	 * The class name added to a TabPanel's stacked panel.
+	 */
+	var STACKED_PANEL_CLASS = 'p-TabPanel-stackedPanel';
+	/**
+	 * A widget which combines a `TabBar` and a `StackedPanel`.
+	 *
+	 * #### Notes
+	 * This is a simple panel which handles the common case of a tab bar
+	 * placed above a content area. The selected tab controls the widget
+	 * which is shown in the content area.
+	 *
+	 * For use cases which require more control than is provided by this
+	 * panel, the `TabBar` widget may be used independently.
+	 */
+	var TabPanel = (function (_super) {
+	    __extends(TabPanel, _super);
+	    /**
+	     * Construct a new tab panel.
+	     */
+	    function TabPanel() {
+	        _super.call(this);
+	        this._currentWidget = null;
+	        this.addClass(TAB_PANEL_CLASS);
+	        var constructor = this.constructor;
+	        this._tabBar = constructor.createTabBar();
+	        this._stackedPanel = constructor.createStackedPanel();
+	        this._tabBar.tabMoved.connect(this._onTabMoved, this);
+	        this._tabBar.currentChanged.connect(this._onCurrentChanged, this);
+	        this._tabBar.tabCloseRequested.connect(this._onTabCloseRequested, this);
+	        this._stackedPanel.widgetRemoved.connect(this._onWidgetRemoved, this);
+	        var layout = new phosphor_boxpanel_1.BoxLayout();
+	        layout.direction = phosphor_boxpanel_1.BoxLayout.TopToBottom;
+	        layout.spacing = 0;
+	        phosphor_boxpanel_1.BoxLayout.setStretch(this._tabBar, 0);
+	        phosphor_boxpanel_1.BoxLayout.setStretch(this._stackedPanel, 1);
+	        layout.addChild(this._tabBar);
+	        layout.addChild(this._stackedPanel);
+	        this.layout = layout;
+	    }
+	    /**
+	     * Create a `TabBar` for a tab panel.
+	     *
+	     * @returns A new tab bar to use with a tab panel.
+	     *
+	     * #### Notes
+	     * This may be reimplemented by subclasses for custom tab bars.
+	     */
+	    TabPanel.createTabBar = function () {
+	        var tabBar = new tabbar_1.TabBar();
+	        tabBar.addClass(TAB_BAR_CLASS);
+	        return tabBar;
+	    };
+	    /**
+	     * Create a `StackedPanel` for a tab panel.
+	     *
+	     * @returns A new stacked panel to use with a tab panel.
+	     *
+	     * #### Notes
+	     * This may be reimplemented by subclasses for custom stacks.
+	     */
+	    TabPanel.createStackedPanel = function () {
+	        var stackedPanel = new phosphor_stackedpanel_1.StackedPanel();
+	        stackedPanel.addClass(STACKED_PANEL_CLASS);
+	        return stackedPanel;
+	    };
+	    /**
+	     * Dispose of the resources held by the widget.
+	     */
+	    TabPanel.prototype.dispose = function () {
+	        this._tabBar = null;
+	        this._stackedPanel = null;
+	        this._currentWidget = null;
+	        _super.prototype.dispose.call(this);
+	    };
+	    Object.defineProperty(TabPanel.prototype, "currentWidget", {
+	        /**
+	         * Get the currently selected widget.
+	         */
+	        get: function () {
+	            return this._tabBar.currentItem;
+	        },
+	        /**
+	         * Set the currently selected widget.
+	         */
+	        set: function (value) {
+	            this._tabBar.currentItem = value;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabPanel.prototype, "tabsMovable", {
+	        /**
+	         * Get whether the tabs are movable by the user.
+	         */
+	        get: function () {
+	            return this._tabBar.tabsMovable;
+	        },
+	        /**
+	         * Set whether the tabs are movable by the user.
+	         */
+	        set: function (value) {
+	            this._tabBar.tabsMovable = value;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabPanel.prototype, "tabBar", {
+	        /**
+	         * Get the tab bar associated with the tab panel.
+	         *
+	         * #### Notes
+	         * Modifying the tab bar directly can lead to undefined behavior.
+	         *
+	         * This is a read-only property.
+	         */
+	        get: function () {
+	            return this._tabBar;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(TabPanel.prototype, "stackedPanel", {
+	        /**
+	         * Get the stacked panel associated with the tab panel.
+	         *
+	         * #### Notes
+	         * Modifying the stack directly can lead to undefined behavior.
+	         *
+	         * This is a read-only property.
+	         */
+	        get: function () {
+	            return this._stackedPanel;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    /**
+	     * Get the number of child widgets in the tab panel.
+	     *
+	     * @returns The number of child widgets in the tab panel.
+	     *
+	     * #### Notes
+	     * This delegates to the `childCount` method of the stacked panel.
+	     */
+	    TabPanel.prototype.childCount = function () {
+	        return this._stackedPanel.childCount();
+	    };
+	    /**
+	     * Get the child widget at the specified index.
+	     *
+	     * @param index - The index of the child widget of interest.
+	     *
+	     * @returns The child at the specified index, or `undefined`.
+	     *
+	     * #### Notes
+	     * This delegates to the `childAt` method of the stacked panel.
+	     */
+	    TabPanel.prototype.childAt = function (index) {
+	        return this._stackedPanel.childAt(index);
+	    };
+	    /**
+	     * Get the index of the specified child widget.
+	     *
+	     * @param child - The child widget of interest.
+	     *
+	     * @returns The index of the specified child, or `-1`.
+	     *
+	     * #### Notes
+	     * This delegates to the `childIndex` method of the stacked panel.
+	     */
+	    TabPanel.prototype.childIndex = function (child) {
+	        return this._stackedPanel.childIndex(child);
+	    };
+	    /**
+	     * Add a child widget to the end of the tab panel.
+	     *
+	     * @param child - The child widget to add to the tab panel.
+	     *
+	     * #### Notes
+	     * If the child is already contained in the panel, it will be moved.
+	     */
+	    TabPanel.prototype.addChild = function (child) {
+	        this.insertChild(this.childCount(), child);
+	    };
+	    /**
+	     * Insert a child widget at the specified index.
+	     *
+	     * @param index - The index at which to insert the child.
+	     *
+	     * @param child - The child widget to insert into to the tab panel.
+	     *
+	     * #### Notes
+	     * If the child is already contained in the panel, it will be moved.
+	     */
+	    TabPanel.prototype.insertChild = function (index, child) {
+	        if (child !== this._currentWidget)
+	            child.hide();
+	        this._stackedPanel.insertChild(index, child);
+	        this._tabBar.insertItem(index, child);
+	    };
+	    /**
+	     * Handle the `currentChanged` signal from the tab bar.
+	     */
+	    TabPanel.prototype._onCurrentChanged = function (sender, args) {
+	        var oldWidget = this._currentWidget;
+	        var newWidget = args.item;
+	        if (oldWidget === newWidget)
+	            return;
+	        this._currentWidget = newWidget;
+	        if (oldWidget)
+	            oldWidget.hide();
+	        if (newWidget)
+	            newWidget.show();
+	    };
+	    /**
+	     * Handle the `tabCloseRequested` signal from the tab bar.
+	     */
+	    TabPanel.prototype._onTabCloseRequested = function (sender, args) {
+	        args.item.close();
+	    };
+	    /**
+	     * Handle the `tabMoved` signal from the tab bar.
+	     */
+	    TabPanel.prototype._onTabMoved = function (sender, args) {
+	        this._stackedPanel.insertChild(args.toIndex, args.item);
+	    };
+	    /**
+	     * Handle the `widgetRemoved` signal from the stacked panel.
+	     */
+	    TabPanel.prototype._onWidgetRemoved = function (sender, widget) {
+	        if (this._currentWidget === widget)
+	            this._currentWidget = null;
+	        this._tabBar.removeItem(widget);
+	    };
+	    return TabPanel;
+	})(phosphor_widget_1.Widget);
+	exports.TabPanel = TabPanel;
+
+
+/***/ },
+/* 45 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	function __export(m) {
+	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+	}
+	__export(__webpack_require__(46));
+	__export(__webpack_require__(51));
+
+
+/***/ },
+/* 46 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var arrays = __webpack_require__(24);
+	var phosphor_boxengine_1 = __webpack_require__(47);
+	var phosphor_domutil_1 = __webpack_require__(25);
+	var phosphor_messaging_1 = __webpack_require__(34);
+	var phosphor_properties_1 = __webpack_require__(38);
 	var phosphor_panel_1 = __webpack_require__(48);
-	var phosphor_widget_1 = __webpack_require__(25);
+	var phosphor_widget_1 = __webpack_require__(32);
 	/**
 	 * The class name added to left-to-right box layout parents.
 	 */
@@ -38137,695 +39827,7 @@
 
 
 /***/ },
-/* 42 */
-/***/ function(module, exports) {
-
-	/*-----------------------------------------------------------------------------
-	| Copyright (c) 2014-2015, PhosphorJS Contributors
-	|
-	| Distributed under the terms of the BSD 3-Clause License.
-	|
-	| The full license is in the file LICENSE, distributed with this software.
-	|----------------------------------------------------------------------------*/
-	'use strict';
-	/**
-	 * Execute a callback for each element in an array.
-	 *
-	 * @param array - The array of values to iterate.
-	 *
-	 * @param callback - The callback to invoke for the array elements.
-	 *
-	 * @param fromIndex - The starting index for iteration.
-	 *
-	 * @param wrap - Whether iteration wraps around at the end of the array.
-	 *
-	 * @returns The first value returned by `callback` which is not
-	 *   equal to `undefined`, or `undefined` if the callback does
-	 *   not return a value or if the start index is out of range.
-	 *
-	 * #### Notes
-	 * It is not safe to modify the size of the array while iterating.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * function logger(value: number): void {
-	 *   console.log(value);
-	 * }
-	 *
-	 * let data = [1, 2, 3, 4];
-	 * arrays.forEach(data, logger);           // logs 1, 2, 3, 4
-	 * arrays.forEach(data, logger, 2);        // logs 3, 4
-	 * arrays.forEach(data, logger, 2, true);  // logs 3, 4, 1, 2
-	 * arrays.forEach(data, (v, i) => {        // 2
-	 *   if (v === 3) return i;
-	 * });
-	 * ```
-	 *
-	 * **See also** [[rforEach]]
-	 */
-	function forEach(array, callback, fromIndex, wrap) {
-	    if (fromIndex === void 0) { fromIndex = 0; }
-	    if (wrap === void 0) { wrap = false; }
-	    var start = fromIndex | 0;
-	    if (start < 0 || start >= array.length) {
-	        return void 0;
-	    }
-	    if (wrap) {
-	        for (var i = 0, n = array.length; i < n; ++i) {
-	            var j = (start + i) % n;
-	            var result = callback(array[j], j);
-	            if (result !== void 0)
-	                return result;
-	        }
-	    }
-	    else {
-	        for (var i = start, n = array.length; i < n; ++i) {
-	            var result = callback(array[i], i);
-	            if (result !== void 0)
-	                return result;
-	        }
-	    }
-	    return void 0;
-	}
-	exports.forEach = forEach;
-	/**
-	 * Execute a callback for each element in an array, in reverse.
-	 *
-	 * @param array - The array of values to iterate.
-	 *
-	 * @param callback - The callback to invoke for the array elements.
-	 *
-	 * @param fromIndex - The starting index for iteration.
-	 *
-	 * @param wrap - Whether iteration wraps around at the end of the array.
-	 *
-	 * @returns The first value returned by `callback` which is not
-	 *   equal to `undefined`, or `undefined` if the callback does
-	 *   not return a value or if the start index is out of range.
-	 *
-	 * #### Notes
-	 * It is not safe to modify the size of the array while iterating.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * function logger(value: number): void {
-	 *   console.log(value);
-	 * }
-	 *
-	 * let data = [1, 2, 3, 4];
-	 * arrays.rforEach(data, logger);           // logs 4, 3, 2, 1
-	 * arrays.rforEach(data, logger, 2);        // logs 3, 2, 1
-	 * arrays.rforEach(data, logger, 2, true);  // logs 3, 2, 1, 4
-	 * arrays.rforEach(data, (v, i) => {        // 2
-	 *   if (v === 3) return i;
-	 * });
-	 * ```
-	 * **See also** [[forEach]]
-	 */
-	function rforEach(array, callback, fromIndex, wrap) {
-	    if (fromIndex === void 0) { fromIndex = array.length - 1; }
-	    if (wrap === void 0) { wrap = false; }
-	    var start = fromIndex | 0;
-	    if (start < 0 || start >= array.length) {
-	        return void 0;
-	    }
-	    if (wrap) {
-	        for (var i = 0, n = array.length; i < n; ++i) {
-	            var j = (start - i + n) % n;
-	            var result = callback(array[j], j);
-	            if (result !== void 0)
-	                return result;
-	        }
-	    }
-	    else {
-	        for (var i = start; i >= 0; --i) {
-	            var result = callback(array[i], i);
-	            if (result !== void 0)
-	                return result;
-	        }
-	    }
-	    return void 0;
-	}
-	exports.rforEach = rforEach;
-	/**
-	 * Find the index of the first value which matches a predicate.
-	 *
-	 * @param array - The array of values to be searched.
-	 *
-	 * @param pred - The predicate function to apply to the values.
-	 *
-	 * @param fromIndex - The starting index of the search.
-	 *
-	 * @param wrap - Whether the search wraps around at the end of the array.
-	 *
-	 * @returns The index of the first matching value, or `-1` if no value
-	 *   matches the predicate or if the start index is out of range.
-	 *
-	 * #### Notes
-	 * It is not safe to modify the size of the array while iterating.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * function isEven(value: number): boolean {
-	 *   return value % 2 === 0;
-	 * }
-	 *
-	 * let data = [1, 2, 3, 4, 3, 2, 1];
-	 * arrays.findIndex(data, isEven);           // 1
-	 * arrays.findIndex(data, isEven, 4);        // 5
-	 * arrays.findIndex(data, isEven, 6);        // -1
-	 * arrays.findIndex(data, isEven, 6, true);  // 1
-	 * ```
-	 *
-	 * **See also** [[rfindIndex]].
-	 */
-	function findIndex(array, pred, fromIndex, wrap) {
-	    if (fromIndex === void 0) { fromIndex = 0; }
-	    if (wrap === void 0) { wrap = false; }
-	    var start = fromIndex | 0;
-	    if (start < 0 || start >= array.length) {
-	        return -1;
-	    }
-	    if (wrap) {
-	        for (var i = 0, n = array.length; i < n; ++i) {
-	            var j = (start + i) % n;
-	            if (pred(array[j], j))
-	                return j;
-	        }
-	    }
-	    else {
-	        for (var i = start, n = array.length; i < n; ++i) {
-	            if (pred(array[i], i))
-	                return i;
-	        }
-	    }
-	    return -1;
-	}
-	exports.findIndex = findIndex;
-	/**
-	 * Find the index of the last value which matches a predicate.
-	 *
-	 * @param array - The array of values to be searched.
-	 *
-	 * @param pred - The predicate function to apply to the values.
-	 *
-	 * @param fromIndex - The starting index of the search.
-	 *
-	 * @param wrap - Whether the search wraps around at the front of the array.
-	 *
-	 * @returns The index of the last matching value, or `-1` if no value
-	 *   matches the predicate or if the start index is out of range.
-	 *
-	 * #### Notes
-	 * It is not safe to modify the size of the array while iterating.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * function isEven(value: number): boolean {
-	 *   return value % 2 === 0;
-	 * }
-	 *
-	 * let data = [1, 2, 3, 4, 3, 2, 1];
-	 * arrays.rfindIndex(data, isEven);           // 5
-	 * arrays.rfindIndex(data, isEven, 4);        // 3
-	 * arrays.rfindIndex(data, isEven, 0);        // -1
-	 * arrays.rfindIndex(data, isEven, 0, true);  // 5
-	 * ```
-	 *
-	 * **See also** [[findIndex]].
-	 */
-	function rfindIndex(array, pred, fromIndex, wrap) {
-	    if (fromIndex === void 0) { fromIndex = array.length - 1; }
-	    if (wrap === void 0) { wrap = false; }
-	    var start = fromIndex | 0;
-	    if (start < 0 || start >= array.length) {
-	        return -1;
-	    }
-	    if (wrap) {
-	        for (var i = 0, n = array.length; i < n; ++i) {
-	            var j = (start - i + n) % n;
-	            if (pred(array[j], j))
-	                return j;
-	        }
-	    }
-	    else {
-	        for (var i = start; i >= 0; --i) {
-	            if (pred(array[i], i))
-	                return i;
-	        }
-	    }
-	    return -1;
-	}
-	exports.rfindIndex = rfindIndex;
-	/**
-	 * Find the first value which matches a predicate.
-	 *
-	 * @param array - The array of values to be searched.
-	 *
-	 * @param pred - The predicate function to apply to the values.
-	 *
-	 * @param fromIndex - The starting index of the search.
-	 *
-	 * @param wrap - Whether the search wraps around at the end of the array.
-	 *
-	 * @returns The first matching value, or `undefined` if no value matches
-	 *   the predicate or if the start index is out of range.
-	 *
-	 * #### Notes
-	 * It is not safe to modify the size of the array while iterating.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * function isEven(value: number): boolean {
-	 *   return value % 2 === 0;
-	 * }
-	 *
-	 * let data = [1, 2, 3, 4, 3, 2, 1];
-	 * arrays.find(data, isEven);           // 2
-	 * arrays.find(data, isEven, 4);        // 2
-	 * arrays.find(data, isEven, 6);        // undefined
-	 * arrays.find(data, isEven, 6, true);  // 2
-	 * ```
-	 *
-	 * **See also** [[rfind]].
-	 */
-	function find(array, pred, fromIndex, wrap) {
-	    var i = findIndex(array, pred, fromIndex, wrap);
-	    return i !== -1 ? array[i] : void 0;
-	}
-	exports.find = find;
-	/**
-	 * Find the last value which matches a predicate.
-	 *
-	 * @param array - The array of values to be searched.
-	 *
-	 * @param pred - The predicate function to apply to the values.
-	 *
-	 * @param fromIndex - The starting index of the search.
-	 *
-	 * @param wrap - Whether the search wraps around at the front of the array.
-	 *
-	 * @returns The last matching value, or `undefined` if no value matches
-	 *   the predicate or if the start index is out of range.
-	 *
-	 * #### Notes
-	 * The range of visited indices is set before the first invocation of
-	 * `pred`. It is not safe for `pred` to change the length of `array`.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * function isEven(value: number): boolean {
-	 *   return value % 2 === 0;
-	 * }
-	 *
-	 * let data = [1, 2, 3, 4, 3, 2, 1];
-	 * arrays.rfind(data, isEven);           // 2
-	 * arrays.rfind(data, isEven, 4);        // 4
-	 * arrays.rfind(data, isEven, 0);        // undefined
-	 * arrays.rfind(data, isEven, 0, true);  // 2
-	 * ```
-	 *
-	 * **See also** [[find]].
-	 */
-	function rfind(array, pred, fromIndex, wrap) {
-	    var i = rfindIndex(array, pred, fromIndex, wrap);
-	    return i !== -1 ? array[i] : void 0;
-	}
-	exports.rfind = rfind;
-	/**
-	 * Insert an element into an array at a specified index.
-	 *
-	 * @param array - The array of values to modify.
-	 *
-	 * @param index - The index at which to insert the value. This value
-	 *   is clamped to the bounds of the array.
-	 *
-	 * @param value - The value to insert into the array.
-	 *
-	 * @returns The index at which the value was inserted.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * let data = [0, 1, 2, 3, 4];
-	 * arrays.insert(data, 0, 12);  // 0
-	 * arrays.insert(data, 3, 42);  // 3
-	 * arrays.insert(data, -9, 9);  // 0
-	 * arrays.insert(data, 12, 8);  // 8
-	 * console.log(data);           // [9, 12, 0, 1, 42, 2, 3, 4, 8]
-	 * ```
-	 *
-	 * **See also** [[removeAt]] and [[remove]]
-	 */
-	function insert(array, index, value) {
-	    var j = Math.max(0, Math.min(index | 0, array.length));
-	    for (var i = array.length; i > j; --i) {
-	        array[i] = array[i - 1];
-	    }
-	    array[j] = value;
-	    return j;
-	}
-	exports.insert = insert;
-	/**
-	 * Move an element in an array from one index to another.
-	 *
-	 * @param array - The array of values to modify.
-	 *
-	 * @param fromIndex - The index of the element to move.
-	 *
-	 * @param toIndex - The target index of the element.
-	 *
-	 * @returns `true` if the element was moved, or `false` if either
-	 *   index is out of range.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * let data = [0, 1, 2, 3, 4];
-	 * arrays.move(data, 1, 2);   // true
-	 * arrays.move(data, -1, 0);  // false
-	 * arrays.move(data, 4, 2);   // true
-	 * arrays.move(data, 10, 0);  // false
-	 * console.log(data);         // [0, 2, 4, 1, 3]
-	 * ```
-	 */
-	function move(array, fromIndex, toIndex) {
-	    var j = fromIndex | 0;
-	    if (j < 0 || j >= array.length) {
-	        return false;
-	    }
-	    var k = toIndex | 0;
-	    if (k < 0 || k >= array.length) {
-	        return false;
-	    }
-	    var value = array[j];
-	    if (j > k) {
-	        for (var i = j; i > k; --i) {
-	            array[i] = array[i - 1];
-	        }
-	    }
-	    else if (j < k) {
-	        for (var i = j; i < k; ++i) {
-	            array[i] = array[i + 1];
-	        }
-	    }
-	    array[k] = value;
-	    return true;
-	}
-	exports.move = move;
-	/**
-	 * Remove an element from an array at a specified index.
-	 *
-	 * @param array - The array of values to modify.
-	 *
-	 * @param index - The index of the element to remove.
-	 *
-	 * @returns The removed value, or `undefined` if the index is out
-	 *   of range.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * let data = [0, 1, 2, 3, 4];
-	 * arrays.removeAt(data, 1);   // 1
-	 * arrays.removeAt(data, 3);   // 4
-	 * arrays.removeAt(data, 10);  // undefined
-	 * console.log(data);          // [0, 2, 3]
-	 * ```
-	 *
-	 * **See also** [[remove]] and [[insert]]
-	 */
-	function removeAt(array, index) {
-	    var j = index | 0;
-	    if (j < 0 || j >= array.length) {
-	        return void 0;
-	    }
-	    var value = array[j];
-	    for (var i = j + 1, n = array.length; i < n; ++i) {
-	        array[i - 1] = array[i];
-	    }
-	    array.length -= 1;
-	    return value;
-	}
-	exports.removeAt = removeAt;
-	/**
-	 * Remove the first occurrence of a value from an array.
-	 *
-	 * @param array - The array of values to modify.
-	 *
-	 * @param value - The value to remove from the array.
-	 *
-	 * @returns The index where the value was located, or `-1` if the
-	 *   value is not the array.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * let data = [0, 1, 2, 3, 4];
-	 * arrays.remove(data, 1);  // 1
-	 * arrays.remove(data, 3);  // 2
-	 * arrays.remove(data, 7);  // -1
-	 * console.log(data);       // [0, 2, 4]
-	 * ```
-	 *
-	 * **See also** [[removeAt]] and [[insert]]
-	 */
-	function remove(array, value) {
-	    var j = -1;
-	    for (var i = 0, n = array.length; i < n; ++i) {
-	        if (array[i] === value) {
-	            j = i;
-	            break;
-	        }
-	    }
-	    if (j === -1) {
-	        return -1;
-	    }
-	    for (var i = j + 1, n = array.length; i < n; ++i) {
-	        array[i - 1] = array[i];
-	    }
-	    array.length -= 1;
-	    return j;
-	}
-	exports.remove = remove;
-	/**
-	 * Reverse an array in-place subject to an optional range.
-	 *
-	 * @param array - The array to reverse.
-	 *
-	 * @param fromIndex - The index of the first element of the range.
-	 *   This value will be clamped to the array bounds.
-	 *
-	 * @param toIndex - The index of the last element of the range.
-	 *   This value will be clamped to the array bounds.
-	 *
-	 * @returns A reference to the original array.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * let data = [0, 1, 2, 3, 4];
-	 * arrays.reverse(data, 1, 3);    // [0, 3, 2, 1, 4]
-	 * arrays.reverse(data, 3);       // [0, 3, 2, 4, 1]
-	 * arrays.reverse(data);          // [1, 4, 2, 3, 0]
-	 * ```
-	 *
-	 * **See also** [[rotate]]
-	 */
-	function reverse(array, fromIndex, toIndex) {
-	    if (fromIndex === void 0) { fromIndex = 0; }
-	    if (toIndex === void 0) { toIndex = array.length; }
-	    var i = Math.max(0, Math.min(fromIndex | 0, array.length - 1));
-	    var j = Math.max(0, Math.min(toIndex | 0, array.length - 1));
-	    if (j < i)
-	        i = j + (j = i, 0);
-	    while (i < j) {
-	        var tmpval = array[i];
-	        array[i++] = array[j];
-	        array[j--] = tmpval;
-	    }
-	    return array;
-	}
-	exports.reverse = reverse;
-	/**
-	 * Rotate the elements of an array by a positive or negative delta.
-	 *
-	 * @param array - The array to rotate.
-	 *
-	 * @param delta - The amount of rotation to apply to the elements. A
-	 *   positive delta will shift the elements to the left. A negative
-	 *   delta will shift the elements to the right.
-	 *
-	 * @returns A reference to the original array.
-	 *
-	 * #### Notes
-	 * This executes in `O(n)` time and `O(1)` space.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * let data = [0, 1, 2, 3, 4];
-	 * arrays.rotate(data, 2);    // [2, 3, 4, 0, 1]
-	 * arrays.rotate(data, -2);   // [0, 1, 2, 3, 4]
-	 * arrays.rotate(data, 10);   // [0, 1, 2, 3, 4]
-	 * arrays.rotate(data, 9);    // [4, 0, 1, 2, 3]
-	 * ```
-	 *
-	 * **See also** [[reverse]]
-	 */
-	function rotate(array, delta) {
-	    var n = array.length;
-	    if (n <= 1) {
-	        return array;
-	    }
-	    var d = delta | 0;
-	    if (d > 0) {
-	        d = d % n;
-	    }
-	    else if (d < 0) {
-	        d = ((d % n) + n) % n;
-	    }
-	    if (d === 0) {
-	        return array;
-	    }
-	    reverse(array, 0, d - 1);
-	    reverse(array, d, n - 1);
-	    reverse(array, 0, n - 1);
-	    return array;
-	}
-	exports.rotate = rotate;
-	/**
-	 * Using a binary search, find the index of the first element in an
-	 * array which compares `>=` to a value.
-	 *
-	 * @param array - The array of values to be searched. It must be sorted
-	 *   in ascending order.
-	 *
-	 * @param value - The value to locate in the array.
-	 *
-	 * @param cmp - The comparison function which returns `true` if an
-	 *   array element is less than the given value.
-	 *
-	 * @returns The index of the first element in `array` which compares
-	 *   `>=` to `value`, or `array.length` if there is no such element.
-	 *
-	 * #### Notes
-	 * It is not safe for the comparison function to modify the array.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * function numberCmp(a: number, b: number): boolean {
-	 *   return a < b;
-	 * }
-	 *
-	 * let data = [0, 3, 4, 7, 7, 9];
-	 * arrays.lowerBound(data, 0, numberCmp);   // 0
-	 * arrays.lowerBound(data, 6, numberCmp);   // 3
-	 * arrays.lowerBound(data, 7, numberCmp);   // 3
-	 * arrays.lowerBound(data, -1, numberCmp);  // 0
-	 * arrays.lowerBound(data, 10, numberCmp);  // 6
-	 * ```
-	 *
-	 * **See also** [[upperBound]]
-	 */
-	function lowerBound(array, value, cmp) {
-	    var begin = 0;
-	    var half;
-	    var middle;
-	    var n = array.length;
-	    while (n > 0) {
-	        half = n >> 1;
-	        middle = begin + half;
-	        if (cmp(array[middle], value)) {
-	            begin = middle + 1;
-	            n -= half + 1;
-	        }
-	        else {
-	            n = half;
-	        }
-	    }
-	    return begin;
-	}
-	exports.lowerBound = lowerBound;
-	/**
-	 * Using a binary search, find the index of the first element in an
-	 * array which compares `>` than a value.
-	 *
-	 * @param array - The array of values to be searched. It must be sorted
-	 *   in ascending order.
-	 *
-	 * @param value - The value to locate in the array.
-	 *
-	 * @param cmp - The comparison function which returns `true` if the
-	 *   the given value is less than an array element.
-	 *
-	 * @returns The index of the first element in `array` which compares
-	 *   `>` than `value`, or `array.length` if there is no such element.
-	 *
-	 * #### Notes
-	 * It is not safe for the comparison function to modify the array.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import * as arrays from 'phosphor-arrays';
-	 *
-	 * function numberCmp(a: number, b: number): number {
-	 *   return a < b;
-	 * }
-	 *
-	 * let data = [0, 3, 4, 7, 7, 9];
-	 * arrays.upperBound(data, 0, numberCmp);   // 1
-	 * arrays.upperBound(data, 6, numberCmp);   // 3
-	 * arrays.upperBound(data, 7, numberCmp);   // 5
-	 * arrays.upperBound(data, -1, numberCmp);  // 0
-	 * arrays.upperBound(data, 10, numberCmp);  // 6
-	 * ```
-	 *
-	 * **See also** [[lowerBound]]
-	 */
-	function upperBound(array, value, cmp) {
-	    var begin = 0;
-	    var half;
-	    var middle;
-	    var n = array.length;
-	    while (n > 0) {
-	        half = n >> 1;
-	        middle = begin + half;
-	        if (cmp(value, array[middle])) {
-	            n = half;
-	        }
-	        else {
-	            begin = middle + 1;
-	            n -= half + 1;
-	        }
-	    }
-	    return begin;
-	}
-	exports.upperBound = upperBound;
-	//# sourceMappingURL=index.js.map
-
-/***/ },
-/* 43 */
+/* 47 */
 /***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
@@ -39159,365 +40161,6 @@
 	//# sourceMappingURL=index.js.map
 
 /***/ },
-/* 44 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/*-----------------------------------------------------------------------------
-	| Copyright (c) 2014-2015, PhosphorJS Contributors
-	|
-	| Distributed under the terms of the BSD 3-Clause License.
-	|
-	| The full license is in the file LICENSE, distributed with this software.
-	|----------------------------------------------------------------------------*/
-	'use strict';
-	var phosphor_disposable_1 = __webpack_require__(45);
-	__webpack_require__(46);
-	/**
-	 * The class name added to the document body during cursor override.
-	 */
-	var OVERRIDE_CURSOR_CLASS = 'p-mod-override-cursor';
-	/**
-	 * The id for the active cursor override.
-	 */
-	var overrideID = 0;
-	/**
-	 * Override the cursor for the entire document.
-	 *
-	 * @param cursor - The string representing the cursor style.
-	 *
-	 * @returns A disposable which will clear the override when disposed.
-	 *
-	 * #### Notes
-	 * The most recent call to `overrideCursor` takes precedence. Disposing
-	 * an old override is a no-op and will not effect the current override.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import { overrideCursor } from 'phosphor-domutil';
-	 *
-	 * // force the cursor to be 'wait' for the entire document
-	 * let override = overrideCursor('wait');
-	 *
-	 * // clear the override by disposing the return value
-	 * override.dispose();
-	 * ```
-	 */
-	function overrideCursor(cursor) {
-	    var id = ++overrideID;
-	    var body = document.body;
-	    body.style.cursor = cursor;
-	    body.classList.add(OVERRIDE_CURSOR_CLASS);
-	    return new phosphor_disposable_1.DisposableDelegate(function () {
-	        if (id === overrideID) {
-	            body.style.cursor = '';
-	            body.classList.remove(OVERRIDE_CURSOR_CLASS);
-	        }
-	    });
-	}
-	exports.overrideCursor = overrideCursor;
-	/**
-	 * Test whether a client position lies within a node.
-	 *
-	 * @param node - The DOM node of interest.
-	 *
-	 * @param clientX - The client X coordinate of interest.
-	 *
-	 * @param clientY - The client Y coordinate of interest.
-	 *
-	 * @returns `true` if the node covers the position, `false` otherwise.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import { hitTest } from 'phosphor-domutil';
-	 *
-	 * let div = document.createElement('div');
-	 * div.style.position = 'absolute';
-	 * div.style.left = '0px';
-	 * div.style.top = '0px';
-	 * div.style.width = '100px';
-	 * div.style.height = '100px';
-	 * document.body.appendChild(div);
-	 *
-	 * hitTest(div, 50, 50);   // true
-	 * hitTest(div, 150, 150); // false
-	 * ```
-	 */
-	function hitTest(node, clientX, clientY) {
-	    var rect = node.getBoundingClientRect();
-	    return (clientX >= rect.left &&
-	        clientX < rect.right &&
-	        clientY >= rect.top &&
-	        clientY < rect.bottom);
-	}
-	exports.hitTest = hitTest;
-	/**
-	 * Compute the box sizing for a DOM node.
-	 *
-	 * @param node - The DOM node for which to compute the box sizing.
-	 *
-	 * @returns The box sizing data for the specified DOM node.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import { boxSizing } from 'phosphor-domutil';
-	 *
-	 * let div = document.createElement('div');
-	 * div.style.borderTop = 'solid 10px black';
-	 * document.body.appendChild(div);
-	 *
-	 * let sizing = boxSizing(div);
-	 * sizing.borderTop;    // 10
-	 * sizing.paddingLeft;  // 0
-	 * // etc...
-	 * ```
-	 */
-	function boxSizing(node) {
-	    var cstyle = window.getComputedStyle(node);
-	    var bt = parseInt(cstyle.borderTopWidth, 10) || 0;
-	    var bl = parseInt(cstyle.borderLeftWidth, 10) || 0;
-	    var br = parseInt(cstyle.borderRightWidth, 10) || 0;
-	    var bb = parseInt(cstyle.borderBottomWidth, 10) || 0;
-	    var pt = parseInt(cstyle.paddingTop, 10) || 0;
-	    var pl = parseInt(cstyle.paddingLeft, 10) || 0;
-	    var pr = parseInt(cstyle.paddingRight, 10) || 0;
-	    var pb = parseInt(cstyle.paddingBottom, 10) || 0;
-	    var hs = bl + pl + pr + br;
-	    var vs = bt + pt + pb + bb;
-	    return {
-	        borderTop: bt,
-	        borderLeft: bl,
-	        borderRight: br,
-	        borderBottom: bb,
-	        paddingTop: pt,
-	        paddingLeft: pl,
-	        paddingRight: pr,
-	        paddingBottom: pb,
-	        horizontalSum: hs,
-	        verticalSum: vs,
-	    };
-	}
-	exports.boxSizing = boxSizing;
-	/**
-	 * Compute the size limits for a DOM node.
-	 *
-	 * @param node - The node for which to compute the size limits.
-	 *
-	 * @returns The size limit data for the specified DOM node.
-	 *
-	 * #### Example
-	 * ```typescript
-	 * import { sizeLimits } from 'phosphor-domutil';
-	 *
-	 * let div = document.createElement('div');
-	 * div.style.minWidth = '90px';
-	 * document.body.appendChild(div);
-	 *
-	 * let limits = sizeLimits(div);
-	 * limits.minWidth;   // 90
-	 * limits.maxHeight;  // Infinity
-	 * // etc...
-	 * ```
-	 */
-	function sizeLimits(node) {
-	    var cstyle = window.getComputedStyle(node);
-	    return {
-	        minWidth: parseInt(cstyle.minWidth, 10) || 0,
-	        minHeight: parseInt(cstyle.minHeight, 10) || 0,
-	        maxWidth: parseInt(cstyle.maxWidth, 10) || Infinity,
-	        maxHeight: parseInt(cstyle.maxHeight, 10) || Infinity,
-	    };
-	}
-	exports.sizeLimits = sizeLimits;
-	//# sourceMappingURL=index.js.map
-
-/***/ },
-/* 45 */
-/***/ function(module, exports) {
-
-	/*-----------------------------------------------------------------------------
-	| Copyright (c) 2014-2015, PhosphorJS Contributors
-	|
-	| Distributed under the terms of the BSD 3-Clause License.
-	|
-	| The full license is in the file LICENSE, distributed with this software.
-	|----------------------------------------------------------------------------*/
-	'use strict';
-	/**
-	 * A disposable object which delegates to a callback.
-	 */
-	var DisposableDelegate = (function () {
-	    /**
-	     * Construct a new disposable delegate.
-	     *
-	     * @param callback - The function to invoke when the delegate is
-	     *   disposed.
-	     */
-	    function DisposableDelegate(callback) {
-	        this._callback = callback || null;
-	    }
-	    Object.defineProperty(DisposableDelegate.prototype, "isDisposed", {
-	        /**
-	         * Test whether the delegate has been disposed.
-	         *
-	         * #### Notes
-	         * This is a read-only property which is always safe to access.
-	         */
-	        get: function () {
-	            return this._callback === null;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    /**
-	     * Dispose of the delegate and invoke its callback.
-	     *
-	     * #### Notes
-	     * If this method is called more than once, all calls made after the
-	     * first will be a no-op.
-	     */
-	    DisposableDelegate.prototype.dispose = function () {
-	        if (this._callback === null) {
-	            return;
-	        }
-	        var callback = this._callback;
-	        this._callback = null;
-	        callback();
-	    };
-	    return DisposableDelegate;
-	})();
-	exports.DisposableDelegate = DisposableDelegate;
-	/**
-	 * An object which manages a collection of disposable items.
-	 */
-	var DisposableSet = (function () {
-	    /**
-	     * Construct a new disposable set.
-	     *
-	     * @param items - The initial disposable items for the set.
-	     */
-	    function DisposableSet(items) {
-	        var _this = this;
-	        this._set = new Set();
-	        if (items)
-	            items.forEach(function (item) { _this._set.add(item); });
-	    }
-	    Object.defineProperty(DisposableSet.prototype, "isDisposed", {
-	        /**
-	         * Test whether the set has been disposed.
-	         *
-	         * #### Notes
-	         * This is a read-only property which is always safe to access.
-	         */
-	        get: function () {
-	            return this._set === null;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
-	    /**
-	     * Dispose of the set and dispose the items it contains.
-	     *
-	     * #### Notes
-	     * Items are disposed in the order they are added to the set.
-	     *
-	     * It is unsafe to use the set after it has been disposed.
-	     *
-	     * If this method is called more than once, all calls made after the
-	     * first will be a no-op.
-	     */
-	    DisposableSet.prototype.dispose = function () {
-	        if (this._set === null) {
-	            return;
-	        }
-	        var set = this._set;
-	        this._set = null;
-	        set.forEach(function (item) { item.dispose(); });
-	    };
-	    /**
-	     * Add a disposable item to the set.
-	     *
-	     * @param item - The disposable item to add to the set. If the item
-	     *   is already contained in the set, this is a no-op.
-	     *
-	     * @throws Will throw an error if the set has been disposed.
-	     */
-	    DisposableSet.prototype.add = function (item) {
-	        if (this._set === null) {
-	            throw new Error('object is disposed');
-	        }
-	        this._set.add(item);
-	    };
-	    /**
-	     * Remove a disposable item from the set.
-	     *
-	     * @param item - The disposable item to remove from the set. If the
-	     *   item does not exist in the set, this is a no-op.
-	     *
-	     * @throws Will throw an error if the set has been disposed.
-	     */
-	    DisposableSet.prototype.remove = function (item) {
-	        if (this._set === null) {
-	            throw new Error('object is disposed');
-	        }
-	        this._set.delete(item);
-	    };
-	    /**
-	     * Clear all disposable items from the set.
-	     *
-	     * @throws Will throw an error if the set has been disposed.
-	     */
-	    DisposableSet.prototype.clear = function () {
-	        if (this._set === null) {
-	            throw new Error('object is disposed');
-	        }
-	        this._set.clear();
-	    };
-	    return DisposableSet;
-	})();
-	exports.DisposableSet = DisposableSet;
-	//# sourceMappingURL=index.js.map
-
-/***/ },
-/* 46 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-
-	// load the styles
-	var content = __webpack_require__(47);
-	if(typeof content === 'string') content = [[module.id, content, '']];
-	// add the styles to the DOM
-	var update = __webpack_require__(39)(content, {});
-	if(content.locals) module.exports = content.locals;
-	// Hot Module Replacement
-	if(false) {
-		// When the styles change, update the <style> tags
-		if(!content.locals) {
-			module.hot.accept("!!./../../../../node_modules/css-loader/index.js!./index.css", function() {
-				var newContent = require("!!./../../../../node_modules/css-loader/index.js!./index.css");
-				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
-				update(newContent);
-			});
-		}
-		// When the module is disposed, remove the <style> tags
-		module.hot.dispose(function() { update(); });
-	}
-
-/***/ },
-/* 47 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(38)();
-	// imports
-
-
-	// module
-	exports.push([module.id, "/*-----------------------------------------------------------------------------\r\n| Copyright (c) 2014-2015, PhosphorJS Contributors\r\n|\r\n| Distributed under the terms of the BSD 3-Clause License.\r\n|\r\n| The full license is in the file LICENSE, distributed with this software.\r\n|----------------------------------------------------------------------------*/\r\nbody.p-mod-override-cursor * {\r\n  cursor: inherit !important;\r\n}\r\n", ""]);
-
-	// exports
-
-
-/***/ },
 /* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -39553,9 +40196,9 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var arrays = __webpack_require__(42);
-	var phosphor_messaging_1 = __webpack_require__(27);
-	var phosphor_widget_1 = __webpack_require__(25);
+	var arrays = __webpack_require__(24);
+	var phosphor_messaging_1 = __webpack_require__(34);
+	var phosphor_widget_1 = __webpack_require__(32);
 	/**
 	 * A concrete layout implementation suitable for many use cases.
 	 *
@@ -39793,7 +40436,7 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_widget_1 = __webpack_require__(25);
+	var phosphor_widget_1 = __webpack_require__(32);
 	var layout_1 = __webpack_require__(49);
 	/**
 	 * The class name added to Panel instances.
@@ -39905,7 +40548,7 @@
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
 	var phosphor_panel_1 = __webpack_require__(48);
-	var layout_1 = __webpack_require__(41);
+	var layout_1 = __webpack_require__(46);
 	/**
 	 * The class name added to BoxPanel instances.
 	 */
@@ -40052,6 +40695,1174 @@
 
 /***/ },
 /* 52 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	function __export(m) {
+	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+	}
+	__export(__webpack_require__(53));
+	__export(__webpack_require__(54));
+
+
+/***/ },
+/* 53 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var phosphor_domutil_1 = __webpack_require__(25);
+	var phosphor_messaging_1 = __webpack_require__(34);
+	var phosphor_panel_1 = __webpack_require__(48);
+	var phosphor_properties_1 = __webpack_require__(38);
+	var phosphor_widget_1 = __webpack_require__(32);
+	/**
+	 * A layout where visible children are stacked atop one another.
+	 *
+	 * #### Notes
+	 * The Z-order of the visible children follows their layout order.
+	 */
+	var StackedLayout = (function (_super) {
+	    __extends(StackedLayout, _super);
+	    function StackedLayout() {
+	        _super.apply(this, arguments);
+	        this._box = null;
+	    }
+	    /**
+	     * Attach a child widget to the parent's DOM node.
+	     *
+	     * @param index - The current index of the child in the layout.
+	     *
+	     * @param child - The child widget to attach to the parent.
+	     *
+	     * #### Notes
+	     * This is a reimplementation of the superclass method.
+	     */
+	    StackedLayout.prototype.attachChild = function (index, child) {
+	        StackedLayoutPrivate.prepareGeometry(child);
+	        this.parent.node.appendChild(child.node);
+	        if (this.parent.isAttached)
+	            phosphor_messaging_1.sendMessage(child, phosphor_widget_1.Widget.MsgAfterAttach);
+	        this.parent.fit();
+	    };
+	    /**
+	     * Move a child widget in the parent's DOM node.
+	     *
+	     * @param fromIndex - The previous index of the child in the layout.
+	     *
+	     * @param toIndex - The current index of the child in the layout.
+	     *
+	     * @param child - The child widget to move in the parent.
+	     *
+	     * #### Notes
+	     * This is a reimplementation of the superclass method.
+	     */
+	    StackedLayout.prototype.moveChild = function (fromIndex, toIndex, child) {
+	        this.parent.update();
+	    };
+	    /**
+	     * Detach a child widget from the parent's DOM node.
+	     *
+	     * @param index - The previous index of the child in the layout.
+	     *
+	     * @param child - The child widget to detach from the parent.
+	     *
+	     * #### Notes
+	     * This is a reimplementation of the superclass method.
+	     */
+	    StackedLayout.prototype.detachChild = function (index, child) {
+	        if (this.parent.isAttached)
+	            phosphor_messaging_1.sendMessage(child, phosphor_widget_1.Widget.MsgBeforeDetach);
+	        this.parent.node.removeChild(child.node);
+	        StackedLayoutPrivate.resetGeometry(child);
+	        child.node.style.zIndex = '';
+	        this.parent.fit();
+	    };
+	    /**
+	     * A message handler invoked on an `'after-show'` message.
+	     */
+	    StackedLayout.prototype.onAfterShow = function (msg) {
+	        _super.prototype.onAfterShow.call(this, msg);
+	        this.parent.update();
+	    };
+	    /**
+	     * A message handler invoked on an `'after-attach'` message.
+	     */
+	    StackedLayout.prototype.onAfterAttach = function (msg) {
+	        _super.prototype.onAfterAttach.call(this, msg);
+	        this.parent.fit();
+	    };
+	    /**
+	     * A message handler invoked on a `'child-shown'` message.
+	     */
+	    StackedLayout.prototype.onChildShown = function (msg) {
+	        if (StackedLayoutPrivate.IsIE) {
+	            phosphor_messaging_1.sendMessage(this.parent, phosphor_widget_1.Widget.MsgFitRequest);
+	        }
+	        else {
+	            this.parent.fit();
+	        }
+	    };
+	    /**
+	     * A message handler invoked on a `'child-hidden'` message.
+	     */
+	    StackedLayout.prototype.onChildHidden = function (msg) {
+	        if (StackedLayoutPrivate.IsIE) {
+	            phosphor_messaging_1.sendMessage(this.parent, phosphor_widget_1.Widget.MsgFitRequest);
+	        }
+	        else {
+	            this.parent.fit();
+	        }
+	    };
+	    /**
+	     * A message handler invoked on a `'resize'` message.
+	     */
+	    StackedLayout.prototype.onResize = function (msg) {
+	        if (this.parent.isVisible) {
+	            this._update(msg.width, msg.height);
+	        }
+	    };
+	    /**
+	     * A message handler invoked on an `'update-request'` message.
+	     */
+	    StackedLayout.prototype.onUpdateRequest = function (msg) {
+	        if (this.parent.isVisible) {
+	            this._update(-1, -1);
+	        }
+	    };
+	    /**
+	     * A message handler invoked on a `'fit-request'` message.
+	     */
+	    StackedLayout.prototype.onFitRequest = function (msg) {
+	        if (this.parent.isAttached) {
+	            this._fit();
+	        }
+	    };
+	    /**
+	     * Fit the layout to the total size required by the child widgets.
+	     */
+	    StackedLayout.prototype._fit = function () {
+	        // Setup the initial size limits.
+	        var minW = 0;
+	        var minH = 0;
+	        var maxW = Infinity;
+	        var maxH = Infinity;
+	        // Update the computed size limits.
+	        for (var i = 0, n = this.childCount(); i < n; ++i) {
+	            var child = this.childAt(i);
+	            if (child.isHidden) {
+	                continue;
+	            }
+	            var limits = phosphor_domutil_1.sizeLimits(child.node);
+	            minW = Math.max(minW, limits.minWidth);
+	            minH = Math.max(minH, limits.minHeight);
+	            maxW = Math.min(maxW, limits.maxWidth);
+	            maxH = Math.min(maxH, limits.maxHeight);
+	        }
+	        // Ensure max limits >= min limits.
+	        maxW = Math.max(minW, maxW);
+	        maxH = Math.max(minH, maxH);
+	        // Update the box sizing and add it to the size constraints.
+	        var box = this._box = phosphor_domutil_1.boxSizing(this.parent.node);
+	        minW += box.horizontalSum;
+	        minH += box.verticalSum;
+	        maxW += box.horizontalSum;
+	        maxH += box.verticalSum;
+	        // Update the parent's size constraints.
+	        var style = this.parent.node.style;
+	        style.minWidth = minW + "px";
+	        style.minHeight = minH + "px";
+	        style.maxWidth = maxW === Infinity ? 'none' : maxW + "px";
+	        style.maxHeight = maxH === Infinity ? 'none' : maxH + "px";
+	        // Notify the ancestor that it should fit immediately.
+	        var ancestor = this.parent.parent;
+	        if (ancestor)
+	            phosphor_messaging_1.sendMessage(ancestor, phosphor_widget_1.Widget.MsgFitRequest);
+	        // Notify the parent that it should update immediately.
+	        phosphor_messaging_1.sendMessage(this.parent, phosphor_widget_1.Widget.MsgUpdateRequest);
+	    };
+	    /**
+	     * Update the layout position and size of the child widgets.
+	     *
+	     * The parent offset dimensions should be `-1` if unknown.
+	     */
+	    StackedLayout.prototype._update = function (offsetWidth, offsetHeight) {
+	        // Bail early if there are no children to layout.
+	        if (this.childCount() === 0) {
+	            return;
+	        }
+	        // Measure the parent if the offset dimensions are unknown.
+	        if (offsetWidth < 0) {
+	            offsetWidth = this.parent.node.offsetWidth;
+	        }
+	        if (offsetHeight < 0) {
+	            offsetHeight = this.parent.node.offsetHeight;
+	        }
+	        // Ensure the parent box sizing data is computed.
+	        var box = this._box || (this._box = phosphor_domutil_1.boxSizing(this.parent.node));
+	        // Compute the actual layout bounds adjusted for border and padding.
+	        var top = box.paddingTop;
+	        var left = box.paddingLeft;
+	        var width = offsetWidth - box.horizontalSum;
+	        var height = offsetHeight - box.verticalSum;
+	        // Update the child stacking order and layout geometry.
+	        for (var i = 0, n = this.childCount(); i < n; ++i) {
+	            var child = this.childAt(i);
+	            if (child.isHidden) {
+	                continue;
+	            }
+	            child.node.style.zIndex = "" + i;
+	            StackedLayoutPrivate.setGeometry(child, left, top, width, height);
+	        }
+	    };
+	    return StackedLayout;
+	})(phosphor_panel_1.PanelLayout);
+	exports.StackedLayout = StackedLayout;
+	/**
+	 * The namespace for the `StackedLayout` class private data.
+	 */
+	var StackedLayoutPrivate;
+	(function (StackedLayoutPrivate) {
+	    /**
+	     * A flag indicating whether the browser is IE.
+	     */
+	    StackedLayoutPrivate.IsIE = /Trident/.test(navigator.userAgent);
+	    /**
+	     * Prepare a child widget for absolute layout geometry.
+	     */
+	    function prepareGeometry(widget) {
+	        widget.node.style.position = 'absolute';
+	    }
+	    StackedLayoutPrivate.prepareGeometry = prepareGeometry;
+	    /**
+	     * Reset the layout geometry for the given child widget.
+	     */
+	    function resetGeometry(widget) {
+	        var rect = rectProperty.get(widget);
+	        var style = widget.node.style;
+	        rect.top = NaN;
+	        rect.left = NaN;
+	        rect.width = NaN;
+	        rect.height = NaN;
+	        style.position = '';
+	        style.top = '';
+	        style.left = '';
+	        style.width = '';
+	        style.height = '';
+	    }
+	    StackedLayoutPrivate.resetGeometry = resetGeometry;
+	    /**
+	     * Set the layout geometry for the given child widget.
+	     */
+	    function setGeometry(widget, left, top, width, height) {
+	        var resized = false;
+	        var style = widget.node.style;
+	        var rect = rectProperty.get(widget);
+	        if (rect.top !== top) {
+	            rect.top = top;
+	            style.top = top + "px";
+	        }
+	        if (rect.left !== left) {
+	            rect.left = left;
+	            style.left = left + "px";
+	        }
+	        if (rect.width !== width) {
+	            resized = true;
+	            rect.width = width;
+	            style.width = width + "px";
+	        }
+	        if (rect.height !== height) {
+	            resized = true;
+	            rect.height = height;
+	            style.height = height + "px";
+	        }
+	        if (resized) {
+	            phosphor_messaging_1.sendMessage(widget, new phosphor_widget_1.ResizeMessage(width, height));
+	        }
+	    }
+	    StackedLayoutPrivate.setGeometry = setGeometry;
+	    /**
+	     * A property descriptor for a widget offset rect.
+	     */
+	    var rectProperty = new phosphor_properties_1.Property({
+	        name: 'rect',
+	        create: function () { return ({ top: NaN, left: NaN, width: NaN, height: NaN }); },
+	    });
+	})(StackedLayoutPrivate || (StackedLayoutPrivate = {}));
+
+
+/***/ },
+/* 54 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*-----------------------------------------------------------------------------
+	| Copyright (c) 2014-2015, PhosphorJS Contributors
+	|
+	| Distributed under the terms of the BSD 3-Clause License.
+	|
+	| The full license is in the file LICENSE, distributed with this software.
+	|----------------------------------------------------------------------------*/
+	'use strict';
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var phosphor_panel_1 = __webpack_require__(48);
+	var phosphor_signaling_1 = __webpack_require__(31);
+	var layout_1 = __webpack_require__(53);
+	/**
+	 * The class name added to StackedPanel instances.
+	 */
+	var STACKED_PANEL_CLASS = 'p-StackedPanel';
+	/**
+	 * The class name added to a StackedPanel child.
+	 */
+	var CHILD_CLASS = 'p-StackedPanel-child';
+	/**
+	 * A panel where visible children are stacked atop one another.
+	 *
+	 * #### Notes
+	 * This class provides a convenience wrapper around a [[StackedLayout]].
+	 */
+	var StackedPanel = (function (_super) {
+	    __extends(StackedPanel, _super);
+	    /**
+	     * Construct a new stacked panel.
+	     */
+	    function StackedPanel() {
+	        _super.call(this);
+	        this.addClass(STACKED_PANEL_CLASS);
+	    }
+	    /**
+	     * Create a stacked layout for a stacked panel.
+	     */
+	    StackedPanel.createLayout = function () {
+	        return new layout_1.StackedLayout();
+	    };
+	    Object.defineProperty(StackedPanel.prototype, "widgetRemoved", {
+	        /**
+	         * A signal emitted when a widget is removed from the panel.
+	         */
+	        get: function () {
+	            return StackedPanelPrivate.widgetRemovedSignal.bind(this);
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    /**
+	     * A message handler invoked on a `'child-added'` message.
+	     */
+	    StackedPanel.prototype.onChildAdded = function (msg) {
+	        msg.child.addClass(CHILD_CLASS);
+	    };
+	    /**
+	     * A message handler invoked on a `'child-removed'` message.
+	     */
+	    StackedPanel.prototype.onChildRemoved = function (msg) {
+	        msg.child.removeClass(CHILD_CLASS);
+	        this.widgetRemoved.emit(msg.child);
+	    };
+	    return StackedPanel;
+	})(phosphor_panel_1.Panel);
+	exports.StackedPanel = StackedPanel;
+	/**
+	 * The namespace for the `StackedPanel` class private data.
+	 */
+	var StackedPanelPrivate;
+	(function (StackedPanelPrivate) {
+	    /**
+	     * A signal emitted when a widget is removed from the panel.
+	     */
+	    StackedPanelPrivate.widgetRemovedSignal = new phosphor_signaling_1.Signal();
+	})(StackedPanelPrivate || (StackedPanelPrivate = {}));
+
+
+/***/ },
+/* 55 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(56);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(30)(content, {});
+	if(content.locals) module.exports = content.locals;
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		if(!content.locals) {
+			module.hot.accept("!!./../../../../node_modules/css-loader/index.js!./index.css", function() {
+				var newContent = require("!!./../../../../node_modules/css-loader/index.js!./index.css");
+				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+				update(newContent);
+			});
+		}
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 56 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(29)();
+	// imports
+
+
+	// module
+	exports.push([module.id, "/*-----------------------------------------------------------------------------\r\n| Copyright (c) 2014-2015, PhosphorJS Contributors\r\n|\r\n| Distributed under the terms of the BSD 3-Clause License.\r\n|\r\n| The full license is in the file LICENSE, distributed with this software.\r\n|----------------------------------------------------------------------------*/\r\n.p-TabBar {\r\n  display: flex;\r\n  flex-direction: column;\r\n}\r\n\r\n\r\n.p-TabBar-header,\r\n.p-TabBar-footer {\r\n  flex: 0 0 auto;\r\n}\r\n\r\n\r\n.p-TabBar-body {\r\n  display: flex;\r\n  flex-direction: row;\r\n  flex: 1 1 auto;\r\n}\r\n\r\n\r\n.p-TabBar-content {\r\n  display: flex;\r\n  flex-direction: row;\r\n  flex: 1 1 auto;\r\n  margin: 0;\r\n  padding: 0;\r\n  list-style-type: none;\r\n}\r\n\r\n\r\n.p-TabBar-tab {\r\n  display: flex;\r\n  flex-direction: row;\r\n  box-sizing: border-box;\r\n  overflow: hidden;\r\n}\r\n\r\n\r\n.p-TabBar-tabIcon,\r\n.p-TabBar-tabCloseIcon {\r\n  flex: 0 0 auto;\r\n}\r\n\r\n\r\n.p-TabBar-tabText {\r\n  flex: 1 1 auto;\r\n  overflow: hidden;\r\n  white-space: nowrap;\r\n}\r\n\r\n\r\n.p-TabBar.p-mod-dragging .p-TabBar-tab {\r\n  position: relative;\r\n  left: 0;\r\n  transition: left 150ms ease; /* keep in sync with JS */\r\n}\r\n\r\n\r\n.p-TabBar.p-mod-dragging .p-TabBar-tab.p-mod-dragging {\r\n  transition: none;\r\n}\r\n\r\n\r\n.p-TabPanel-tabBar {\r\n  z-index: 1;\r\n}\r\n\r\n\r\n.p-TabPanel-stackedPanel {\r\n  z-index: 0;\r\n}\r\n", ""]);
+
+	// exports
+
+
+/***/ },
+/* 57 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// Copyright (c) Jupyter Development Team.
+	// Distributed under the terms of the Modified BSD License.
+	'use strict';
+
+	var widget = __webpack_require__(9);
+	var _ = __webpack_require__(5);
+
+	var StringModel = widget.DOMWidgetModel.extend({
+	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
+	        value: '',
+	        disabled: false,
+	        description: '',
+	        placeholder: '',
+	        _model_name: 'StringModel'
+	    })
+	});
+
+	var HTMLModel = StringModel.extend({
+	    defaults: _.extend({}, StringModel.prototype.defaults, {
+	        _view_name: 'HTMLView',
+	        _model_name: 'HTMLModel'
+	    })
+	});
+
+	var HTMLView = widget.DOMWidgetView.extend({
+	    render : function() {
+	        /**
+	         * Called when view is rendered.
+	         */
+	        this.el.classList.add('jupyter-widgets');
+	        this.el.classList.add('widget-html');
+	        this.update(); // Set defaults.
+	    },
+
+	    update : function() {
+	        /**
+	         * Update the contents of this view
+	         *
+	         * Called when the model is changed.  The model may have been
+	         * changed by another view or by a state update from the back-end.
+	         */
+	        this.el.innerHTML = this.model.get('value');
+	        return HTMLView.__super__.update.apply(this);
+	    }
+	});
+
+	var LabelModel = StringModel.extend({
+	    defaults: _.extend({}, StringModel.prototype.defaults, {
+	        _view_name: 'LabelView',
+	        _model_name: 'LabelModel'
+	    })
+	});
+
+	var LabelView = widget.DOMWidgetView.extend({
+	    render : function() {
+	        /**
+	         * Called when view is rendered.
+	         */
+	        this.el.classList.add('jupyter-widgets');
+	        this.el.classList.add('widget-latex');
+	        this.update(); // Set defaults.
+	    },
+
+	    update : function() {
+	        /**
+	         * Update the contents of this view
+	         *
+	         * Called when the model is changed.  The model may have been
+	         * changed by another view or by a state update from the back-end.
+	         */
+	        this.typeset(this.el, this.model.get('value'));
+	        return LabelView.__super__.update.apply(this);
+	    }
+	});
+
+	var TextareaModel = StringModel.extend({
+	    defaults: _.extend({}, StringModel.prototype.defaults, {
+	        _view_name: 'TextareaView',
+	        _model_name: 'TextareaModel'
+	    })
+	});
+
+	var TextareaView = widget.DOMWidgetView.extend({
+	    render: function() {
+	        /**
+	         * Called when view is rendered.
+	         */
+	        this.el.classList.add('jupyter-widgets');
+	        this.el.classList.add('widget-hbox');
+	        this.el.classList.add('widget-textarea');
+
+	        this.label = document.createElement('div');
+	        this.label.classList.add('widget-label');
+	        this.label.style.display = 'none';
+	        this.el.appendChild(this.label);
+
+	        this.textbox = document.createElement('textarea');
+	        this.textbox.setAttribute('rows', 5);
+	        this.textbox.classList.add('form-control');
+	        this.el.appendChild(this.textbox);
+
+	        this.update(); // Set defaults.
+	        var model = this;
+	        this.listenTo(this.model, 'msg:custom', function() {
+	          model._handle_textarea_msg()
+	        });
+	        this.listenTo(this.model, 'change:placeholder',
+	            function(model, value, options) {
+	                this.update_placeholder(value);
+	            }, this);
+
+	        this.update_placeholder();
+	    },
+
+	    _handle_textarea_msg: function (content) {
+	        /**
+	         * Handle when a custom msg is recieved from the back-end.
+	         */
+	        if (content.method == 'scroll_to_bottom') {
+	            this.scroll_to_bottom();
+	        }
+	    },
+
+	    update_placeholder: function(value) {
+	        value = value || this.model.get('placeholder');
+	        this.textbox.setAttribute('placeholder', value);
+	    },
+
+	    scroll_to_bottom: function () {
+	        /**
+	         * Scroll the text-area view to the bottom.
+	         */
+	        //this.$textbox.scrollTop(this.$textbox[0].scrollHeight); // DW TODO
+	    },
+
+	    update: function(options) {
+	        /**
+	         * Update the contents of this view
+	         *
+	         * Called when the model is changed.  The model may have been
+	         * changed by another view or by a state update from the back-end.
+	         */
+	        if (options === undefined || options.updated_view != this) {
+	            this.textbox.value = this.model.get('value');
+
+	            var disabled = this.model.get('disabled');
+	            this.textbox.disabled = disabled;
+
+	            var description = this.model.get('description');
+	            if (description.length === 0) {
+	                this.label.style.display = 'none';
+	            } else {
+	                this.typeset(this.label, description);
+	                this.label.style.display = '';
+	            }
+	        }
+	        return TextareaView.__super__.update.apply(this);
+	    },
+
+	    events: {
+	        // Dictionary of events and their handlers.
+	        'keyup textarea' : 'handleChanging',
+	        'paste textarea' : 'handleChanging',
+	        'cut textarea'   : 'handleChanging'
+	    },
+
+	    handleChanging: function(e) {
+	        /**
+	         * Handles and validates user input.
+	         *
+	         * Calling model.set will trigger all of the other views of the
+	         * model to update.
+	         */
+	        this.model.set('value', e.target.value, {updated_view: this});
+	        this.touch();
+	    }
+	});
+
+	var TextModel = StringModel.extend({
+	    defaults: _.extend({}, StringModel.prototype.defaults, {
+	        _view_name: 'TextView',
+	        _model_name: 'TextModel'
+	    })
+	});
+
+	var TextView = widget.DOMWidgetView.extend({
+	    render: function() {
+	        /**
+	         * Called when view is rendered.
+	         */
+	        this.el.classList.add('jupyter-widgets');
+	        this.el.classList.add('widget-hbox');
+	        this.el.classList.add('widget-text');
+	        this.label = document.createElement('div');
+	        this.label.className = 'widget-label';
+	        this.el.appendChild(this.label);
+	        this.label.style.display = 'none';
+
+	        this.textbox = document.createElement('input');
+	        this.textbox.setAttribute('type', 'text');
+	        this.textbox.className = 'input form-control';
+	        this.el.appendChild(this.textbox);
+
+	        this.update(); // Set defaults.
+	        this.listenTo(this.model, 'change:placeholder', function(model, value, options) {
+	            this.update_placeholder(value);
+	        }, this);
+
+	        this.update_placeholder();
+	    },
+
+	    update_placeholder: function(value) {
+	        if (!value) {
+	            value = this.model.get('placeholder');
+	        }
+	        this.textbox.setAttribute('placeholder', value);
+	    },
+
+	    update: function(options) {
+	        /**
+	         * Update the contents of this view
+	         *
+	         * Called when the model is changed.  The model may have been
+	         * changed by another view or by a state update from the back-end.
+	         */
+	        if (options === undefined || options.updated_view != this) {
+	            if (this.textbox.value != this.model.get('value')) {
+	              this.textbox.value = this.model.get('value');
+	            }
+
+	            var disabled = this.model.get('disabled');
+	            this.textbox.disabled = disabled;
+
+	            var description = this.model.get('description');
+	            if (description.length === 0) {
+	                this.label.style.display = 'none';
+	            } else {
+	                this.typeset(this.label, description);
+	                this.label.style.display = '';
+	            }
+	        }
+	        return TextView.__super__.update.apply(this);
+	    },
+
+	    events: {
+	        // Dictionary of events and their handlers.
+	        'keyup input'    : 'handleChanging',
+	        'paste input'    : 'handleChanging',
+	        'cut input'      : 'handleChanging',
+	        'keypress input' : 'handleKeypress',
+	        'blur input'     : 'handleBlur',
+	        'focusout input' : 'handleFocusOut'
+	    },
+
+	    handleChanging: function(e) {
+	        /**
+	         * Handles user input.
+	         *
+	         * Calling model.set will trigger all of the other views of the
+	         * model to update.
+	         */
+	        this.model.set('value', e.target.value, {updated_view: this});
+	        this.touch();
+	    },
+
+	    handleKeypress: function(e) {
+	        /**
+	         * Handles text submition
+	         */
+	        if (e.keyCode == 13) { // Return key
+	            this.send({event: 'submit'});
+	            e.stopPropagation();
+	            e.preventDefault();
+	            return false;
+	        }
+	    },
+
+	    handleBlur: function(e) {
+	        /**
+	         * Prevent a blur from firing if the blur was not user intended.
+	         * This is a workaround for the return-key focus loss bug.
+	         * TODO: Is the original bug actually a fault of the keyboard
+	         * manager?
+	         */
+	        if (e.relatedTarget === null) {
+	            e.stopPropagation();
+	            e.preventDefault();
+	            return false;
+	        }
+	    },
+
+	    handleFocusOut: function(e) {
+	        /**
+	         * Prevent a blur from firing if the blur was not user intended.
+	         * This is a workaround for the return-key focus loss bug.
+	         */
+	        if (e.relatedTarget === null) {
+	            e.stopPropagation();
+	            e.preventDefault();
+	            return false;
+	        }
+	    }
+	});
+
+	module.exports = {
+	    StringModel: StringModel,
+	    HTMLView: HTMLView,
+	    HTMLModel: HTMLModel,
+	    LabelView: LabelView,
+	    LabelModel: LabelModel,
+	    TextareaView: TextareaView,
+	    TextareaModel: TextareaModel,
+	    TextView: TextView,
+	    TextModel: TextModel
+	};
+
+
+/***/ },
+/* 58 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// Copyright (c) Jupyter Development Team.
+	// Distributed under the terms of the Modified BSD License.
+	'use strict';
+
+	var widget = __webpack_require__(9);
+	var utils= __webpack_require__(8);
+	var _ = __webpack_require__(5);
+
+	var ControllerButtonModel = widget.DOMWidgetModel.extend({
+	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
+	        _model_name: 'ControllerButtonModel',
+	        _view_name: 'ControllerButtonView',
+	        value: 0.0,
+	        pressed: false
+	    })
+	});
+
+	var ControllerButtonView = widget.DOMWidgetView.extend({
+	    /* Very simple view for a gamepad button. */
+
+	    render: function() {
+	        this.el.classList.add('jupyter-widgets');
+	        this.el.classList.add('widget-controller-button');
+
+	        this.support = document.createElement('div');
+	        this.support.style.position = 'relative';
+	        this.support.style.margin = '1px';
+	        this.support.style.width = '16px';
+	        this.support.style.height = '16px';
+	        this.support.style.border = '1px solid black';
+	        this.support.style.background = 'lightgray';
+	        this.el.appendChild(this.support);
+
+	        this.bar = document.createElement('div');
+	        this.bar.style.position = 'absolute';
+	        this.bar.style.width = '100%';
+	        this.bar.style.bottom = 0;
+	        this.bar.style.background = 'gray';
+	        this.support.appendChild(this.bar);
+
+	        this.update();
+	        this.label = document.createElement('div');
+	        this.label.textContent = this.model.get('description');
+	        this.label.style.textAlign = 'center';
+	        this.el.appendChild(this.label);
+	    },
+
+	    update: function() {
+	        this.bar.style.height = 100 * this.model.get('value') + '%';
+	    }
+	});
+
+	var ControllerAxisModel = widget.DOMWidgetModel.extend({
+	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
+	        _model_name: 'ControllerAxisModel',
+	        _view_name: 'ControllerAxisView',
+	        value: 0.0
+	    })
+	});
+
+	var ControllerAxisView = widget.DOMWidgetView.extend({
+	    /* Very simple view for a gamepad axis. */
+	    render: function() {
+	        this.el.classList.add('jupyter-widgets');
+	        this.el.classList.add('widget-controller-axis');
+	        this.el.style.width = '16px';
+	        this.el.style.padding = '4px';
+
+	        this.support = document.createElement('div');
+	        this.support.style.position = 'relative';
+	        this.support.style.margin = '1px';
+	        this.support.style.width = '4px';
+	        this.support.style.height = '64px';
+	        this.support.style.border = '1px solid black';
+	        this.support.style.background = 'lightgray';
+	        this.el.appendChild(this.support);
+
+	        this.bullet = document.createElement('div');
+	        this.bullet.style.position = 'absolute';
+	        this.bullet.style.margin = '-4px';
+	        this.bullet.style.width = '10px';
+	        this.bullet.style.height = '10px';
+	        this.bullet.style.background = 'gray';
+	        this.el.appendChild(this.support);
+
+	        this.label = document.createElement('div');
+	        this.label.textContent = this.model.get('description');
+	        this.label.style.textAlign = 'center';
+	        this.el.appendChild(this.label);
+
+	        this.update();
+	    },
+
+	    update: function() {
+	        this.bullet.style.top = 50 * (this.model.get('value') + 1) + '%';
+	    }
+
+	});
+
+	var ControllerModel = widget.DOMWidgetModel.extend({
+	    /* The Controller model. */
+	    defaults: _.extend({}, widget.DOMWidgetModel.prototype.defaults, {
+	        _model_name: 'ControllerModel',
+	        _view_name: 'ControllerView',
+	        index: 0,
+	        name: '',
+	        mapping: '',
+	        connected: false,
+	        timestamp: 0,
+	        buttons: [],
+	        axes: []
+	    }),
+
+	    initialize: function() {
+	        if (navigator.getGamepads === void 0) {
+	            // Checks if the browser supports the gamepad API
+	            this.readout = 'This browser does not support gamepads.';
+	            console.error(this.readout);
+	        } else {
+	            // Start the wait loop, and listen to updates of the only
+	            // user-provided attribute, the gamepad index.
+	            this.readout = 'Connect gamepad and press any button.';
+	            if (this.get('connected')) {
+	                // No need to re-create Button and Axis widgets, re-use
+	                // the models provided by the backend which may already
+	                // be wired to other things.
+	                this.update_loop();
+	            } else {
+	                 // Wait for a gamepad to be connected.
+	                this.wait_loop();
+	            }
+	        }
+	    },
+
+	    wait_loop: function() {
+	        /* Waits for a gamepad to be connected at the provided index.
+	         * Once one is connected, it will start the update loop, which
+	         * populates the update of axes and button values.
+	         */
+	        var index = this.get('index');
+	        var pad = navigator.getGamepads()[index];
+	        if (pad) {
+	            var that = this;
+	            this.setup(pad).then(function(controls) {
+	                that.set(controls);
+	                that.save_changes();
+	                window.requestAnimationFrame(that.update_loop.bind(that));
+	            });
+	        } else {
+	            window.requestAnimationFrame(this.wait_loop.bind(this));
+	        }
+	    },
+
+	    setup: function(pad) {
+	        /* Given a native gamepad object, returns a promise for a dictionary of
+	         * controls, of the form
+	         * {
+	         *     buttons: list of Button models,
+	         *     axes: list of Axis models,
+	         * }
+	         */
+	        // Set up the main gamepad attributes
+	        this.set({
+	            name: pad.id,
+	            mapping: pad.mapping,
+	            connected: pad.connected,
+	            timestamp: pad.timestamp
+	        });
+	        // Create buttons and axes. When done, start the update loop
+	        var that = this;
+	        return utils.resolvePromisesDict({
+	            buttons: Promise.all(pad.buttons.map(function(btn, index) {
+	                return that._create_button_model(index);
+	            })),
+	            axes: Promise.all(pad.axes.map(function(axis, index) {
+	                return that._create_axis_model(index);
+	            })),
+	        });
+	    },
+
+	    update_loop: function() {
+	        /* Update axes and buttons values, until the gamepad is disconnected.
+	         * When the gamepad is disconnected, this.reset_gamepad is called.
+	         */
+	        var index = this.get('index');
+	        var id = this.get('name');
+	        var pad = navigator.getGamepads()[index];
+	        if (pad && index === pad.index && id === pad.id) {
+	            this.set({
+	                timestamp: pad.timestamp,
+	                connected: pad.connected
+	            });
+	            this.save_changes();
+	            this.get('buttons').forEach(function(model, index) {
+	                model.set({
+	                    value: pad.buttons[index].value,
+	                    pressed: pad.buttons[index].pressed
+	                });
+	                model.save_changes();
+	            });
+	            this.get('axes').forEach(function(model, index) {
+	                model.set('value', pad.axes[index]);
+	                model.save_changes();
+	            });
+	            window.requestAnimationFrame(this.update_loop.bind(this));
+	        } else {
+	            this.reset_gamepad();
+	        }
+	    },
+
+	    reset_gamepad: function() {
+	        /* Resets the gamepad attributes, and start the wait_loop.
+	         */
+	        this.get('buttons').forEach(function(button) {
+	            button.close();
+	        });
+	        this.get('axes').forEach(function(axis) {
+	            axis.close();
+	        });
+	        this.set({
+	            name: '',
+	            mapping: '',
+	            connected: false,
+	            timestamp: 0.0,
+	            buttons: [],
+	            axes: []
+	        });
+	        this.save_changes();
+	        window.requestAnimationFrame(this.wait_loop.bind(this));
+	    },
+
+	    _create_button_model: function(index) {
+	        /* Creates a gamepad button widget.
+	         */
+	        return this.widget_manager.new_widget({
+	             model_name: 'ControllerButtonModel',
+	             model_module: 'jupyter-js-widgets',
+	             widget_class: 'Jupyter.ControllerButton',
+	        }).then(function(model) {
+	             model.set('description', index);
+	             return model;
+	        });
+	    },
+
+	    _create_axis_model: function(index) {
+	        /* Creates a gamepad axis widget.
+	         */
+	        return this.widget_manager.new_widget({
+	             model_name: 'ControllerAxisModel',
+	             model_module: 'jupyter-js-widgets',
+	             widget_class: 'Jupyter.ControllerAxis',
+	        }).then(function(model) {
+	             model.set('description', index);
+	             return model;
+	        });
+	    }
+
+	}, {
+	    serializers: _.extend({
+	        buttons: {deserialize: widget.unpack_models},
+	        axes: {deserialize: widget.unpack_models}
+	    }, widget.DOMWidgetModel.serializers)
+	});
+
+	var ControllerView = widget.DOMWidgetView.extend({
+	    /* A simple view for a gamepad. */
+
+	    initialize: function() {
+	        ControllerView.__super__.initialize.apply(this, arguments);
+
+	        this.button_views = new widget.ViewList(this.add_button, null, this);
+	        this.listenTo(this.model, 'change:buttons', function(model, value) {
+	            this.button_views.update(value);
+	        }, this);
+
+	        this.axis_views = new widget.ViewList(this.add_axis, null, this);
+	        this.listenTo(this.model, 'change:axes', function(model, value) {
+	            this.axis_views.update(value);
+	        }, this);
+
+	        this.listenTo(this.model, 'change:name', this.update_label, this);
+	    },
+
+	    render: function(){
+	        this.el.classList.add('jupyter-widgets');
+	        this.el.classList.add('widget-controller');
+	        this.box = this.el;
+	        this.label = document.createElement('div');
+	        this.box.appendChild(this.label);
+	        this.axis_box = document.createElement('div');
+	        this.axis_box.style.display = 'flex';
+	        this.box.appendChild(this.axis_box);
+
+	        this.button_box = document.createElement('div');
+	        this.button_box.style.display = 'flex';
+	        this.box.appendChild(this.button_box);
+
+	        this.button_views.update(this.model.get('buttons'));
+	        this.axis_views.update(this.model.get('axes'));
+
+	        this.update_label();
+	    },
+
+	    update_label: function() {
+	        this.label.textContent = this.model.get('name') || this.model.readout;
+	    },
+
+	    add_button: function(model) {
+	        var that = this;
+	        var dummy = document.createElement('div');
+
+	        that.button_box.appendChild(dummy);
+	        return this.create_child_view(model).then(function(view) {
+	            dummy.replaceWith(view.el);
+	            that.displayed.then(function() {
+	                view.trigger('displayed', that);
+	            });
+	            return view;
+	        }).catch(utils.reject('Could not add button view', true));
+	    },
+
+	    add_axis: function(model) {
+	        var that = this;
+	        var dummy = document.createElement('div');
+
+	        that.axis_box.appendChild(dummy);
+	        return this.create_child_view(model).then(function(view) {
+	            dummy.replaceWith(view.el);
+	            that.displayed.then(function() {
+	                view.trigger('displayed', that);
+	            });
+	            return view;
+	        }).catch(utils.reject('Could not add axis view', true));
+	    },
+
+	    remove: function() {
+	        ControllerView.__super__.remove.apply(this, arguments);
+	        this.button_views.remove();
+	        this.axis_views.remove();
+	    }
+
+	});
+
+	module.exports = {
+	    ControllerButtonView: ControllerButtonView,
+	    ControllerButtonModel: ControllerButtonModel,
+	    ControllerAxisView: ControllerAxisView,
+	    ControllerAxisModel: ControllerAxisModel,
+	    ControllerModel: ControllerModel,
+	    ControllerView: ControllerView
+	};
+
+
+/***/ },
+/* 59 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// Copyright (c) Jupyter Development Team.
+	// Distributed under the terms of the Modified BSD License.
+	'use strict';
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var phosphor_widget_1 = __webpack_require__(32);
+	/**
+	 * The class name added to an BBWidget widget.
+	 */
+	var BBWIDGET_CLASS = 'jp-BBWidget';
+	/**
+	 * A phosphor widget which wraps a `Backbone` view instance.
+	 */
+	var BBWidget = (function (_super) {
+	    __extends(BBWidget, _super);
+	    /**
+	     * Construct a new `Backbone` wrapper widget.
+	     *
+	     * @param view - The `Backbone.View` instance being wrapped.
+	     */
+	    function BBWidget(view) {
+	        _super.call(this);
+	        this.addClass(BBWIDGET_CLASS);
+	        this._view = view;
+	        this._view.render();
+	        this.node.appendChild(this._view.el);
+	    }
+	    /**
+	     * Dispose of the resources held by the widget.
+	     */
+	    BBWidget.prototype.dispose = function () {
+	        this._view.undelegateEvents();
+	        this._view.remove();
+	        _super.prototype.dispose.call(this);
+	    };
+	    return BBWidget;
+	}(phosphor_widget_1.Widget));
+	exports.BBWidget = BBWidget;
+
+
+/***/ },
+/* 60 */
 /***/ function(module, exports) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -40062,7 +41873,7 @@
 
 
 /***/ },
-/* 53 */
+/* 61 */
 /***/ function(module, exports) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -40076,7 +41887,7 @@
 
 
 /***/ },
-/* 54 */
+/* 62 */
 /***/ function(module, exports) {
 
 	// Copyright (c) Jupyter Development Team.
