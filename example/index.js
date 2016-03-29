@@ -246,7 +246,11 @@ function main() {
   htmlModelThree.set('value', 'HTML view 3');
 
   tabModel.set('children', [htmlModelOne, htmlModelTwo, htmlModelThree]);
-  tabModel.set('_titles', optionData.slice(0, 3));
+  tabModel.set('_titles', {
+    0: optionData[0],
+    1: optionData[1],
+    2: optionData[2]
+  });
 
   var tabView = new widgets.TabView({ model: tabModel });
 
