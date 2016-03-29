@@ -292,7 +292,11 @@
 	  htmlModelThree.set('value', 'HTML view 3');
 
 	  tabModel.set('children', [htmlModelOne, htmlModelTwo, htmlModelThree]);
-	  tabModel.set('_titles', optionData.slice(0, 3));
+	  tabModel.set('_titles', {
+	    0: optionData[0],
+	    1: optionData[1],
+	    2: optionData[2]
+	  });
 
 	  var tabView = new widgets.TabView({ model: tabModel });
 
@@ -33386,9 +33390,14 @@
 	            this.removeChildView,
 	            this
 	        );
-	        this.listenTo(this.model, 'change:children', function(model, value) {
-	            this.childrenViews.update(value);
-	        }, this);
+	        this.listenTo(this.model, 'change:children',
+	            function(model, value) { this.childrenViews.update(value); },
+	            this
+	        );
+	        this.listenTo(this.model, 'change:_titles',
+	            function(model, value, options) { this.updateTitles(options); },
+	            this
+	        );
 	    },
 
 	    render: function() {
@@ -33467,14 +33476,14 @@
 	     * Updates the tab page titles.
 	     */
 	    updateTitles: function() {
-	        var titles = this.model.get('_titles') || [];
+	        var titles = this.model.get('_titles') || {};
 	        for (var i = this.tabBar.itemCount() - 1; i > -1; i--) {
 	            this.tabBar.itemAt(i).title.text = titles[i] || (i + 1) + '';
 	        }
 	    },
 
 	    /**
-	     * Updates the tab page titles.
+	     * Updates the selected index.
 	     */
 	    updateSelectedIndex: function(options) {
 	        if (options === undefined || options.updated_view !== this) {
@@ -33488,10 +33497,10 @@
 	        }
 	    },
 
+	    /**
+	     * Select a page.
+	     */
 	    selectPage: function(index) {
-	        /**
-	         * Select a page.
-	         */
 	        var actives = this.el.querySelectorAll('.mod-active');
 	        if (actives.length) {
 	            for (var i = 0, len = actives.length; i < len; i++) {
@@ -33506,6 +33515,11 @@
 	    },
 
 	    remove: function() {
+	        /*
+	         * The tab bar needs to be disposed before its node is removed by the
+	         * super call, otherwise phosphor's Widget.detach will throw an error.
+	         */
+	        this.tabBar.dispose();
 	        /**
 	         * We remove this widget before removing the children as an optimization
 	         * we want to remove the entire container from the DOM first before
@@ -33513,7 +33527,6 @@
 	         */
 	        TabView.__super__.remove.apply(this, arguments);
 	        this.childrenViews.remove();
-	        this.tabBar.dispose();
 	    },
 
 	    _onTabChanged: function(sender, args) {
@@ -33522,14 +33535,27 @@
 	    },
 
 	    _onTabCloseRequested: function(sender, args) {
-	        var children = this.model.get('children');
-	        var titles = this.model.get('_titles') || [];
-	        this.model.set('_titles', _.filter(titles, function(title, index) {
-	            return index !== args.index;
-	        }));
-	        this.model.set('children', _.filter(children, function(child, index) {
-	            return index !== args.index;
-	        }));
+	        /*
+	         * When a tab is removed, the titles dictionary must be reset for all
+	         * indices that are larger than the index of the tab that was removed.
+	         */
+	        var len = this.model.get('children').length;
+	        var titles = this.model.get('_titles') || {};
+	        delete titles[args.index];
+	        for (var i = args.index + 1; i < len; i++) {
+	            titles[i - 1] = titles[i];
+	            delete titles[i];
+	        }
+
+	        var children = _.filter(
+	            this.model.get('children'),
+	            function(child, index) { return index !== args.index; }
+	        );
+
+	        this.model.set(
+	            { 'children': children, '_titles': titles },
+	            { updated_view: this }
+	        );
 	        this.touch();
 	    }
 	});
