@@ -167,7 +167,8 @@ function main() {
   four.addChild(fourB);
   four.addClass('four');
 
-  ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
+  var styles = ['', 'primary', 'success', 'info', 'warning', 'danger'];
+  styles.forEach(function (style) {
     // Regular button
     var buttonModel = new widgets.ButtonModel({ callbacks: noop });
     buttonModel.set('tooltip', style + ' button');
@@ -258,6 +259,7 @@ function main() {
   nine.addClass('nine');
 
   requestAnimationFrame(function() { tabView.trigger('displayed'); });
+  nine.addClass('nine');
 
   // Populate row three
   rowThree.addChild(seven);
