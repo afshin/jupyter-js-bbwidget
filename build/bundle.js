@@ -51,19 +51,19 @@
 
 	var widgets = __webpack_require__(1);
 
-	var BBWidget = __webpack_require__(59).BBWidget;
+	var BBWidget = __webpack_require__(61).BBWidget;
 
-	var BoxPanel = __webpack_require__(45).BoxPanel;
+	var BoxPanel = __webpack_require__(47).BoxPanel;
 
-	var Panel = __webpack_require__(48).Panel;
+	var Panel = __webpack_require__(50).Panel;
 
-	var Widget = __webpack_require__(32).Widget;
+	var Widget = __webpack_require__(34).Widget;
 
-	var imageData = __webpack_require__(60);
+	var imageData = __webpack_require__(62);
 
-	var latexData = __webpack_require__(61);
+	var latexData = __webpack_require__(63);
 
-	var optionData = __webpack_require__(62);
+	var optionData = __webpack_require__(64);
 
 
 	function layoutPage() {
@@ -213,7 +213,8 @@
 	  four.addChild(fourB);
 	  four.addClass('four');
 
-	  ['primary', 'success', 'info', 'warning', 'danger'].forEach(function (style) {
+	  var styles = ['', 'primary', 'success', 'info', 'warning', 'danger'];
+	  styles.forEach(function (style) {
 	    // Regular button
 	    var buttonModel = new widgets.ButtonModel({ callbacks: noop });
 	    buttonModel.set('tooltip', style + ' button');
@@ -304,6 +305,7 @@
 	  nine.addClass('nine');
 
 	  requestAnimationFrame(function() { tabView.trigger('displayed'); });
+	  nine.addClass('nine');
 
 	  // Populate row three
 	  rowThree.addChild(seven);
@@ -339,21 +341,23 @@
 
 	var loadedModules = [
 	    managerBase,
-	    __webpack_require__(8),
-	    widget,
 	    __webpack_require__(11),
 	    __webpack_require__(12),
+	    __webpack_require__(8),
+	    widget,
 	    __webpack_require__(13),
 	    __webpack_require__(14),
 	    __webpack_require__(15),
 	    __webpack_require__(16),
-	    __webpack_require__(18),
 	    __webpack_require__(17),
-	    __webpack_require__(19),
+	    __webpack_require__(18),
 	    __webpack_require__(20),
+	    __webpack_require__(19),
 	    __webpack_require__(21),
-	    __webpack_require__(57),
-	    __webpack_require__(58),
+	    __webpack_require__(22),
+	    __webpack_require__(23),
+	    __webpack_require__(59),
+	    __webpack_require__(60),
 	];
 	for (var i in loadedModules) {
 	    if (loadedModules.hasOwnProperty(i)) {
@@ -385,9 +389,8 @@
 	} else {
 	    $ = __webpack_require__(3);
 	    global.jQuery = $; // Required for bootstrap to load correctly
-
-	    __webpack_require__(4);
 	}
+	__webpack_require__(4);
 	module.exports = $;
 
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
@@ -26878,10 +26881,6 @@
 	    throw new Error('Manager.display_view not implemented');
 	};
 
-	ManagerBase.prototype.loadClass = function(class_name, module_name, registry) {
-	    return utils.loadClass(class_name, module_name, registry);
-	};
-
 	ManagerBase.prototype.setViewOptions = function(options) {
 	    /**
 	     * Modifies view options. Generally overloaded in custom widget manager
@@ -26900,7 +26899,7 @@
 	    var that = this;
 	    model.state_change = model.state_change.then(function() {
 
-	        return that.loadClass(
+	        return utils.loadClass(
 	            model.get('_view_name'),
 	            model.get('_view_module'),
 	            ManagerBase._view_types
@@ -27096,9 +27095,9 @@
 	        throw new Error('Neither comm nor model_id provided in options object. At least one must exist.');
 	    }
 
-	    var model_promise = this.loadClass(options.model_name,
-	                                       options.model_module,
-	                                       ManagerBase._model_types)
+	    var model_promise = utils.loadClass(options.model_name,
+	                                        options.model_module,
+	                                        ManagerBase._model_types)
 	        .then(function(ModelType) {
 	            return ModelType._deserialize_state(serialized_state || ModelType.prototype.defaults, that).then(function(attributes) {
 	                var widget_model = new ModelType(that, model_id, options.comm, attributes);
@@ -27199,11 +27198,13 @@
 	    }).catch(utils.reject('Could not get state of widget manager', true));
 	};
 
-	ManagerBase.prototype.set_state = function(state) {
+	ManagerBase.prototype.set_state = function(state, displayOptions) {
 	    /**
 	     * Set the widget manager state.
 	     *
-	     * Reconstructs all of the widget models and attempts to redisplay them..
+	     * Reconstructs all of the widget models in the state, merges that with the
+	     * current manager state, and then attempts to redisplay the widgets in the
+	     * state.
 	     */
 	    var that = this;
 
@@ -27211,9 +27212,14 @@
 	    var all_models = that._get_comm_info().then(function(live_comms) {
 	        return Promise.all(_.map(Object.keys(state), function (model_id) {
 
-	            // If the model has already been created, return it.
+	            // If the model has already been created, set it's state and then
+	            // return it.
 	            if (that._models[model_id]) {
-	                return that._models[model_id];
+	                return that._models[model_id].then(function(model) {
+	                    return model.set_state(state[model_id].state).then(function() {
+	                        return model;
+	                    });
+	                });
 	            }
 
 	            if (live_comms.hasOwnProperty(model_id)) {  // live comm
@@ -27239,9 +27245,11 @@
 	        return Promise.all(_.map(models, function(model) {
 	            // Display the views of the model.
 	            if (state[model.id] !== undefined) {
-	              return Promise.all(_.map(state[model.id].views, function(options) {
-	                  return that.display_model(undefined, model, options);
-	              }));
+	                return Promise.all(_.map(state[model.id].views, function(options) {
+	                    // Display the model using the display options merged with the
+	                    // options.
+	                    return that.display_model(undefined, model, Object.assign({}, options, displayOptions));
+	                }));
 	            }
 	        }));
 	    }).catch(utils.reject('Could not set widget manager state.', true));
@@ -30385,6 +30393,62 @@
 
 /***/ },
 /* 11 */
+/***/ function(module, exports) {
+
+	// Copyright (c) Jupyter Development Team.
+	// Distributed under the terms of the Modified BSD License.
+
+	function generateEmbedScript(widgetState, alternativeHtml) {
+	  return ["if (typeof w === 'undefined') {",
+	    "  var container = document.createElement('div');",
+	    "  container.innerHTML = atob('" + btoa(alternativeHtml) + "');",
+	    "  var context = Array.prototype.slice.call(document.querySelectorAll('script'), -1)[0];",
+	    "  context.parentElement.insertBefore(container, context);",
+	    "} else {",
+	    "  w(" + JSON.stringify(widgetState) + ");",
+	    "}"].join('\n');
+	}
+
+	module.exports = {
+	  generateEmbedScript: generateEmbedScript,
+	};
+
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// Copyright (c) Jupyter Development Team.
+	// Distributed under the terms of the Modified BSD License.
+
+	var manager = __webpack_require__(6);
+
+	var EmbedManager = exports.EmbedManager = function() {
+	    manager.ManagerBase.call(this);
+	};
+	EmbedManager.prototype = Object.create(manager.ManagerBase.prototype);
+
+	EmbedManager.prototype.display_widget_state = function(models, el) {
+	    this.set_state(models, { el: el });
+	};
+
+	EmbedManager.prototype.display_view = function(msg, view, options) {
+	    return Promise.resolve(view).then(function(view) {
+	        options.el.appendChild(view.el);
+	        view.on('remove', function() {
+	            console.log('View removed', view);
+	        });
+	        return view;
+	    });
+	};
+
+	EmbedManager.prototype._get_comm_info = function() {
+	    return Promise.resolve({});
+	};
+
+
+/***/ },
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -30520,7 +30584,7 @@
 
 
 /***/ },
-/* 12 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -30640,7 +30704,7 @@
 
 
 /***/ },
-/* 13 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -30886,7 +30950,7 @@
 
 
 /***/ },
-/* 14 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -30985,7 +31049,7 @@
 
 
 /***/ },
-/* 15 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -31272,7 +31336,7 @@
 
 
 /***/ },
-/* 16 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -31280,7 +31344,7 @@
 	'use strict';
 
 	var widget = __webpack_require__(9);
-	var int_widgets = __webpack_require__(17);
+	var int_widgets = __webpack_require__(19);
 
 	var IntSliderView = int_widgets.IntSliderView;
 	var IntTextView = int_widgets.IntTextView;
@@ -31311,7 +31375,7 @@
 
 
 /***/ },
-/* 17 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -31937,7 +32001,7 @@
 
 
 /***/ },
-/* 18 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -32009,7 +32073,7 @@
 
 
 /***/ },
-/* 19 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -32137,7 +32201,7 @@
 
 
 /***/ },
-/* 20 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -33172,7 +33236,7 @@
 
 
 /***/ },
-/* 21 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -33181,10 +33245,10 @@
 
 	var widget = __webpack_require__(9);
 	var utils = __webpack_require__(8);
-	var box = __webpack_require__(15);
+	var box = __webpack_require__(17);
 	var _ = __webpack_require__(5);
-	var TabBar = __webpack_require__(22).TabBar;
-	var Title = __webpack_require__(32).Title;
+	var TabBar = __webpack_require__(24).TabBar;
+	var Title = __webpack_require__(34).Title;
 
 	var SelectionContainerModel = box.BoxModel.extend({
 	    defaults: _.extend({}, box.BoxModel.prototype.defaults, {
@@ -33570,7 +33634,7 @@
 
 
 /***/ },
-/* 22 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -33584,13 +33648,13 @@
 	function __export(m) {
 	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 	}
-	__export(__webpack_require__(23));
-	__export(__webpack_require__(44));
-	__webpack_require__(55);
+	__export(__webpack_require__(25));
+	__export(__webpack_require__(46));
+	__webpack_require__(57);
 
 
 /***/ },
-/* 23 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -33606,10 +33670,10 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var arrays = __webpack_require__(24);
-	var phosphor_domutil_1 = __webpack_require__(25);
-	var phosphor_signaling_1 = __webpack_require__(31);
-	var phosphor_widget_1 = __webpack_require__(32);
+	var arrays = __webpack_require__(26);
+	var phosphor_domutil_1 = __webpack_require__(27);
+	var phosphor_signaling_1 = __webpack_require__(33);
+	var phosphor_widget_1 = __webpack_require__(34);
 	/**
 	 * The class name added to TabBar instances.
 	 */
@@ -34537,7 +34601,7 @@
 
 
 /***/ },
-/* 24 */
+/* 26 */
 /***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
@@ -35225,7 +35289,7 @@
 	//# sourceMappingURL=index.js.map
 
 /***/ },
-/* 25 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -35236,8 +35300,8 @@
 	| The full license is in the file LICENSE, distributed with this software.
 	|----------------------------------------------------------------------------*/
 	'use strict';
-	var phosphor_disposable_1 = __webpack_require__(26);
-	__webpack_require__(27);
+	var phosphor_disposable_1 = __webpack_require__(28);
+	__webpack_require__(29);
 	/**
 	 * The class name added to the document body during cursor override.
 	 */
@@ -35397,7 +35461,7 @@
 	//# sourceMappingURL=index.js.map
 
 /***/ },
-/* 26 */
+/* 28 */
 /***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
@@ -35544,16 +35608,16 @@
 	//# sourceMappingURL=index.js.map
 
 /***/ },
-/* 27 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(28);
+	var content = __webpack_require__(30);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(30)(content, {});
+	var update = __webpack_require__(32)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -35570,10 +35634,10 @@
 	}
 
 /***/ },
-/* 28 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(29)();
+	exports = module.exports = __webpack_require__(31)();
 	// imports
 
 
@@ -35584,7 +35648,7 @@
 
 
 /***/ },
-/* 29 */
+/* 31 */
 /***/ function(module, exports) {
 
 	/*
@@ -35640,7 +35704,7 @@
 
 
 /***/ },
-/* 30 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -35894,7 +35958,7 @@
 
 
 /***/ },
-/* 31 */
+/* 33 */
 /***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
@@ -36348,7 +36412,7 @@
 	//# sourceMappingURL=index.js.map
 
 /***/ },
-/* 32 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -36362,14 +36426,14 @@
 	function __export(m) {
 	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 	}
-	__export(__webpack_require__(33));
+	__export(__webpack_require__(35));
+	__export(__webpack_require__(43));
 	__export(__webpack_require__(41));
-	__export(__webpack_require__(39));
-	__webpack_require__(42);
+	__webpack_require__(44);
 
 
 /***/ },
-/* 33 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -36385,10 +36449,10 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_messaging_1 = __webpack_require__(34);
-	var phosphor_properties_1 = __webpack_require__(38);
-	var phosphor_signaling_1 = __webpack_require__(31);
-	var widget_1 = __webpack_require__(39);
+	var phosphor_messaging_1 = __webpack_require__(36);
+	var phosphor_properties_1 = __webpack_require__(40);
+	var phosphor_signaling_1 = __webpack_require__(33);
+	var widget_1 = __webpack_require__(41);
 	/**
 	 * The abstract base class of all Phosphor layouts.
 	 *
@@ -36650,7 +36714,7 @@
 
 
 /***/ },
-/* 34 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(setImmediate) {/*-----------------------------------------------------------------------------
@@ -36661,7 +36725,7 @@
 	| The full license is in the file LICENSE, distributed with this software.
 	|----------------------------------------------------------------------------*/
 	'use strict';
-	var phosphor_queue_1 = __webpack_require__(37);
+	var phosphor_queue_1 = __webpack_require__(39);
 	/**
 	 * A message which can be sent or posted to a message handler.
 	 *
@@ -37067,13 +37131,13 @@
 	    return MessageDispatcher;
 	})();
 	//# sourceMappingURL=index.js.map
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(35).setImmediate))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(37).setImmediate))
 
 /***/ },
-/* 35 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {var nextTick = __webpack_require__(36).nextTick;
+	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {var nextTick = __webpack_require__(38).nextTick;
 	var apply = Function.prototype.apply;
 	var slice = Array.prototype.slice;
 	var immediateIds = {};
@@ -37149,10 +37213,10 @@
 	exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
 	  delete immediateIds[id];
 	};
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(35).setImmediate, __webpack_require__(35).clearImmediate))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(37).setImmediate, __webpack_require__(37).clearImmediate))
 
 /***/ },
-/* 36 */
+/* 38 */
 /***/ function(module, exports) {
 
 	// shim for using process in browser
@@ -37249,7 +37313,7 @@
 
 
 /***/ },
-/* 37 */
+/* 39 */
 /***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
@@ -37609,7 +37673,7 @@
 	//# sourceMappingURL=index.js.map
 
 /***/ },
-/* 38 */
+/* 40 */
 /***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
@@ -37818,7 +37882,7 @@
 	//# sourceMappingURL=index.js.map
 
 /***/ },
-/* 39 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -37834,11 +37898,11 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_messaging_1 = __webpack_require__(34);
-	var phosphor_nodewrapper_1 = __webpack_require__(40);
-	var phosphor_properties_1 = __webpack_require__(38);
-	var phosphor_signaling_1 = __webpack_require__(31);
-	var title_1 = __webpack_require__(41);
+	var phosphor_messaging_1 = __webpack_require__(36);
+	var phosphor_nodewrapper_1 = __webpack_require__(42);
+	var phosphor_properties_1 = __webpack_require__(40);
+	var phosphor_signaling_1 = __webpack_require__(33);
+	var title_1 = __webpack_require__(43);
 	/**
 	 * The class name added to Widget instances.
 	 */
@@ -38627,7 +38691,7 @@
 
 
 /***/ },
-/* 40 */
+/* 42 */
 /***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
@@ -38759,7 +38823,7 @@
 
 
 /***/ },
-/* 41 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -38770,8 +38834,8 @@
 	| The full license is in the file LICENSE, distributed with this software.
 	|----------------------------------------------------------------------------*/
 	'use strict';
-	var phosphor_properties_1 = __webpack_require__(38);
-	var phosphor_signaling_1 = __webpack_require__(31);
+	var phosphor_properties_1 = __webpack_require__(40);
+	var phosphor_signaling_1 = __webpack_require__(33);
 	/**
 	 * An object which holds data related to a widget title.
 	 *
@@ -38951,16 +39015,16 @@
 
 
 /***/ },
-/* 42 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(43);
+	var content = __webpack_require__(45);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(30)(content, {});
+	var update = __webpack_require__(32)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -38977,10 +39041,10 @@
 	}
 
 /***/ },
-/* 43 */
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(29)();
+	exports = module.exports = __webpack_require__(31)();
 	// imports
 
 
@@ -38991,7 +39055,7 @@
 
 
 /***/ },
-/* 44 */
+/* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -39007,10 +39071,10 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_boxpanel_1 = __webpack_require__(45);
-	var phosphor_stackedpanel_1 = __webpack_require__(52);
-	var phosphor_widget_1 = __webpack_require__(32);
-	var tabbar_1 = __webpack_require__(23);
+	var phosphor_boxpanel_1 = __webpack_require__(47);
+	var phosphor_stackedpanel_1 = __webpack_require__(54);
+	var phosphor_widget_1 = __webpack_require__(34);
+	var tabbar_1 = __webpack_require__(25);
 	/**
 	 * The class name added to TabPanel instances.
 	 */
@@ -39260,7 +39324,7 @@
 
 
 /***/ },
-/* 45 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -39274,12 +39338,12 @@
 	function __export(m) {
 	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 	}
-	__export(__webpack_require__(46));
-	__export(__webpack_require__(51));
+	__export(__webpack_require__(48));
+	__export(__webpack_require__(53));
 
 
 /***/ },
-/* 46 */
+/* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -39295,13 +39359,13 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var arrays = __webpack_require__(24);
-	var phosphor_boxengine_1 = __webpack_require__(47);
-	var phosphor_domutil_1 = __webpack_require__(25);
-	var phosphor_messaging_1 = __webpack_require__(34);
-	var phosphor_properties_1 = __webpack_require__(38);
-	var phosphor_panel_1 = __webpack_require__(48);
-	var phosphor_widget_1 = __webpack_require__(32);
+	var arrays = __webpack_require__(26);
+	var phosphor_boxengine_1 = __webpack_require__(49);
+	var phosphor_domutil_1 = __webpack_require__(27);
+	var phosphor_messaging_1 = __webpack_require__(36);
+	var phosphor_properties_1 = __webpack_require__(40);
+	var phosphor_panel_1 = __webpack_require__(50);
+	var phosphor_widget_1 = __webpack_require__(34);
 	/**
 	 * The class name added to left-to-right box layout parents.
 	 */
@@ -39853,7 +39917,7 @@
 
 
 /***/ },
-/* 47 */
+/* 49 */
 /***/ function(module, exports) {
 
 	/*-----------------------------------------------------------------------------
@@ -40187,7 +40251,7 @@
 	//# sourceMappingURL=index.js.map
 
 /***/ },
-/* 48 */
+/* 50 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -40201,12 +40265,12 @@
 	function __export(m) {
 	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 	}
-	__export(__webpack_require__(49));
-	__export(__webpack_require__(50));
+	__export(__webpack_require__(51));
+	__export(__webpack_require__(52));
 
 
 /***/ },
-/* 49 */
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -40222,9 +40286,9 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var arrays = __webpack_require__(24);
-	var phosphor_messaging_1 = __webpack_require__(34);
-	var phosphor_widget_1 = __webpack_require__(32);
+	var arrays = __webpack_require__(26);
+	var phosphor_messaging_1 = __webpack_require__(36);
+	var phosphor_widget_1 = __webpack_require__(34);
 	/**
 	 * A concrete layout implementation suitable for many use cases.
 	 *
@@ -40446,7 +40510,7 @@
 
 
 /***/ },
-/* 50 */
+/* 52 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -40462,8 +40526,8 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_widget_1 = __webpack_require__(32);
-	var layout_1 = __webpack_require__(49);
+	var phosphor_widget_1 = __webpack_require__(34);
+	var layout_1 = __webpack_require__(51);
 	/**
 	 * The class name added to Panel instances.
 	 */
@@ -40557,7 +40621,7 @@
 
 
 /***/ },
-/* 51 */
+/* 53 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -40573,8 +40637,8 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_panel_1 = __webpack_require__(48);
-	var layout_1 = __webpack_require__(46);
+	var phosphor_panel_1 = __webpack_require__(50);
+	var layout_1 = __webpack_require__(48);
 	/**
 	 * The class name added to BoxPanel instances.
 	 */
@@ -40720,7 +40784,7 @@
 
 
 /***/ },
-/* 52 */
+/* 54 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -40734,12 +40798,12 @@
 	function __export(m) {
 	    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 	}
-	__export(__webpack_require__(53));
-	__export(__webpack_require__(54));
+	__export(__webpack_require__(55));
+	__export(__webpack_require__(56));
 
 
 /***/ },
-/* 53 */
+/* 55 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -40755,11 +40819,11 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_domutil_1 = __webpack_require__(25);
-	var phosphor_messaging_1 = __webpack_require__(34);
-	var phosphor_panel_1 = __webpack_require__(48);
-	var phosphor_properties_1 = __webpack_require__(38);
-	var phosphor_widget_1 = __webpack_require__(32);
+	var phosphor_domutil_1 = __webpack_require__(27);
+	var phosphor_messaging_1 = __webpack_require__(36);
+	var phosphor_panel_1 = __webpack_require__(50);
+	var phosphor_properties_1 = __webpack_require__(40);
+	var phosphor_widget_1 = __webpack_require__(34);
 	/**
 	 * A layout where visible children are stacked atop one another.
 	 *
@@ -41036,7 +41100,7 @@
 
 
 /***/ },
-/* 54 */
+/* 56 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*-----------------------------------------------------------------------------
@@ -41052,9 +41116,9 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_panel_1 = __webpack_require__(48);
-	var phosphor_signaling_1 = __webpack_require__(31);
-	var layout_1 = __webpack_require__(53);
+	var phosphor_panel_1 = __webpack_require__(50);
+	var phosphor_signaling_1 = __webpack_require__(33);
+	var layout_1 = __webpack_require__(55);
 	/**
 	 * The class name added to StackedPanel instances.
 	 */
@@ -41123,16 +41187,16 @@
 
 
 /***/ },
-/* 55 */
+/* 57 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(56);
+	var content = __webpack_require__(58);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(30)(content, {});
+	var update = __webpack_require__(32)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -41149,10 +41213,10 @@
 	}
 
 /***/ },
-/* 56 */
+/* 58 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(29)();
+	exports = module.exports = __webpack_require__(31)();
 	// imports
 
 
@@ -41163,7 +41227,7 @@
 
 
 /***/ },
-/* 57 */
+/* 59 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -41484,7 +41548,7 @@
 
 
 /***/ },
-/* 58 */
+/* 60 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -41841,7 +41905,7 @@
 
 
 /***/ },
-/* 59 */
+/* 61 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -41852,7 +41916,7 @@
 	    function __() { this.constructor = d; }
 	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
-	var phosphor_widget_1 = __webpack_require__(32);
+	var phosphor_widget_1 = __webpack_require__(34);
 	/**
 	 * The class name added to an BBWidget widget.
 	 */
@@ -41888,7 +41952,7 @@
 
 
 /***/ },
-/* 60 */
+/* 62 */
 /***/ function(module, exports) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -41899,7 +41963,7 @@
 
 
 /***/ },
-/* 61 */
+/* 63 */
 /***/ function(module, exports) {
 
 	// Copyright (c) Jupyter Development Team.
@@ -41913,7 +41977,7 @@
 
 
 /***/ },
-/* 62 */
+/* 64 */
 /***/ function(module, exports) {
 
 	// Copyright (c) Jupyter Development Team.
